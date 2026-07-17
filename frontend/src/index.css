@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-color: #F8FAFC;
+    --text-color: #0F172A;
+    --border-color: #E2E8F0;
+    --card-bg: #FFFFFF;
+    --input-bg: #FFFFFF;
+    --input-border: #CBD5E1;
+  }
+
+  .dark {
+    --bg-color: #0B0F19;
+    --text-color: #F1F5F9;
+    --border-color: #1E293B;
+    --card-bg: #111827;
+    --input-bg: #1F2937;
+    --input-border: #374151;
+  }
+
+  html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary selection:text-white transition-colors duration-200;
+    margin: 0;
+    padding: 0;
+  }
+
+  #root {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-align: left !important;
+    border-inline: none !important;
+  }
+}
+
+/* Custom styles for high-fidelity mobile experience */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom Calendar overrides */
+.react-calendar {
+  width: 100% !important;
+  border: none !important;
+  font-family: inherit !important;
+  background: transparent !important;
+}
+
+.react-calendar__tile {
+  padding: 12px 8px !important;
+  border-radius: 8px !important;
+}

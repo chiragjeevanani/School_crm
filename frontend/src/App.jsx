@@ -1,0 +1,136 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { StudentAuthProvider } from './modules/student/context/StudentAuthContext';
+import { ThemeProvider } from './modules/student/context/ThemeContext';
+import { NotificationProvider } from './modules/student/context/NotificationContext';
+import { StudentLayout } from './modules/student/components/layout/StudentLayout';
+import { StudentLogin } from './modules/student/pages/StudentLogin';
+import { StudentRoutes } from './modules/student/routes/StudentRoutes';
+
+import { TeacherAuthProvider } from './modules/teacher/context/TeacherAuthContext';
+import { TeacherThemeProvider } from './modules/teacher/context/TeacherThemeContext';
+import { TeacherNotificationProvider } from './modules/teacher/context/TeacherNotificationContext';
+import { ToastProvider } from './modules/teacher/components/ui/Toast';
+import { TeacherLayout } from './modules/teacher/components/layout/TeacherLayout';
+import { TeacherLogin } from './modules/teacher/pages/TeacherLogin';
+import { TeacherRoutes } from './modules/teacher/routes/TeacherRoutes';
+
+import { ParentAuthProvider } from './modules/parent/context/ParentAuthContext';
+import { ParentThemeProvider } from './modules/parent/context/ParentThemeContext';
+import { ParentNotificationProvider } from './modules/parent/context/ParentNotificationContext';
+import { ToastProvider as ParentToastProvider } from './modules/parent/components/ui/Toast';
+import { ParentLayout } from './modules/parent/components/layout/ParentLayout';
+import { ParentLogin } from './modules/parent/pages/ParentLogin';
+import { ParentRoutes } from './modules/parent/routes/ParentRoutes';
+
+import { SchoolAdminAuthProvider } from './modules/school-admin/context/SchoolAdminAuthContext';
+import { SchoolAdminThemeProvider } from './modules/school-admin/context/SchoolAdminThemeContext';
+import { SchoolAdminNotificationProvider } from './modules/school-admin/context/SchoolAdminNotificationContext';
+import { SchoolAdminLayout } from './modules/school-admin/components/layout/SchoolAdminLayout';
+import { SchoolAdminLogin } from './modules/school-admin/pages/SchoolAdminLogin';
+import { SchoolAdminRoutes } from './modules/school-admin/routes/SchoolAdminRoutes';
+
+import { PrincipalAuthProvider } from './modules/principal/context/PrincipalAuthContext';
+import { PrincipalThemeProvider } from './modules/principal/context/PrincipalThemeContext';
+import { PrincipalNotificationProvider } from './modules/principal/context/PrincipalNotificationContext';
+import { PrincipalLayout } from './modules/principal/components/layout/PrincipalLayout';
+import { PrincipalLogin } from './modules/principal/pages/PrincipalLogin';
+import { PrincipalRoutes } from './modules/principal/routes/PrincipalRoutes';
+
+import { AccountantAuthProvider } from './modules/accountant/context/AccountantAuthContext';
+import { AccountantThemeProvider } from './modules/accountant/context/AccountantThemeContext';
+import { AccountantNotificationProvider } from './modules/accountant/context/AccountantNotificationContext';
+import { AccountantLayout } from './modules/accountant/components/layout/AccountantLayout';
+import { AccountantLogin } from './modules/accountant/pages/AccountantLogin';
+import { AccountantRoutes } from './modules/accountant/routes/AccountantRoutes';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <ThemeProvider>
+        <StudentAuthProvider>
+          <NotificationProvider>
+            <TeacherThemeProvider>
+              <TeacherAuthProvider>
+                <TeacherNotificationProvider>
+                  <ToastProvider>
+                    <ParentThemeProvider>
+                      <ParentAuthProvider>
+                        <ParentNotificationProvider>
+                          <ParentToastProvider>
+                            <SchoolAdminThemeProvider>
+                              <SchoolAdminAuthProvider>
+                                <SchoolAdminNotificationProvider>
+                                  <PrincipalThemeProvider>
+                                    <PrincipalAuthProvider>
+                                      <PrincipalNotificationProvider>
+                                        <AccountantThemeProvider>
+                                          <AccountantAuthProvider>
+                                            <AccountantNotificationProvider>
+                                              <Routes>
+                                                {/* Student Routes */}
+                                                <Route path="/student/login" element={<StudentLogin />} />
+                                                <Route path="/student/*" element={<StudentLayout />}>
+                                                  <Route path="*" element={<StudentRoutes />} />
+                                                </Route>
+
+                                                {/* Teacher Routes */}
+                                                <Route path="/teacher/login" element={<TeacherLogin />} />
+                                                <Route path="/teacher/*" element={<TeacherLayout />}>
+                                                  <Route path="*" element={<TeacherRoutes />} />
+                                                </Route>
+
+                                                {/* Parent Routes */}
+                                                <Route path="/parent/login" element={<ParentLogin />} />
+                                                <Route path="/parent/*" element={<ParentLayout />}>
+                                                  <Route path="*" element={<ParentRoutes />} />
+                                                </Route>
+
+                                                {/* School Admin Routes */}
+                                                <Route path="/school-admin/login" element={<SchoolAdminLogin />} />
+                                                <Route path="/school-admin/*" element={<SchoolAdminLayout />}>
+                                                  <Route path="*" element={<SchoolAdminRoutes />} />
+                                                </Route>
+
+                                                {/* Principal Routes */}
+                                                <Route path="/principal/login" element={<PrincipalLogin />} />
+                                                <Route path="/principal/*" element={<PrincipalLayout />}>
+                                                  <Route path="*" element={<PrincipalRoutes />} />
+                                                </Route>
+
+                                                {/* Accountant Routes */}
+                                                <Route path="/accountant/login" element={<AccountantLogin />} />
+                                                <Route path="/accountant/*" element={<AccountantLayout />}>
+                                                  <Route path="*" element={<AccountantRoutes />} />
+                                                </Route>
+
+                                                {/* Default Redirect */}
+                                                <Route path="*" element={<Navigate to="/student/login" replace />} />
+                                              </Routes>
+                                            </AccountantNotificationProvider>
+                                          </AccountantAuthProvider>
+                                        </AccountantThemeProvider>
+                                      </PrincipalNotificationProvider>
+                                    </PrincipalAuthProvider>
+                                  </PrincipalThemeProvider>
+                                </SchoolAdminNotificationProvider>
+                              </SchoolAdminAuthProvider>
+                            </SchoolAdminThemeProvider>
+                          </ParentToastProvider>
+                        </ParentNotificationProvider>
+                      </ParentAuthProvider>
+                    </ParentThemeProvider>
+                  </ToastProvider>
+                </TeacherNotificationProvider>
+              </TeacherAuthProvider>
+            </TeacherThemeProvider>
+          </NotificationProvider>
+        </StudentAuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
+  );
+}
+
+export default App;
+
+
