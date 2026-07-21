@@ -37,7 +37,7 @@ export const StudentLogin = () => {
           <div className="p-3.5 bg-primary/10 rounded-2xl text-primary mb-3">
             <GraduationCap className="w-10 h-10" />
           </div>
-          <h2 className="text-xl font-bold text-foreground">Welcome to KrishiKart</h2>
+          <h2 className="text-xl font-bold text-foreground">Welcome to School Management</h2>
           <p className="text-xs text-slate-500 mt-1.5">Sign in to access your student portal</p>
         </div>
 

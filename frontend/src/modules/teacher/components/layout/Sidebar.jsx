@@ -30,7 +30,7 @@ export const Sidebar = () => {
           <BookOpenCheck className="w-8 h-8" />
         </div>
         <div>
-          <h1 className="text-base font-bold m-0 p-0 text-foreground tracking-tight leading-none">KrishiKart</h1>
+          <h1 className="text-base font-bold m-0 p-0 text-foreground tracking-tight leading-none">School Management</h1>
           <span className="text-[10px] text-slate-400 font-medium tracking-wider uppercase mt-1 block">Teacher Portal</span>
         </div>
       </div>

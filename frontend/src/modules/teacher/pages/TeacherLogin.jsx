@@ -48,7 +48,7 @@ export const TeacherLogin = () => {
             <BookOpenCheck className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h1 className="text-white font-bold text-xl tracking-tight leading-none">KrishiKart</h1>
+            <h1 className="text-white font-bold text-xl tracking-tight leading-none">School Management</h1>
             <span className="text-white/70 text-[11px] font-medium tracking-wider uppercase">School Management</span>
           </div>
         </div>
@@ -78,7 +78,7 @@ export const TeacherLogin = () => {
 
         {/* Bottom tagline */}
         <div className="relative">
-          <p className="text-white/50 text-[11px] font-medium">© 2025 KrishiKart School ERP. All rights reserved.</p>
+          <p className="text-white/50 text-[11px] font-medium">© 2025 School Management. All rights reserved.</p>
         </div>
       </div>
 
@@ -90,7 +90,7 @@ export const TeacherLogin = () => {
             <BookOpenCheck className="w-8 h-8" />
           </div>
           <div>
-            <h1 className="font-bold text-xl tracking-tight text-foreground leading-none">KrishiKart</h1>
+            <h1 className="font-bold text-xl tracking-tight text-foreground leading-none">School Management</h1>
             <span className="text-slate-400 text-[11px] font-medium tracking-wider uppercase">Teacher Portal</span>
           </div>
         </div>
