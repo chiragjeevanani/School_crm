@@ -5,11 +5,13 @@ import { TopBar } from './TopBar';
 import { Breadcrumb } from './Breadcrumb';
 import { CommandPalette } from './CommandPalette';
 import { useTransportAuth } from '../../context/TransportAuthContext';
+import { cn } from '../../utils/cn';
 
 export const TransportLayout = () => {
   const { user, loading } = useTransportAuth();
   const location = useLocation();
   
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
@@ -49,11 +51,16 @@ export const TransportLayout = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-200">
       <Sidebar 
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
         isOpen={sidebarOpen} 
         toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
       />
 
-      <div className="md:pl-64 min-h-screen flex flex-col">
+      <div className={cn(
+        "min-h-screen flex flex-col transition-all duration-300", 
+        isCollapsed ? "md:pl-20" : "md:pl-68 lg:pl-72"
+      )}>
         <TopBar 
           toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
           onSearchTrigger={() => setCommandPaletteOpen(true)}

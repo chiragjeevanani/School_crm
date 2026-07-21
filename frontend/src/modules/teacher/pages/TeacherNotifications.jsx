@@ -5,6 +5,7 @@ import { FilterBar } from '../components/ui/FilterBar';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useTeacherNotifications } from '../context/TeacherNotificationContext';
 import { Bell, BookOpen, Clock, FileText, MessageSquare, Check, Trash2 } from 'lucide-react';
+import { cn } from '../utils/cn';
 
 const TYPE_ICONS = {
   homework: BookOpen,

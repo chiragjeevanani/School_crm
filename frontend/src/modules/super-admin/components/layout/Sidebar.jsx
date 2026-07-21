@@ -94,15 +94,18 @@ export const Sidebar = () => {
   return (
     <motion.aside
       className={cn(
-        'fixed top-0 left-0 z-40 h-screen bg-slate-900 dark:bg-slate-950/95 border-r border-slate-200 dark:border-slate-900 flex flex-col justify-between py-4 select-none',
+        'fixed top-0 left-0 z-40 h-screen bg-white dark:bg-slate-950/95 border-r border-slate-200 dark:border-slate-900 flex flex-col justify-between py-4 select-none',
         isCollapsed ? 'w-16' : 'w-64'
       )}
       animate={{ width: isCollapsed ? 64 : 256 }}
       transition={{ duration: 0.25, ease: 'easeInOut' }}
     >
-      <div className="flex flex-col flex-1 overflow-y-auto px-3">
+      <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar px-3">
         {/* Brand Header */}
-        <div className={cn('flex items-center mb-6 px-2', isCollapsed ? 'justify-center' : 'justify-between')}>
+        <div className={cn(
+          'flex mb-6 px-2 transition-all duration-300', 
+          isCollapsed ? 'flex-col items-center gap-3' : 'items-center justify-between'
+        )}>
           {!isCollapsed && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -112,7 +115,7 @@ export const Sidebar = () => {
               <div className="bg-indigo-600 p-1.5 rounded-lg flex items-center justify-center">
                 <span className="font-bold text-white tracking-wider text-sm">AG</span>
               </div>
-              <span className="font-bold text-slate-100 dark:text-white text-md tracking-wider">Antigravity Portal</span>
+              <span className="font-bold text-foreground dark:text-white text-md tracking-wider">Antigravity Portal</span>
             </motion.div>
           )}
           {isCollapsed && (
@@ -122,7 +125,7 @@ export const Sidebar = () => {
           )}
           <button
             onClick={handleToggle}
-            className="hidden md:flex p-1.5 rounded-lg hover:bg-slate-900 border border-slate-900 hover:border-slate-800 text-slate-400 hover:text-slate-100 transition-colors"
+            className="hidden md:flex p-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-100 dark:border-slate-900 text-slate-400 hover:text-foreground dark:hover:text-white transition-colors"
           >
             {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
@@ -136,7 +139,7 @@ export const Sidebar = () => {
                 <motion.h4
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-2 mb-2"
+                  className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest pl-2 mb-2"
                 >
                   {group.title}
                 </motion.h4>
@@ -147,10 +150,11 @@ export const Sidebar = () => {
                   to={item.path}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 group relative',
+                      'flex items-center transition-all duration-200 group relative',
+                      isCollapsed ? 'justify-center p-2 rounded-lg' : 'gap-3 px-3 py-2 rounded-lg text-sm',
                       isActive
                         ? 'bg-indigo-600 text-white font-medium shadow-md shadow-indigo-600/10'
-                        : 'text-slate-400 hover:bg-slate-900 hover:text-slate-100'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-foreground dark:hover:text-slate-100'
                     )
                   }
                 >
@@ -173,23 +177,23 @@ export const Sidebar = () => {
       </div>
 
       {/* User Section at Bottom */}
-      <div className="px-3 border-t border-slate-900/60 pt-4 mt-auto">
-        <div className={cn('flex items-center gap-3 p-2 rounded-lg bg-slate-900/40 border border-slate-900/60', isCollapsed && 'justify-center')}>
+      <div className="px-3 border-t border-border dark:border-slate-900/60 pt-4 mt-auto">
+        <div className={cn('flex items-center gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-900/40 border border-border dark:border-slate-900/60', isCollapsed && 'justify-center')}>
           <img
             src={admin?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=60'}
             alt="Avatar"
-            className="w-8 h-8 rounded-full border border-slate-800"
+            className="w-8 h-8 rounded-full border border-border dark:border-slate-800"
           />
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-slate-200 truncate">{admin?.name || 'Chirag J.'}</p>
-              <p className="text-[10px] text-slate-500 truncate">{admin?.role || 'Super Admin'}</p>
+              <p className="text-xs font-semibold text-foreground dark:text-slate-200 truncate">{admin?.name || 'Chirag J.'}</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{admin?.role || 'Super Admin'}</p>
             </div>
           )}
           {!isCollapsed && (
             <button
               onClick={() => { logout(); navigate('/super-admin/login'); }}
-              className="text-slate-400 hover:text-rose-400 transition-colors p-1"
+              className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-450 transition-colors p-1"
             >
               <LogOut size={16} />
             </button>

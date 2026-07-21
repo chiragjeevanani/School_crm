@@ -137,6 +137,16 @@ export default function SuperAdminLogin() {
             </Button>
           </form>
         )}
+
+        {/* Demo Credentials Hint */}
+        <div className="p-3.5 bg-slate-900/40 border border-slate-900 rounded-xl text-center space-y-1 select-text">
+          <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5">Demo Credentials</p>
+          <div className="text-[11px] text-slate-350 space-y-0.5">
+            <p>Email: <span className="font-bold text-indigo-400">superadmin@appzeto.com</span></p>
+            <p>Password: <span className="font-bold text-indigo-400">admin123</span></p>
+            <p className="text-[10px] text-slate-500 mt-1.5">MFA Code: <span className="font-bold text-indigo-400">123456</span> (or leave blank)</p>
+          </div>
+        </div>
       </Card>
     </div>
   );

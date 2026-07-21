@@ -26,14 +26,17 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   return (
     <aside 
       className={cn(
-        "hidden md:flex flex-col h-screen sticky top-0 bg-slate-950 text-slate-300 border-r border-slate-900 px-4 py-6 overflow-y-auto no-scrollbar z-40 transition-all duration-300",
+        "hidden md:flex flex-col h-screen sticky top-0 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-r border-border dark:border-slate-900 px-4 py-6 overflow-y-auto no-scrollbar z-40 transition-all duration-300",
         isCollapsed ? "w-20" : "w-68 lg:w-72"
       )}
     >
       {/* Brand Header */}
-      <div className="flex items-center justify-between mb-8 px-2">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+      <div className={cn(
+        "flex mb-8 px-2 transition-all duration-300",
+        isCollapsed ? "flex-col items-center gap-4" : "items-center justify-between"
+      )}>
+        <div className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-3")}>
+          <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-500 dark:text-indigo-400">
             <GraduationCap className="w-8 h-8" />
           </div>
           {!isCollapsed && (
@@ -42,8 +45,8 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
             >
-              <h1 className="text-sm font-black text-white tracking-tight leading-none">Greenfield</h1>
-              <span className="text-[10px] text-slate-500 font-bold tracking-wider uppercase mt-1 block">Admin Portal</span>
+              <h1 className="text-sm font-black text-foreground dark:text-white tracking-tight leading-none">Greenfield</h1>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-wider uppercase mt-1 block">Admin Portal</span>
             </motion.div>
           )}
         </div>
@@ -51,7 +54,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         {/* Collapse Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 hover:bg-slate-900 rounded-lg text-slate-400 hover:text-white transition-colors"
+          className="p-1.5 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg text-slate-400 hover:text-foreground dark:hover:text-white transition-colors"
         >
           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
@@ -62,12 +65,12 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex items-center gap-3 p-3 bg-slate-900/60 rounded-2xl border border-slate-800/80 mb-6"
+          className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/60 border border-border dark:border-slate-800/80 rounded-2xl mb-6"
         >
-          <img src={user.photo} alt={user.name} className="w-10 h-10 rounded-xl object-cover border border-slate-850" />
+          <img src={user.photo} alt={user.name} className="w-10 h-10 rounded-xl object-cover border border-border dark:border-slate-800" />
           <div className="flex-1 min-w-0">
-            <h4 className="text-xs font-bold text-white truncate leading-none mb-1">{user.name}</h4>
-            <span className="text-[10px] text-slate-500 font-medium truncate block">{user.role}</span>
+            <h4 className="text-xs font-bold text-foreground dark:text-white truncate leading-none mb-1">{user.name}</h4>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate block">{user.role}</span>
           </div>
         </motion.div>
       )}
@@ -77,7 +80,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         {Object.entries(categories).map(([category, items]) => (
           <div key={category} className="space-y-1">
             {!isCollapsed && (
-              <span className="px-3 text-[9px] font-extrabold tracking-widest text-slate-655 dark:text-slate-500 uppercase block mb-2 select-none">
+              <span className="px-3 text-[9px] font-extrabold tracking-widest text-slate-400 dark:text-slate-500 uppercase block mb-2 select-none">
                 {category}
               </span>
             )}
@@ -90,10 +93,10 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                   to={item.path}
                   title={isCollapsed ? item.name : undefined}
                   className={cn(
-                    "flex items-center gap-3 px-3.5 py-3.5 rounded-xl text-xs font-semibold tracking-wide transition-all select-none duration-150",
+                    "flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all select-none duration-150",
                     isActive
-                      ? "bg-indigo-650 text-white shadow-lg shadow-indigo-650/15 scale-[1.01]"
-                      : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/15 scale-[1.01]"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-foreground dark:hover:text-white"
                   )}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
@@ -108,7 +111,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       {/* Logout Action */}
       <button
         onClick={handleLogout}
-        className="flex items-center gap-3 px-3.5 py-3 text-xs font-semibold text-rose-450 hover:bg-rose-500/10 rounded-xl transition-colors w-full mt-6 select-none text-left"
+        className="flex items-center gap-3 px-3.5 py-3 text-xs font-semibold text-rose-500 dark:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors w-full mt-6 select-none text-left"
       >
         <LogOut className="w-4 h-4 shrink-0" />
         {!isCollapsed && <span>Logout</span>}
