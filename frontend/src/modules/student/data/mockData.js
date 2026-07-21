@@ -1,24 +1,43 @@
 // Consolidated Mock Data for Student Portal
+// Identity fields sourced from shared/data — see shared/data/students.js,
+// shared/data/staff.js and shared/data/school.js. Records below
+// (attendance log, homework, exam schedule, fees, etc.) remain local to
+// this module.
+
+import { findStudent } from '../../../shared/data/students';
+import { findStaffByName } from '../../../shared/data/staff';
+import { SCHOOL } from '../../../shared/data/school';
+
+const studentIdentity = findStudent('STU108902');
+
+// Subject teachers for Aarav's Class 10A, resolved from the shared staff
+// directory instead of being hardcoded separately here.
+const TEACHERS = {
+  maths: findStaffByName('Mr. Verma').name,
+  science: findStaffByName('Mrs. Sen').name,
+  english: findStaffByName('Ms. Kapoor').name,
+  social: findStaffByName('Mr. Khan').name,
+};
 
 export const MOCK_STUDENT = {
-  id: "STU108902",
-  name: "Aarav Sharma",
-  photo: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80",
-  admissionNo: "ADM-2024-8902",
-  class: "Class 10",
-  section: "A",
-  rollNo: "12",
-  academicSession: "2025-2026",
-  dob: "2010-05-14",
-  email: "aarav.sharma@school.edu",
-  phone: "+91 98765 43210",
-  bloodGroup: "O+",
-  emergencyContact: "Rajesh Sharma (+91 98765 01234)",
-  address: "Flat 402, Pine Crest Apartments, Sector 15, Dwarka, New Delhi - 110075",
+  id: studentIdentity.id,
+  name: studentIdentity.name,
+  photo: studentIdentity.photo,
+  admissionNo: studentIdentity.admissionNo,
+  class: studentIdentity.class,
+  section: studentIdentity.section,
+  rollNo: studentIdentity.rollNo,
+  academicSession: SCHOOL.academicSession,
+  dob: studentIdentity.dob,
+  email: studentIdentity.email,
+  phone: studentIdentity.phone,
+  bloodGroup: studentIdentity.bloodGroup,
+  emergencyContact: `${studentIdentity.parentName} (${studentIdentity.parentPhone})`,
+  address: studentIdentity.address,
   guardian: {
-    name: "Rajesh Sharma",
+    name: studentIdentity.parentName,
     relation: "Father",
-    phone: "+91 98765 01234",
+    phone: studentIdentity.parentPhone,
     email: "rajesh.sharma@gmail.com",
     occupation: "Software Engineer",
   },
@@ -61,7 +80,7 @@ export const MOCK_HOMEWORK = [
   {
     id: 'hw-1',
     subject: 'Mathematics',
-    teacher: 'Mr. Verma',
+    teacher: TEACHERS.maths,
     description: 'Solve exercises 5.1 and 5.2 on Page 84. Show all steps for proving the trigonometric identities.',
     dueDate: '2026-07-20',
     status: 'Pending',
@@ -71,7 +90,7 @@ export const MOCK_HOMEWORK = [
   {
     id: 'hw-2',
     subject: 'Science',
-    teacher: 'Mrs. Sen',
+    teacher: TEACHERS.science,
     description: 'Complete the Physics lab report for Experiment 4: Focal Length of Convex Lens. Draw labeled diagram.',
     dueDate: '2026-07-18',
     status: 'Submitted',
@@ -88,7 +107,7 @@ export const MOCK_HOMEWORK = [
   {
     id: 'hw-3',
     subject: 'English',
-    teacher: 'Ms. Kapoor',
+    teacher: TEACHERS.english,
     description: 'Write an essay (300 words) analyzing the main theme of the play "Julius Caesar" by William Shakespeare.',
     dueDate: '2026-07-22',
     status: 'Pending',
@@ -98,7 +117,7 @@ export const MOCK_HOMEWORK = [
   {
     id: 'hw-4',
     subject: 'Social Science',
-    teacher: 'Mr. Khan',
+    teacher: TEACHERS.social,
     description: 'Map Work: Mark the main centers of the Indian National Movement on the provided outline map of India.',
     dueDate: '2026-07-14',
     status: 'Submitted',
@@ -153,10 +172,10 @@ export const MOCK_RESULTS = {
 
 export const MOCK_ACADEMICS = {
   subjects: [
-    { name: 'Mathematics', teacher: 'Mr. Verma', syllabusProgress: 75, rooms: 'Room 302' },
-    { name: 'Science', teacher: 'Mrs. Sen', syllabusProgress: 68, rooms: 'Science Lab' },
-    { name: 'English', teacher: 'Ms. Kapoor', syllabusProgress: 80, rooms: 'Room 105' },
-    { name: 'Social Science', teacher: 'Mr. Khan', syllabusProgress: 60, rooms: 'Room 201' },
+    { name: 'Mathematics', teacher: TEACHERS.maths, syllabusProgress: 75, rooms: 'Room 302' },
+    { name: 'Science', teacher: TEACHERS.science, syllabusProgress: 68, rooms: 'Science Lab' },
+    { name: 'English', teacher: TEACHERS.english, syllabusProgress: 80, rooms: 'Room 105' },
+    { name: 'Social Science', teacher: TEACHERS.social, syllabusProgress: 60, rooms: 'Room 201' },
   ],
   materials: [
     { id: 'mat-1', title: 'Quadratic Equations Notes', type: 'PDF', size: '1.8 MB', subject: 'Mathematics', downloadUrl: '#' },
@@ -168,34 +187,34 @@ export const MOCK_ACADEMICS = {
 
 export const MOCK_TIMETABLE = {
   monday: [
-    { period: 1, subject: 'Maths', time: '08:30 - 09:15', teacher: 'Mr. Verma', room: '302' },
-    { period: 2, subject: 'Science', time: '09:15 - 10:00', teacher: 'Mrs. Sen', room: 'Science Lab' },
-    { period: 3, subject: 'English', time: '10:15 - 11:00', teacher: 'Ms. Kapoor', room: '105' },
-    { period: 4, subject: 'Social Sci', time: '11:00 - 11:45', teacher: 'Mr. Khan', room: '201' },
+    { period: 1, subject: 'Maths', time: '08:30 - 09:15', teacher: TEACHERS.maths, room: '302' },
+    { period: 2, subject: 'Science', time: '09:15 - 10:00', teacher: TEACHERS.science, room: 'Science Lab' },
+    { period: 3, subject: 'English', time: '10:15 - 11:00', teacher: TEACHERS.english, room: '105' },
+    { period: 4, subject: 'Social Sci', time: '11:00 - 11:45', teacher: TEACHERS.social, room: '201' },
   ],
   tuesday: [
-    { period: 1, subject: 'Science', time: '08:30 - 09:15', teacher: 'Mrs. Sen', room: 'Science Lab' },
-    { period: 2, subject: 'Maths', time: '09:15 - 10:00', teacher: 'Mr. Verma', room: '302' },
-    { period: 3, subject: 'Social Sci', time: '10:15 - 11:00', teacher: 'Mr. Khan', room: '201' },
-    { period: 4, subject: 'English', time: '11:00 - 11:45', teacher: 'Ms. Kapoor', room: '105' },
+    { period: 1, subject: 'Science', time: '08:30 - 09:15', teacher: TEACHERS.science, room: 'Science Lab' },
+    { period: 2, subject: 'Maths', time: '09:15 - 10:00', teacher: TEACHERS.maths, room: '302' },
+    { period: 3, subject: 'Social Sci', time: '10:15 - 11:00', teacher: TEACHERS.social, room: '201' },
+    { period: 4, subject: 'English', time: '11:00 - 11:45', teacher: TEACHERS.english, room: '105' },
   ],
   wednesday: [
-    { period: 1, subject: 'Maths', time: '08:30 - 09:15', teacher: 'Mr. Verma', room: '302' },
-    { period: 2, subject: 'Science', time: '09:15 - 10:00', teacher: 'Mrs. Sen', room: 'Science Lab' },
-    { period: 3, subject: 'English', time: '10:15 - 11:00', teacher: 'Ms. Kapoor', room: '105' },
-    { period: 4, subject: 'Social Sci', time: '11:00 - 11:45', teacher: 'Mr. Khan', room: '201' },
+    { period: 1, subject: 'Maths', time: '08:30 - 09:15', teacher: TEACHERS.maths, room: '302' },
+    { period: 2, subject: 'Science', time: '09:15 - 10:00', teacher: TEACHERS.science, room: 'Science Lab' },
+    { period: 3, subject: 'English', time: '10:15 - 11:00', teacher: TEACHERS.english, room: '105' },
+    { period: 4, subject: 'Social Sci', time: '11:00 - 11:45', teacher: TEACHERS.social, room: '201' },
   ],
   thursday: [
-    { period: 1, subject: 'Science', time: '08:30 - 09:15', teacher: 'Mrs. Sen', room: 'Science Lab' },
-    { period: 2, subject: 'Maths', time: '09:15 - 10:00', teacher: 'Mr. Verma', room: '302' },
-    { period: 3, subject: 'Social Sci', time: '10:15 - 11:00', teacher: 'Mr. Khan', room: '201' },
-    { period: 4, subject: 'English', time: '11:00 - 11:45', teacher: 'Ms. Kapoor', room: '105' },
+    { period: 1, subject: 'Science', time: '08:30 - 09:15', teacher: TEACHERS.science, room: 'Science Lab' },
+    { period: 2, subject: 'Maths', time: '09:15 - 10:00', teacher: TEACHERS.maths, room: '302' },
+    { period: 3, subject: 'Social Sci', time: '10:15 - 11:00', teacher: TEACHERS.social, room: '201' },
+    { period: 4, subject: 'English', time: '11:00 - 11:45', teacher: TEACHERS.english, room: '105' },
   ],
   friday: [
-    { period: 1, subject: 'Maths', time: '08:30 - 09:15', teacher: 'Mr. Verma', room: '302' },
-    { period: 2, subject: 'Science', time: '09:15 - 10:00', teacher: 'Mrs. Sen', room: 'Science Lab' },
-    { period: 3, subject: 'English', time: '10:15 - 11:00', teacher: 'Ms. Kapoor', room: '105' },
-    { period: 4, subject: 'Social Sci', time: '11:00 - 11:45', teacher: 'Mr. Khan', room: '201' },
+    { period: 1, subject: 'Maths', time: '08:30 - 09:15', teacher: TEACHERS.maths, room: '302' },
+    { period: 2, subject: 'Science', time: '09:15 - 10:00', teacher: TEACHERS.science, room: 'Science Lab' },
+    { period: 3, subject: 'English', time: '10:15 - 11:00', teacher: TEACHERS.english, room: '105' },
+    { period: 4, subject: 'Social Sci', time: '11:00 - 11:45', teacher: TEACHERS.social, room: '201' },
   ]
 };
 

@@ -1,4 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { SCHOOL } from '../../../shared/data/school';
+import { findStaffByName } from '../../../shared/data/staff';
 
 const LibrarianAuthContext = createContext();
 
@@ -18,14 +20,15 @@ export const LibrarianAuthProvider = ({ children }) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         if (username === 'librarian' && password === 'lib123') {
+          const identity = findStaffByName('Sanjay Kumar');
           const mockUser = {
-            id: 'LIB-001',
+            id: identity.id,
             username: 'librarian',
-            name: 'Sanjay Kumar',
-            email: 'sanjay.kumar@school.edu',
-            role: 'Librarian',
-            schoolName: 'Greenwood Future School',
-            academicSession: '2026-2027',
+            name: identity.name,
+            email: identity.email,
+            role: identity.designation,
+            schoolName: SCHOOL.name,
+            academicSession: SCHOOL.academicSession,
             photoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face'
           };
           localStorage.setItem('librarian_user', JSON.stringify(mockUser));

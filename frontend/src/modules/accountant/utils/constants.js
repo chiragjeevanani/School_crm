@@ -13,6 +13,11 @@ import {
   Settings
 } from 'lucide-react';
 
+import { MOCK_STUDENTS as SHARED_STUDENTS } from '../../../shared/data/students';
+
+const gradeOf = (className) => className.replace(/^Class\s*/, '');
+const findSharedStudent = (id) => SHARED_STUDENTS.find((s) => s.id === id);
+
 export const NAVIGATION_ITEMS = [
   // MAIN
   { name: 'Dashboard', path: '/accountant/dashboard', icon: LayoutDashboard, category: 'Main' },
@@ -35,16 +40,26 @@ export const NAVIGATION_ITEMS = [
   { name: 'Settings', path: '/accountant/settings', icon: Settings, category: 'System' }
 ];
 
-export const MOCK_STUDENTS = [
-  { id: 'STU-001', admissionNo: 'ADM2026101', name: 'Aarav Sharma', class: '10', section: 'A', guardianName: 'Rajesh Sharma', phone: '+91 98765 00001', pendingFees: 0, status: 'Active' },
-  { id: 'STU-002', admissionNo: 'ADM2026102', name: 'Diya Patel', class: '10', section: 'B', guardianName: 'Ketan Patel', phone: '+91 98765 00002', pendingFees: 12000, status: 'Active' },
-  { id: 'STU-003', admissionNo: 'ADM2026103', name: 'Kabir Verma', class: '9', section: 'A', guardianName: 'Sanjay Verma', phone: '+91 98765 00003', pendingFees: 0, status: 'Active' },
-  { id: 'STU-004', admissionNo: 'ADM2026104', name: 'Ananya Iyer', class: '11', section: 'A', guardianName: 'Raman Iyer', phone: '+91 98765 00004', pendingFees: 0, status: 'Active' },
-  { id: 'STU-005', admissionNo: 'ADM2026105', name: 'Vihaan Gupta', class: '12', section: 'C', guardianName: 'Alok Gupta', phone: '+91 98765 00005', pendingFees: 24000, status: 'Active' },
-  { id: 'STU-006', admissionNo: 'ADM2026106', name: 'Ishita Reddy', class: '8', section: 'A', guardianName: 'Venkat Reddy', phone: '+91 98765 00006', pendingFees: 4000, status: 'Active' },
-  { id: 'STU-007', admissionNo: 'ADM2026107', name: 'Arjun Mehta', class: '10', section: 'A', guardianName: 'Praveen Mehta', phone: '+91 98765 00007', pendingFees: 0, status: 'Inactive' },
-  { id: 'STU-008', admissionNo: 'ADM2026108', name: 'Riya Sen', class: '12', section: 'A', guardianName: 'Amit Sen', phone: '+91 98765 00008', pendingFees: 8000, status: 'Active' }
+// Local fee-ledger id -> shared roster id. 'STU-001' (Aarav Sharma) is
+// kept as this module's internal key (it's referenced by id across
+// MOCK_COLLECTIONS/INSTALLMENTS/DISCOUNTS/REFUNDS below) but its identity
+// fields now resolve to the shared STU108902 record instead of a second,
+// slightly-different "Aarav Sharma".
+const STUDENT_LINKS = [
+  { id: 'STU-001', sharedId: 'STU108902', pendingFees: 0, status: 'Active' },
+  { id: 'STU-002', sharedId: 'STU-002', pendingFees: 12000, status: 'Active' },
+  { id: 'STU-003', sharedId: 's013', pendingFees: 0, status: 'Active' },
+  { id: 'STU-004', sharedId: 'STU-004', pendingFees: 0, status: 'Active' },
+  { id: 'STU-005', sharedId: 'STU-005', pendingFees: 24000, status: 'Active' },
+  { id: 'STU-006', sharedId: 'STU-006', pendingFees: 4000, status: 'Active' },
+  { id: 'STU-007', sharedId: 'STU-007', pendingFees: 0, status: 'Inactive' },
+  { id: 'STU-008', sharedId: 'STU-008', pendingFees: 8000, status: 'Active' },
 ];
+
+export const MOCK_STUDENTS = STUDENT_LINKS.map(({ id, sharedId, pendingFees, status }) => {
+  const s = findSharedStudent(sharedId);
+  return { id, admissionNo: s.admissionNo, name: s.name, class: gradeOf(s.class), section: s.section, guardianName: s.parentName, phone: s.parentPhone, pendingFees, status };
+});
 
 export const MOCK_COLLECTIONS = [
   {
@@ -53,7 +68,7 @@ export const MOCK_COLLECTIONS = [
     studentName: 'Aarav Sharma',
     class: '10',
     section: 'A',
-    admissionNo: 'ADM2026101',
+    admissionNo: 'ADM-2024-8902',
     schoolId: 'SCH-2026-09',
     academicSession: '2026-2027',
     paymentDate: '2026-07-17',

@@ -1,4 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { SCHOOL } from '../../../shared/data/school';
+import { findStaffByName } from '../../../shared/data/staff';
 
 const TransportAuthContext = createContext();
 
@@ -18,14 +20,15 @@ export const TransportAuthProvider = ({ children }) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         if (username === 'transport' && password === 'transport123') {
+          const identity = findStaffByName('Manish Dave');
           const mockUser = {
-            id: 'TM-001',
+            id: identity.id,
             username: 'transport',
-            name: 'Manish Dave',
-            email: 'manish.dave@school.edu',
-            role: 'Transport Manager',
-            schoolName: 'Greenwood Future School',
-            academicSession: '2026-2027',
+            name: identity.name,
+            email: identity.email,
+            role: identity.designation,
+            schoolName: SCHOOL.name,
+            academicSession: SCHOOL.academicSession,
             photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face'
           };
           localStorage.setItem('transport_user', JSON.stringify(mockUser));

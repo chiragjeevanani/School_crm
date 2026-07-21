@@ -1,4 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { findStudent } from '../../../shared/data/students';
+import { SCHOOL } from '../../../shared/data/school';
 
 const StudentAuthContext = createContext();
 
@@ -16,36 +18,37 @@ export const StudentAuthProvider = ({ children }) => {
 
   const login = (studentId, password) => {
     if (studentId && password) {
+      const identity = findStudent('STU108902');
       const mockUser = {
-        id: studentId.toUpperCase(),
-        name: "Aarav Sharma",
-        photo: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80",
-        admissionNo: "ADM-2024-8902",
-        class: "Class 10",
-        section: "A",
-        rollNo: "12",
-        academicSession: "2025-2026",
-        email: "aarav.sharma@school.edu",
-        phone: "+91 98765 43210",
-        dob: "2010-05-14",
-        bloodGroup: "O+",
-        gender: "Male",
+        id: identity.id,
+        name: identity.name,
+        photo: identity.photo,
+        admissionNo: identity.admissionNo,
+        class: identity.class,
+        section: identity.section,
+        rollNo: identity.rollNo,
+        academicSession: SCHOOL.academicSession,
+        email: identity.email,
+        phone: identity.phone,
+        dob: identity.dob,
+        bloodGroup: identity.bloodGroup,
+        gender: identity.gender,
         category: "General",
         religion: "Hinduism",
         admissionDate: "2024-04-10",
         guardian: {
-          name: "Rajesh Sharma",
+          name: identity.parentName,
           relation: "Father",
-          phone: "+91 98765 01234",
+          phone: identity.parentPhone,
           email: "rajesh.sharma@gmail.com",
           occupation: "Software Engineer",
-          address: "Flat 402, Pine Crest Apartments, Sector 15, Dwarka, New Delhi - 110075"
+          address: identity.address
         },
         medical: {
           allergies: "Dust, Pollen",
           conditions: "None",
           medications: "None",
-          emergencyContact: "Rajesh Sharma (+91 98765 01234)"
+          emergencyContact: `${identity.parentName} (${identity.parentPhone})`
         }
       };
       setUser(mockUser);

@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   UserCheck
 } from 'lucide-react';
+import { findStaffByName } from '../../../shared/data/staff';
 
 export const NAVIGATION_ITEMS = [
   // MAIN
@@ -47,21 +48,24 @@ export const MOCK_EMPLOYEES = [
   {
     id: 'EMP-001',
     employeeId: 'GFS-EMP-001',
-    name: 'Mrs. Priya Nair',
+    name: findStaffByName('Mrs. Priya Nair').name,
     gender: 'Female',
     dob: '1988-05-14',
     photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    department: 'Mathematics',
+    // Reconciled with principal/school-admin's shared staff record for
+    // Mrs. Priya Nair (Social Studies) — this record previously listed a
+    // conflicting "Mathematics" department for the same name.
+    department: findStaffByName('Mrs. Priya Nair').department,
     designation: 'Senior Teacher',
     employmentType: 'Full-Time',
     joiningDate: '2018-07-01',
     status: 'Active',
-    email: 'priya.nair@greenfield.edu',
+    email: findStaffByName('Mrs. Priya Nair').email,
     phone: '+91 99999 00001',
     address: 'Flat 302, Green Meadows, Gachibowli, Hyderabad',
     emergencyContact: { name: 'Rohan Nair', relation: 'Spouse', phone: '+91 99999 11111' },
-    qualifications: [{ degree: 'M.Sc Mathematics', institution: 'Delhi University', year: 2010 }],
-    skills: ['Calculus', 'Algebra', 'Statistics'],
+    qualifications: [{ degree: 'M.A History, B.Ed', institution: 'Delhi University', year: 2010 }],
+    skills: ['History', 'Civics', 'Political Science'],
     salary: { basic: 45000, hra: 9000, da: 4500, conveyance: 1500, medical: 1250 },
     bankDetails: { accountNo: '10020030040', ifsc: 'SBIN0001234', bankName: 'State Bank of India', branch: 'Gachibowli' },
     documents: [
@@ -135,7 +139,10 @@ export const MOCK_EMPLOYEES = [
   {
     id: 'EMP-004',
     employeeId: 'GFS-EMP-004',
-    name: 'Mr. Rajesh Kumar',
+    // Renamed from "Mr. Rajesh Kumar" — that name collided with the
+    // teacher module's Mr. Rajesh Kumar (Senior Maths Teacher, a
+    // completely different person/role). See shared/data/staff.js.
+    name: findStaffByName('Mr. Vikram Kumar').name,
     gender: 'Male',
     dob: '1980-04-18',
     photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
@@ -144,7 +151,7 @@ export const MOCK_EMPLOYEES = [
     employmentType: 'Contract',
     joiningDate: '2021-08-01',
     status: 'Active',
-    email: 'rajesh.sports@greenfield.edu',
+    email: 'vikram.sports@greenfield.edu',
     phone: '+91 99999 00004',
     address: 'H-No 4/3, Madhapur, Hyderabad',
     emergencyContact: { name: 'Rama Devi', relation: 'Mother', phone: '+91 99999 44444' },
@@ -164,9 +171,9 @@ export const MOCK_EMPLOYEES = [
 ];
 
 export const MOCK_DEPARTMENTS = [
-  { id: 'DEPT-001', name: 'Mathematics', headName: 'Mrs. Priya Nair', employeeCount: 8, description: 'Secondary & High School Mathematics Dept' },
+  { id: 'DEPT-001', name: 'Social Studies', headName: 'Mrs. Priya Nair', employeeCount: 8, description: 'Secondary & High School Social Studies Dept' },
   { id: 'DEPT-002', name: 'Science', headName: 'Mr. Alok Verma', employeeCount: 14, description: 'Physics, Chemistry, and Biology Laboratories' },
-  { id: 'DEPT-003', name: 'PE & Sports', headName: 'Mr. Rajesh Kumar', employeeCount: 4, description: 'Physical Training and Sports Teams Development' },
+  { id: 'DEPT-003', name: 'PE & Sports', headName: 'Mr. Vikram Kumar', employeeCount: 4, description: 'Physical Training and Sports Teams Development' },
   { id: 'DEPT-004', name: 'Finance', headName: 'Ms. Shalini Sen', employeeCount: 3, description: 'School Accounts, Fees Ledgers, and Payroll Audit' },
   { id: 'DEPT-005', name: 'Administration', headName: 'Mr. Suresh Kumar', employeeCount: 6, description: 'Front Desk Office, Registry, and HRMS records' }
 ];
@@ -183,12 +190,12 @@ export const MOCK_ATTENDANCE = [
   { id: 'ATT-001', employeeId: 'EMP-001', employeeName: 'Mrs. Priya Nair', date: '2026-07-17', status: 'Present', inTime: '08:50 AM', outTime: '05:10 PM', workingHours: 8.3 },
   { id: 'ATT-002', employeeId: 'EMP-002', employeeName: 'Mr. Alok Verma', date: '2026-07-17', status: 'Late', inTime: '09:15 AM', outTime: '05:15 PM', workingHours: 8.0 },
   { id: 'ATT-003', employeeId: 'EMP-003', employeeName: 'Ms. Shalini Sen', date: '2026-07-17', status: 'Present', inTime: '08:45 AM', outTime: '05:00 PM', workingHours: 8.25 },
-  { id: 'ATT-004', employeeId: 'EMP-004', employeeName: 'Mr. Rajesh Kumar', date: '2026-07-17', status: 'Leave', inTime: '--', outTime: '--', workingHours: 0 }
+  { id: 'ATT-004', employeeId: 'EMP-004', employeeName: 'Mr. Vikram Kumar', date: '2026-07-17', status: 'Leave', inTime: '--', outTime: '--', workingHours: 0 }
 ];
 
 export const MOCK_LEAVE_REQUESTS = [
   { id: 'LVE-001', employeeId: 'EMP-001', employeeName: 'Mrs. Priya Nair', leaveType: 'Sick Leave', fromDate: '2026-07-20', toDate: '2026-07-21', days: 2, reason: 'Viral fever rest recommended by physician', status: 'Pending', appliedOn: '2026-07-17' },
-  { id: 'LVE-002', employeeId: 'EMP-004', employeeName: 'Mr. Rajesh Kumar', leaveType: 'Casual Leave', fromDate: '2026-07-17', toDate: '2026-07-17', days: 1, reason: 'Personal family chore event attendance', status: 'Approved', appliedOn: '2026-07-15' },
+  { id: 'LVE-002', employeeId: 'EMP-004', employeeName: 'Mr. Vikram Kumar', leaveType: 'Casual Leave', fromDate: '2026-07-17', toDate: '2026-07-17', days: 1, reason: 'Personal family chore event attendance', status: 'Approved', appliedOn: '2026-07-15' },
   { id: 'LVE-003', employeeId: 'EMP-002', employeeName: 'Mr. Alok Verma', leaveType: 'Earned Leave', fromDate: '2026-07-25', toDate: '2026-07-29', days: 5, reason: 'Out of town travel vacation plan', status: 'Approved', appliedOn: '2026-07-12' }
 ];
 
@@ -218,7 +225,7 @@ export const MOCK_AUDIT_LOGS = [
 
 // ANALYTICS DATASETS
 export const DEPARTMENT_WISE_EMPLOYEES = [
-  { name: 'Mathematics', value: 8 },
+  { name: 'Social Studies', value: 8 },
   { name: 'Science', value: 14 },
   { name: 'PE & Sports', value: 4 },
   { name: 'Finance', value: 3 },
@@ -244,7 +251,7 @@ export const LEAVE_STATISTICS = [
 ];
 
 export const PAYROLL_DISTRIBUTION = [
-  { dept: 'Mathematics', budget: 440000 },
+  { dept: 'Social Studies', budget: 440000 },
   { dept: 'Science', budget: 850000 },
   { dept: 'PE & Sports', budget: 160000 },
   { dept: 'Finance', budget: 150000 },

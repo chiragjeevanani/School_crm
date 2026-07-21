@@ -42,7 +42,7 @@ export const LibrarianLogin = () => {
             <BookOpen className="h-7 w-7 animate-pulse" />
           </div>
           <h2 className="text-2xl font-black tracking-tight text-white mt-4">LMS LIBRARIAN</h2>
-          <p className="text-slate-400 text-xs font-semibold">Greenwood Future School Library System</p>
+          <p className="text-slate-400 text-xs font-semibold">Greenfield Public School Library System</p>
         </div>
 
         {/* Error Alert */}

@@ -1,63 +1,76 @@
 // ============================================================
 // TEACHER PORTAL — COMPREHENSIVE MOCK DATA
+// Identity fields (teacher profile, class/section structure, student
+// roster) now come from shared/data — see shared/data/staff.js,
+// shared/data/academicStructure.js and shared/data/students.js.
+// Attendance %, marks, etc. below are teacher-module-local records.
 // ============================================================
 
+import { findStaffByName } from '../../../shared/data/staff';
+import { CLASSES } from '../../../shared/data/academicStructure';
+import { MOCK_STUDENTS as SHARED_STUDENTS } from '../../../shared/data/students';
+
+const teacherIdentity = findStaffByName('Mr. Rajesh Kumar');
+
 export const mockTeacher = {
-  id: 'TCH-2024-001',
-  name: 'Mr. Rajesh Kumar',
-  employeeId: 'EMP-2019-045',
-  photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-  department: 'Mathematics',
-  designation: 'Senior Teacher',
-  classTeacher: 'Class 10 - Section A',
-  subjects: ['Mathematics', 'Statistics'],
-  classes: ['Class 9A', 'Class 9B', 'Class 10A', 'Class 10B'],
-  email: 'rajesh.kumar@school.edu',
-  phone: '+91 98765 12345',
-  dob: '1985-03-15',
-  gender: 'Male',
-  bloodGroup: 'B+',
-  address: 'Flat 204, Sunrise Apartments, Sector 22, Noida, UP - 201301',
-  joiningDate: '2019-07-01',
-  experience: '7 Years',
-  qualification: 'M.Sc. Mathematics, B.Ed.',
-  emergencyContact: { name: 'Priya Kumar', relation: 'Spouse', phone: '+91 99887 76655' },
+  ...teacherIdentity,
+  classTeacher: teacherIdentity.classTeacherOf,
 };
 
 // ── Classes & Students ──────────────────────────────────────
-export const mockClasses = [
-  { id: 'cls-9a', name: 'Class 9', section: 'A', strength: 42, subjects: ['Mathematics', 'Science', 'English', 'Hindi', 'Social Studies'] },
-  { id: 'cls-9b', name: 'Class 9', section: 'B', strength: 38, subjects: ['Mathematics', 'Science', 'English', 'Hindi', 'Social Studies'] },
-  { id: 'cls-10a', name: 'Class 10', section: 'A', strength: 45, subjects: ['Mathematics', 'Statistics', 'Physics', 'Chemistry', 'English'] },
-  { id: 'cls-10b', name: 'Class 10', section: 'B', strength: 40, subjects: ['Mathematics', 'Statistics', 'Physics', 'Chemistry', 'English'] },
-];
+export const mockClasses = ['cls-9a', 'cls-9b', 'cls-10a', 'cls-10b'].map((id) =>
+  CLASSES.find((c) => c.id === id)
+);
+
+// Local attendance-record & mark-book data, keyed by shared student id.
+// (Identity fields — name/photo/dob/parent contact — come from the
+// shared roster; only these two numbers are owned by the teacher module.)
+const TEACHER_RECORDS = {
+  s001: { attendance: 92, avgMarks: 87 },
+  s002: { attendance: 88, avgMarks: 91 },
+  s003: { attendance: 75, avgMarks: 68 },
+  s004: { attendance: 96, avgMarks: 95 },
+  s005: { attendance: 83, avgMarks: 74 },
+  s006: { attendance: 90, avgMarks: 88 },
+  s007: { attendance: 65, avgMarks: 55 },
+  s008: { attendance: 94, avgMarks: 93 },
+  s009: { attendance: 79, avgMarks: 72 },
+  s010: { attendance: 97, avgMarks: 98 },
+  s011: { attendance: 85, avgMarks: 80 },
+  s012: { attendance: 91, avgMarks: 85 },
+  s101: { attendance: 95, avgMarks: 92 },
+  s102: { attendance: 82, avgMarks: 78 },
+  s103: { attendance: 98, avgMarks: 97 },
+  s104: { attendance: 70, avgMarks: 62 },
+  s105: { attendance: 88, avgMarks: 84 },
+  s106: { attendance: 93, avgMarks: 90 },
+  s107: { attendance: 87, avgMarks: 83 },
+  s108: { attendance: 60, avgMarks: 52 },
+  STU108902: { attendance: 92, avgMarks: 87 },
+};
+
+const buildRoster = (className, section, ids) =>
+  ids.map((id) => {
+    const s = SHARED_STUDENTS.find((st) => st.id === id);
+    const record = TEACHER_RECORDS[id] || {};
+    return {
+      id: s.id,
+      rollNo: s.rollNo,
+      name: s.name,
+      photo: s.photo,
+      gender: s.gender,
+      dob: s.dob,
+      phone: s.phone,
+      parent: s.parentName,
+      parentPhone: s.parentPhone,
+      attendance: record.attendance,
+      avgMarks: record.avgMarks,
+    };
+  });
 
 export const mockStudents = {
-  'cls-9a': [
-    { id: 's001', rollNo: '01', name: 'Aakash Sharma', photo: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=100&q=80', gender: 'Male', dob: '2010-05-14', phone: '+91 98765 43210', parent: 'Rajesh Sharma', parentPhone: '+91 98765 01234', attendance: 92, avgMarks: 87 },
-    { id: 's002', rollNo: '02', name: 'Priya Verma', photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80', gender: 'Female', dob: '2010-08-22', phone: '+91 99001 55678', parent: 'Suresh Verma', parentPhone: '+91 99001 11223', attendance: 88, avgMarks: 91 },
-    { id: 's003', rollNo: '03', name: 'Arjun Singh', photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&q=80', gender: 'Male', dob: '2010-11-05', phone: '+91 97654 32100', parent: 'Vikram Singh', parentPhone: '+91 97654 32101', attendance: 75, avgMarks: 68 },
-    { id: 's004', rollNo: '04', name: 'Anika Patel', photo: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&q=80', gender: 'Female', dob: '2010-02-18', phone: '+91 96543 21099', parent: 'Mahesh Patel', parentPhone: '+91 96543 21000', attendance: 96, avgMarks: 95 },
-    { id: 's005', rollNo: '05', name: 'Rohan Gupta', photo: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=100&q=80', gender: 'Male', dob: '2010-07-30', phone: '+91 95432 10988', parent: 'Rakesh Gupta', parentPhone: '+91 95432 10987', attendance: 83, avgMarks: 74 },
-    { id: 's006', rollNo: '06', name: 'Ishita Nair', photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80', gender: 'Female', dob: '2010-09-12', phone: '+91 94321 09876', parent: 'Sunil Nair', parentPhone: '+91 94321 09877', attendance: 90, avgMarks: 88 },
-    { id: 's007', rollNo: '07', name: 'Dev Malhotra', photo: 'https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&w=100&q=80', gender: 'Male', dob: '2010-03-25', phone: '+91 93210 98765', parent: 'Anil Malhotra', parentPhone: '+91 93210 98766', attendance: 65, avgMarks: 55 },
-    { id: 's008', rollNo: '08', name: 'Sanya Mehta', photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&q=80', gender: 'Female', dob: '2010-06-08', phone: '+91 92109 87654', parent: 'Deepak Mehta', parentPhone: '+91 92109 87655', attendance: 94, avgMarks: 93 },
-    { id: 's009', rollNo: '09', name: 'Kabir Joshi', photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80', gender: 'Male', dob: '2010-12-20', phone: '+91 91098 76543', parent: 'Ravi Joshi', parentPhone: '+91 91098 76544', attendance: 79, avgMarks: 72 },
-    { id: 's010', rollNo: '10', name: 'Neha Reddy', photo: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=100&q=80', gender: 'Female', dob: '2010-04-15', phone: '+91 90987 65432', parent: 'Srikanth Reddy', parentPhone: '+91 90987 65433', attendance: 97, avgMarks: 98 },
-    { id: 's011', rollNo: '11', name: 'Vivaan Kapoor', photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80', gender: 'Male', dob: '2010-01-10', phone: '+91 89876 54321', parent: 'Karan Kapoor', parentPhone: '+91 89876 54322', attendance: 85, avgMarks: 80 },
-    { id: 's012', rollNo: '12', name: 'Zara Khan', photo: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?auto=format&fit=crop&w=100&q=80', gender: 'Female', dob: '2010-10-05', phone: '+91 88765 43210', parent: 'Imran Khan', parentPhone: '+91 88765 43211', attendance: 91, avgMarks: 85 },
-  ],
-  'cls-10a': [
-    { id: 's101', rollNo: '01', name: 'Tanvi Desai', photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80', gender: 'Female', dob: '2009-05-20', phone: '+91 87654 32109', parent: 'Suresh Desai', parentPhone: '+91 87654 32100', attendance: 95, avgMarks: 92 },
-    { id: 's102', rollNo: '02', name: 'Arnav Mishra', photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80', gender: 'Male', dob: '2009-08-14', phone: '+91 86543 21098', parent: 'Dilip Mishra', parentPhone: '+91 86543 21099', attendance: 82, avgMarks: 78 },
-    { id: 's103', rollNo: '03', name: 'Kavya Iyer', photo: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=100&q=80', gender: 'Female', dob: '2009-11-30', phone: '+91 85432 10987', parent: 'Rajan Iyer', parentPhone: '+91 85432 10988', attendance: 98, avgMarks: 97 },
-    { id: 's104', rollNo: '04', name: 'Dhruv Tiwari', photo: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=100&q=80', gender: 'Male', dob: '2009-03-05', phone: '+91 84321 09876', parent: 'Ashok Tiwari', parentPhone: '+91 84321 09877', attendance: 70, avgMarks: 62 },
-    { id: 's105', rollNo: '05', name: 'Riya Saxena', photo: 'https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?auto=format&fit=crop&w=100&q=80', gender: 'Female', dob: '2009-07-18', phone: '+91 83210 98765', parent: 'Mohan Saxena', parentPhone: '+91 83210 98766', attendance: 88, avgMarks: 84 },
-    { id: 's106', rollNo: '06', name: 'Shaurya Bajaj', photo: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=100&q=80', gender: 'Male', dob: '2009-09-22', phone: '+91 82109 87654', parent: 'Rahul Bajaj', parentPhone: '+91 82109 87655', attendance: 93, avgMarks: 90 },
-    { id: 's107', rollNo: '07', name: 'Meera Pillai', photo: 'https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?auto=format&fit=crop&w=100&q=80', gender: 'Female', dob: '2009-02-10', phone: '+91 81098 76543', parent: 'Suresh Pillai', parentPhone: '+91 81098 76544', attendance: 87, avgMarks: 83 },
-    { id: 's108', rollNo: '08', name: 'Aditya Bose', photo: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80', gender: 'Male', dob: '2009-12-28', phone: '+91 80987 65432', parent: 'Sourav Bose', parentPhone: '+91 80987 65433', attendance: 60, avgMarks: 52 },
-    { id: 'STU108902', rollNo: '12', name: 'Aarav Sharma', photo: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=100&q=80', gender: 'Male', dob: '2010-05-14', phone: '+91 98765 43210', parent: 'Rajesh Sharma', parentPhone: '+91 98765 01234', attendance: 92, avgMarks: 87 },
-  ],
+  'cls-9a': buildRoster('Class 9', 'A', ['s001', 's002', 's003', 's004', 's005', 's006', 's007', 's008', 's009', 's010', 's011', 's012']),
+  'cls-10a': buildRoster('Class 10', 'A', ['s101', 's102', 's103', 's104', 's105', 's106', 's107', 's108', 'STU108902']),
 };
 
 // ── Timetable ────────────────────────────────────────────────

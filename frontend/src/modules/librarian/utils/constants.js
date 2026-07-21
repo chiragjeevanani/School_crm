@@ -14,6 +14,12 @@ import {
   Settings
 } from 'lucide-react';
 
+import { MOCK_STUDENTS as SHARED_STUDENTS } from '../../../shared/data/students';
+
+const findSharedStudent = (id) => SHARED_STUDENTS.find((s) => s.id === id);
+const romanClass = (grade) => ({ 1:'I',2:'II',3:'III',4:'IV',5:'V',6:'VI',7:'VII',8:'VIII',9:'IX',10:'X',11:'XI',12:'XII' })[grade];
+const classSectionLabel = (s) => `Class ${romanClass(Number(s.class.replace(/^Class\s*/, '')))}-${s.stream ? s.stream.slice(0, 3) : s.section}`;
+
 export const NAVIGATION_ITEMS = [
   // MAIN
   { name: 'Dashboard', path: '/librarian/dashboard', icon: LayoutDashboard, category: 'Main' },
@@ -406,46 +412,22 @@ export const MOCK_FINES = [
   }
 ];
 
+// Local memberId -> shared roster id (same students transport/utils/constants.js
+// references as STU-101..STU-107); memberName/class/admissionNo are
+// resolved from shared/data/students.js instead of being duplicated here.
+const STUDENT_MEMBER_LINKS = [
+  { id: 'LMEM-001', memberId: 'STU-001', sharedId: 'STU-101', membershipStatus: 'Active', booksIssued: 1, pendingFines: 0 },
+  { id: 'LMEM-002', memberId: 'STU-002', sharedId: 'STU-102', membershipStatus: 'Active', booksIssued: 0, pendingFines: 0 },
+  { id: 'LMEM-003', memberId: 'STU-003', sharedId: 'STU-103', membershipStatus: 'Suspended', booksIssued: 1, pendingFines: 16 },
+];
+
+const studentMembers = STUDENT_MEMBER_LINKS.map(({ id, memberId, sharedId, ...rest }) => {
+  const s = findSharedStudent(sharedId);
+  return { id, memberId, memberName: s.name, memberType: 'Student', class: classSectionLabel(s), admissionNo: s.admissionNo, maxBooksAllowed: 3, schoolId: 'SCH-2026-09', ...rest };
+});
+
 export const MOCK_MEMBERS = [
-  {
-    id: 'LMEM-001',
-    memberId: 'STU-001',
-    memberName: 'Arjun Sharma',
-    memberType: 'Student',
-    class: 'Class X-A',
-    admissionNo: 'GFS-2024-001',
-    membershipStatus: 'Active',
-    booksIssued: 1,
-    maxBooksAllowed: 3,
-    pendingFines: 0,
-    schoolId: 'SCH-2026-09'
-  },
-  {
-    id: 'LMEM-002',
-    memberId: 'STU-002',
-    memberName: 'Priya Patel',
-    memberType: 'Student',
-    class: 'Class XII-Sci',
-    admissionNo: 'GFS-2023-112',
-    membershipStatus: 'Active',
-    booksIssued: 0,
-    maxBooksAllowed: 3,
-    pendingFines: 0,
-    schoolId: 'SCH-2026-09'
-  },
-  {
-    id: 'LMEM-003',
-    memberId: 'STU-003',
-    memberName: 'Karan Malhotra',
-    memberType: 'Student',
-    class: 'Class IX-C',
-    admissionNo: 'GFS-2025-054',
-    membershipStatus: 'Suspended',
-    booksIssued: 1,
-    maxBooksAllowed: 3,
-    pendingFines: 16,
-    schoolId: 'SCH-2026-09'
-  },
+  ...studentMembers,
   {
     id: 'LMEM-004',
     memberId: 'TEA-001',

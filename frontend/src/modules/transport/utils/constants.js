@@ -16,6 +16,15 @@ import {
   Settings
 } from 'lucide-react';
 
+import { MOCK_STUDENTS as SHARED_STUDENTS } from '../../../shared/data/students';
+
+const findSharedStudent = (id) => SHARED_STUDENTS.find((s) => s.id === id);
+// Roman-numeral class labels used across this module's records, resolved
+// from the shared roster's plain "Class 10" + section/stream shape.
+const romanClass = (grade) => ({ 1:'I',2:'II',3:'III',4:'IV',5:'V',6:'VI',7:'VII',8:'VIII',9:'IX',10:'X',11:'XI',12:'XII' })[grade];
+const classLabel = (s) => `Class ${romanClass(Number(s.class.replace(/^Class\s*/, '')))}`;
+const sectionLabel = (s) => s.stream || s.section;
+
 export const NAVIGATION_ITEMS = [
   // MAIN
   { name: 'Dashboard', path: '/transport/dashboard', icon: LayoutDashboard, category: 'Main' },
@@ -331,13 +340,32 @@ export const MOCK_PICKUP_POINTS = [
   { id: 'PKP-007', name: 'Bopal Circle', routeId: 'RTE-002', gpsLat: 23.0305, gpsLng: 72.4712, pickupTime: '07:30', dropTime: '13:55', studentsAssigned: 17 }
 ];
 
-export const MOCK_ASSIGNMENTS = [
-  { id: 'ASN-001', studentId: 'STU-001', studentName: 'Arjun Sharma', class: 'Class X', section: 'A', admissionNumber: 'GFS-2024-001', vehicleId: 'VEH-001', vehicleNumber: 'GJ-01-AB-1234', routeId: 'RTE-001', routeName: 'North Zone Route A', pickupPointId: 'PKP-001', pickupPointName: 'Chandkheda Circle', startDate: '2026-06-01', endDate: '2027-04-30', feeStatus: 'Paid', schoolId: 'SCH-2026-09' },
-  { id: 'ASN-002', studentId: 'STU-002', studentName: 'Priya Patel', class: 'Class XII', section: 'Science', admissionNumber: 'GFS-2023-112', vehicleId: 'VEH-001', vehicleNumber: 'GJ-01-AB-1234', routeId: 'RTE-001', routeName: 'North Zone Route A', pickupPointId: 'PKP-002', pickupPointName: 'RTO Circle', startDate: '2026-06-01', endDate: '2027-04-30', feeStatus: 'Pending', schoolId: 'SCH-2026-09' },
-  { id: 'ASN-003', studentId: 'STU-003', studentName: 'Karan Malhotra', class: 'Class IX', section: 'C', admissionNumber: 'GFS-2025-054', vehicleId: 'VEH-002', vehicleNumber: 'GJ-01-CD-5678', routeId: 'RTE-002', routeName: 'West Zone Route B', pickupPointId: 'PKP-005', pickupPointName: 'Gota Cross Road', startDate: '2026-06-01', endDate: '2027-04-30', feeStatus: 'Overdue', schoolId: 'SCH-2026-09' },
-  { id: 'ASN-004', studentId: 'STU-004', studentName: 'Vivek Mehta', class: 'Class X', section: 'B', admissionNumber: 'GFS-2024-082', vehicleId: 'VEH-002', vehicleNumber: 'GJ-01-CD-5678', routeId: 'RTE-002', routeName: 'West Zone Route B', pickupPointId: 'PKP-006', pickupPointName: 'Sola Bridge', startDate: '2026-06-01', endDate: '2027-04-30', feeStatus: 'Paid', schoolId: 'SCH-2026-09' },
-  { id: 'ASN-005', studentId: 'STU-005', studentName: 'Sneha Roy', class: 'Class XI', section: 'Arts', admissionNumber: 'GFS-2024-119', vehicleId: 'VEH-004', vehicleNumber: 'GJ-01-GH-3456', routeId: 'RTE-004', routeName: 'South Zone Route D', pickupPointId: 'PKP-007', pickupPointName: 'Bopal Circle', startDate: '2026-06-01', endDate: '2027-04-30', feeStatus: 'Paid', schoolId: 'SCH-2026-09' }
+// studentId here is this module's own key; identity fields (name/class/
+// section/admission no) are resolved from the shared roster below via
+// ASSIGNMENT_LINKS -> shared/data/students.js.
+const ASSIGNMENT_LINKS = [
+  { id: 'ASN-001', sharedId: 'STU-101', vehicleId: 'VEH-001', vehicleNumber: 'GJ-01-AB-1234', routeId: 'RTE-001', routeName: 'North Zone Route A', pickupPointId: 'PKP-001', pickupPointName: 'Chandkheda Circle', feeStatus: 'Paid' },
+  { id: 'ASN-002', sharedId: 'STU-102', vehicleId: 'VEH-001', vehicleNumber: 'GJ-01-AB-1234', routeId: 'RTE-001', routeName: 'North Zone Route A', pickupPointId: 'PKP-002', pickupPointName: 'RTO Circle', feeStatus: 'Pending' },
+  { id: 'ASN-003', sharedId: 'STU-103', vehicleId: 'VEH-002', vehicleNumber: 'GJ-01-CD-5678', routeId: 'RTE-002', routeName: 'West Zone Route B', pickupPointId: 'PKP-005', pickupPointName: 'Gota Cross Road', feeStatus: 'Overdue' },
+  { id: 'ASN-004', sharedId: 'STU-104', vehicleId: 'VEH-002', vehicleNumber: 'GJ-01-CD-5678', routeId: 'RTE-002', routeName: 'West Zone Route B', pickupPointId: 'PKP-006', pickupPointName: 'Sola Bridge', feeStatus: 'Paid' },
+  { id: 'ASN-005', sharedId: 'STU-105', vehicleId: 'VEH-004', vehicleNumber: 'GJ-01-GH-3456', routeId: 'RTE-004', routeName: 'South Zone Route D', pickupPointId: 'PKP-007', pickupPointName: 'Bopal Circle', feeStatus: 'Paid' },
 ];
+
+export const MOCK_ASSIGNMENTS = ASSIGNMENT_LINKS.map(({ id, sharedId, ...rest }) => {
+  const s = findSharedStudent(sharedId);
+  return {
+    id,
+    studentId: sharedId,
+    studentName: s.name,
+    class: classLabel(s),
+    section: sectionLabel(s),
+    admissionNumber: s.admissionNo,
+    ...rest,
+    startDate: '2026-06-01',
+    endDate: '2027-04-30',
+    schoolId: 'SCH-2026-09',
+  };
+});
 
 export const MOCK_MAINTENANCE = [
   { id: 'MNT-001', vehicleId: 'VEH-001', vehicleNumber: 'GJ-01-AB-1234', maintenanceType: 'Oil Change', scheduledDate: '2026-07-20', completedDate: null, cost: 2500, vendorName: 'Valvoline Express Center', status: 'Scheduled', description: 'Regular engine oil and filter swap.' },
@@ -354,18 +382,13 @@ export const MOCK_FUEL_LOGS = [
 ];
 
 export const MOCK_LOGS = [
-  { id: 'LOG-001', timestamp: '2026-07-17T14:30:00Z', operatorName: 'Manish Dave (Transport Manager)', action: 'Student Assignment', details: 'Assigned student Arjun Sharma (STU-001) to Route NZ-A stop Chandkheda.' },
+  { id: 'LOG-001', timestamp: '2026-07-17T14:30:00Z', operatorName: 'Manish Dave (Transport Manager)', action: 'Student Assignment', details: 'Assigned student Arjun Sharma (STU-101) to Route NZ-A stop Chandkheda.' },
   { id: 'LOG-002', timestamp: '2026-07-17T11:15:00Z', operatorName: 'Manish Dave (Transport Manager)', action: 'Vehicle Update', details: 'Changed status of VEH-003 (GJ-01-EF-9012) to Maintenance.' },
   { id: 'LOG-003', timestamp: '2026-07-16T16:00:00Z', operatorName: 'Manish Dave (Transport Manager)', action: 'Maintenance Entry', details: 'Scheduled Routine Service/Oil Change for Vehicle GJ-01-AB-1234.' },
   { id: 'LOG-004', timestamp: '2026-07-15T09:20:00Z', operatorName: 'Manish Dave (Transport Manager)', action: 'Route Changes', details: 'Added new pickup stop Bhadaj Circle to Route WZ-B.' }
 ];
 
-export const MOCK_STUDENTS = [
-  { id: 'STU-001', name: 'Arjun Sharma', class: 'Class X', section: 'A', admissionNumber: 'GFS-2024-001' },
-  { id: 'STU-002', name: 'Priya Patel', class: 'Class XII', section: 'Science', admissionNumber: 'GFS-2023-112' },
-  { id: 'STU-003', name: 'Karan Malhotra', class: 'Class IX', section: 'C', admissionNumber: 'GFS-2025-054' },
-  { id: 'STU-004', name: 'Vivek Mehta', class: 'Class X', section: 'B', admissionNumber: 'GFS-2024-082' },
-  { id: 'STU-005', name: 'Sneha Roy', class: 'Class XI', section: 'Arts', admissionNumber: 'GFS-2024-119' },
-  { id: 'STU-006', name: 'Rohan Verma', class: 'Class XII', section: 'Commerce', admissionNumber: 'GFS-2023-045' },
-  { id: 'STU-007', name: 'Simran Kaur', class: 'Class VIII', section: 'A', admissionNumber: 'GFS-2025-091' }
-];
+export const MOCK_STUDENTS = ['STU-101', 'STU-102', 'STU-103', 'STU-104', 'STU-105', 'STU-106', 'STU-107'].map((sharedId) => {
+  const s = findSharedStudent(sharedId);
+  return { id: sharedId, name: s.name, class: classLabel(s), section: sectionLabel(s), admissionNumber: s.admissionNo };
+});

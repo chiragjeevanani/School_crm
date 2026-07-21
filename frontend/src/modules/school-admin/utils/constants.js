@@ -24,6 +24,13 @@ import {
   Settings
 } from 'lucide-react';
 
+import { MOCK_STUDENTS as SHARED_STUDENTS } from '../../../shared/data/students';
+import { MOCK_STAFF as SHARED_STAFF } from '../../../shared/data/staff';
+
+const gradeOf = (className) => className.replace(/^Class\s*/, '');
+const findSharedStudent = (id) => SHARED_STUDENTS.find((s) => s.id === id);
+const findSharedStaff = (name) => SHARED_STAFF.find((s) => s.name === name);
+
 export const NAVIGATION_ITEMS = [
   // MAIN
   { name: 'Dashboard', path: '/school-admin/dashboard', icon: LayoutDashboard, category: 'Main' },
@@ -60,30 +67,45 @@ export const NAVIGATION_ITEMS = [
   { name: 'Settings', path: '/school-admin/settings', icon: Settings, category: 'System' }
 ];
 
-export const MOCK_STUDENTS = [
-  { id: '1', admissionNo: 'ADM2026001', name: 'Aarav Sharma', class: '10', section: 'A', gender: 'Male', dob: '2011-04-12', parentName: 'Rajesh Sharma', phone: '+91 98765 00001', email: 'aarav.sharma@school.edu', status: 'Active' },
-  { id: '2', admissionNo: 'ADM2026002', name: 'Diya Patel', class: '10', section: 'B', gender: 'Female', dob: '2011-08-22', parentName: 'Ketan Patel', phone: '+91 98765 00002', email: 'diya.patel@school.edu', status: 'Active' },
-  { id: '3', admissionNo: 'ADM2026003', name: 'Kabir Verma', class: '9', section: 'A', gender: 'Male', dob: '2012-01-15', parentName: 'Sanjay Verma', phone: '+91 98765 00003', email: 'kabir.verma@school.edu', status: 'Active' },
-  { id: '4', admissionNo: 'ADM2026004', name: 'Ananya Iyer', class: '11', section: 'A', gender: 'Female', dob: '2010-09-05', parentName: 'Raman Iyer', phone: '+91 98765 00004', email: 'ananya.iyer@school.edu', status: 'Active' },
-  { id: '5', admissionNo: 'ADM2026005', name: 'Vihaan Gupta', class: '12', section: 'C', gender: 'Male', dob: '2009-03-30', parentName: 'Alok Gupta', phone: '+91 98765 00005', email: 'vihaan.gupta@school.edu', status: 'Active' },
-  { id: '6', admissionNo: 'ADM2026006', name: 'Ishita Reddy', class: '8', section: 'A', gender: 'Female', dob: '2013-11-18', parentName: 'Venkat Reddy', phone: '+91 98765 00006', email: 'ishita.reddy@school.edu', status: 'Active' },
-  { id: '7', admissionNo: 'ADM2026007', name: 'Arjun Mehta', class: '10', section: 'A', gender: 'Male', dob: '2011-06-14', parentName: 'Praveen Mehta', phone: '+91 98765 00007', email: 'arjun.mehta@school.edu', status: 'Inactive' },
-  { id: '8', admissionNo: 'ADM2026008', name: 'Riya Sen', class: '12', section: 'A', gender: 'Female', dob: '2009-07-21', parentName: 'Amit Sen', phone: '+91 98765 00008', email: 'riya.sen@school.edu', status: 'Active' }
+// Local id -> shared roster id, plus module-only status flag.
+const STUDENT_LINKS = [
+  { id: '1', sharedId: 'STU108902', status: 'Active' },
+  { id: '2', sharedId: 'STU-002', status: 'Active' },
+  { id: '3', sharedId: 's013', status: 'Active' },
+  { id: '4', sharedId: 'STU-004', status: 'Active' },
+  { id: '5', sharedId: 'STU-005', status: 'Active' },
+  { id: '6', sharedId: 'STU-006', status: 'Active' },
+  { id: '7', sharedId: 'STU-007', status: 'Inactive' },
+  { id: '8', sharedId: 'STU-008', status: 'Active' },
 ];
 
-export const MOCK_TEACHERS = [
-  { id: '1', name: 'Dr. Ramesh Kumar', department: 'Science', email: 'ramesh.kumar@school.edu', phone: '+91 91111 00001', qualification: 'Ph.D in Physics', classes: '10-A, 11-A, 12-C', status: 'Active' },
-  { id: '2', name: 'Mrs. Sunita Rao', department: 'Mathematics', email: 'sunita.rao@school.edu', phone: '+91 91111 00002', qualification: 'M.Sc Mathematics, B.Ed', classes: '9-A, 10-A, 10-B', status: 'Active' },
-  { id: '3', name: 'Mr. David D\'souza', department: 'English', email: 'david.d@school.edu', phone: '+91 91111 00003', qualification: 'M.A English Literature', classes: '8-A, 9-A, 11-A', status: 'Active' },
-  { id: '4', name: 'Mrs. Priya Nair', department: 'Social Studies', email: 'priya.nair@school.edu', phone: '+91 91111 00004', qualification: 'M.A History, B.Ed', classes: '9-B, 10-B', status: 'Active' },
-  { id: '5', name: 'Mr. Anil Joshi', department: 'Computer Science', email: 'anil.joshi@school.edu', phone: '+91 91111 00005', qualification: 'MCA, B.Ed', classes: '11-A, 12-C', status: 'Inactive' }
+export const MOCK_STUDENTS = STUDENT_LINKS.map(({ id, sharedId, status }) => {
+  const s = findSharedStudent(sharedId);
+  return { id, admissionNo: s.admissionNo, name: s.name, class: gradeOf(s.class), section: s.section, gender: s.gender, dob: s.dob, parentName: s.parentName, phone: s.parentPhone, email: s.email, status };
+});
+
+// Local id -> shared staff name, plus module-only status flag.
+const TEACHER_LINKS = [
+  { id: '1', name: 'Dr. Ramesh Kumar', classes: '10-A, 11-A, 12-C', status: 'Active' },
+  { id: '2', name: 'Mrs. Sunita Rao', classes: '9-A, 10-A, 10-B', status: 'Active' },
+  { id: '3', name: "Mr. David D'souza", classes: '8-A, 9-A, 11-A', status: 'Active' },
+  { id: '4', name: 'Mrs. Priya Nair', classes: '9-B, 10-B', status: 'Active' },
+  { id: '5', name: 'Mr. Anil Joshi', classes: '11-A, 12-C', status: 'Inactive' },
 ];
 
+export const MOCK_TEACHERS = TEACHER_LINKS.map(({ id, name, classes, status }) => {
+  const t = findSharedStaff(name);
+  return { id, name: t.name, department: t.department, email: t.email, phone: t.phone, qualification: t.qualification, classes, status };
+});
+
+// Names reconciled with each module's own leadership persona (see
+// shared/data/staff.js) instead of inventing a second "the accountant" /
+// "the librarian" / "the transport manager" / "the HR manager".
 export const MOCK_EMPLOYEES = [
-  { id: '1', name: 'Mr. Suresh Patil', role: 'Accountant', email: 'suresh.patil@school.edu', phone: '+91 92222 00001', department: 'Finance', status: 'Active' },
-  { id: '2', name: 'Mrs. Gita Nair', role: 'Librarian', email: 'gita.nair@school.edu', phone: '+91 92222 00002', department: 'Library', status: 'Active' },
-  { id: '3', name: 'Mr. Rajesh Yadav', role: 'Transport Manager', email: 'rajesh.yadav@school.edu', phone: '+91 92222 00003', department: 'Transport', status: 'Active' },
-  { id: '4', name: 'Mrs. Shalini Saxena', role: 'HR Manager', email: 'shalini.s@school.edu', phone: '+91 92222 00004', department: 'HR', status: 'Active' },
+  { id: '1', name: findSharedStaff('Mr. Suresh Mehta').name, role: 'Accountant', email: findSharedStaff('Mr. Suresh Mehta').email, phone: '+91 92222 00001', department: 'Finance', status: 'Active' },
+  { id: '2', name: findSharedStaff('Sanjay Kumar').name, role: 'Librarian', email: findSharedStaff('Sanjay Kumar').email, phone: '+91 92222 00002', department: 'Library', status: 'Active' },
+  { id: '3', name: findSharedStaff('Manish Dave').name, role: 'Transport Manager', email: findSharedStaff('Manish Dave').email, phone: '+91 92222 00003', department: 'Transport', status: 'Active' },
+  { id: '4', name: findSharedStaff('Mr. Suresh Kumar').name, role: 'HR Manager', email: findSharedStaff('Mr. Suresh Kumar').email, phone: '+91 92222 00004', department: 'HR', status: 'Active' },
   { id: '5', name: 'Mr. Somnath Lal', role: 'Lab Assistant', email: 'somnath.l@school.edu', phone: '+91 92222 00005', department: 'Science Labs', status: 'Active' }
 ];
 

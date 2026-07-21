@@ -42,7 +42,7 @@ export const TransportLogin = () => {
             <Bus className="h-7 w-7 animate-pulse" />
           </div>
           <h2 className="text-2xl font-black tracking-tight text-white mt-4">FLEET CONTROL</h2>
-          <p className="text-slate-400 text-xs font-semibold">Greenwood Future School Transport Portal</p>
+          <p className="text-slate-400 text-xs font-semibold">Greenfield Public School Transport Portal</p>
         </div>
 
         {/* Error Alert */}

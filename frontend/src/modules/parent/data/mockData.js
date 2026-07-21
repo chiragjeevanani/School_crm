@@ -1,51 +1,65 @@
 // Consolidated Mock Data for Parent Portal supporting multi-child accounts
+// Identity fields sourced from shared/data — see shared/data/parents.js,
+// shared/data/students.js and shared/data/school.js. Records below
+// (attendance log, homework, fee ledgers, etc.) remain local to this module.
+
+import { findParent, childrenOf } from '../../../shared/data/parents';
+import { SCHOOL } from '../../../shared/data/school';
+import { findStaffByName } from '../../../shared/data/staff';
+
+const parentIdentity = findParent('PAR-2024-8902');
+const [aarav, aanya] = childrenOf('PAR-2024-8902');
+
+// Subject teachers, resolved from the shared staff directory.
+const AARAV_TEACHERS = {
+  maths: findStaffByName('Mr. Rajesh Kumar').name,
+  science: findStaffByName('Mrs. Sen').name,
+  english: findStaffByName('Ms. Kapoor').name,
+  social: findStaffByName('Mr. Khan').name,
+};
+const AANYA_TEACHERS = {
+  english: findStaffByName('Mrs. D. Singh').name,
+  science: findStaffByName('Mr. Joshi').name,
+  hindi: findStaffByName('Mrs. Sharma').name,
+  social: findStaffByName('Miss Sen').name,
+};
 
 export const MOCK_PARENT = {
-  id: "PAR-2024-8902",
-  name: "Mr. Rajesh Sharma",
-  photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80",
-  occupation: "Software Engineer",
-  email: "rajesh.sharma@gmail.com",
-  phone: "+91 98765 01234",
-  address: "Flat 402, Pine Crest Apartments, Sector 15, Dwarka, New Delhi - 110075",
-  childrenCount: 2,
-  linkedChildren: [
-    {
-      id: "STU108902",
-      name: "Aarav Sharma",
-      class: "Class 10",
-      section: "A",
-      rollNo: "12",
-      photo: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=100&q=80",
-    },
-    {
-      id: "STU108903",
-      name: "Aanya Sharma",
-      class: "Class 6",
-      section: "B",
-      rollNo: "05",
-      photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80",
-    }
-  ]
+  id: parentIdentity.id,
+  name: parentIdentity.name,
+  photo: parentIdentity.photo,
+  occupation: parentIdentity.occupation,
+  email: parentIdentity.email,
+  phone: parentIdentity.phone,
+  address: parentIdentity.address,
+  childrenCount: parentIdentity.children.length,
+  linkedChildren: [aarav, aanya].map((c) => ({
+    id: c.id,
+    name: c.name,
+    class: c.class,
+    section: c.section,
+    rollNo: c.rollNo,
+    photo: c.photo,
+  })),
 };
 
 // ── Linked Children Full Profiles (Read-only) ────────────────
 export const MOCK_CHILDREN_PROFILES = {
   "STU108902": {
-    id: "STU108902",
-    admissionNo: "ADM-2024-8902",
-    name: "Aarav Sharma",
-    photo: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80",
-    class: "Class 10",
-    section: "A",
-    rollNo: "12",
-    academicSession: "2025-2026",
-    dob: "2010-05-14",
-    email: "aarav.sharma@school.edu",
-    phone: "+91 98765 43210",
-    bloodGroup: "O+",
-    emergencyContact: "Rajesh Sharma (+91 98765 01234)",
-    address: "Flat 402, Pine Crest Apartments, Dwarka, New Delhi - 110075",
+    id: aarav.id,
+    admissionNo: aarav.admissionNo,
+    name: aarav.name,
+    photo: aarav.photo,
+    class: aarav.class,
+    section: aarav.section,
+    rollNo: aarav.rollNo,
+    academicSession: SCHOOL.academicSession,
+    dob: aarav.dob,
+    email: aarav.email,
+    phone: aarav.phone,
+    bloodGroup: aarav.bloodGroup,
+    emergencyContact: `${aarav.parentName} (${aarav.parentPhone})`,
+    address: aarav.address,
     medical: { allergies: "Dust, Pollen", conditions: "None", medications: "None" },
     documents: [
       { name: "Birth Certificate", size: "1.5 MB", type: "PDF" },
@@ -54,20 +68,20 @@ export const MOCK_CHILDREN_PROFILES = {
     ]
   },
   "STU108903": {
-    id: "STU108903",
-    admissionNo: "ADM-2024-8903",
-    name: "Aanya Sharma",
-    photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
-    class: "Class 6",
-    section: "B",
-    rollNo: "05",
-    academicSession: "2025-2026",
-    dob: "2014-09-18",
-    email: "aanya.sharma@school.edu",
-    phone: "+91 98765 01234",
-    bloodGroup: "B+",
-    emergencyContact: "Rajesh Sharma (+91 98765 01234)",
-    address: "Flat 402, Pine Crest Apartments, Dwarka, New Delhi - 110075",
+    id: aanya.id,
+    admissionNo: aanya.admissionNo,
+    name: aanya.name,
+    photo: aanya.photo,
+    class: aanya.class,
+    section: aanya.section,
+    rollNo: aanya.rollNo,
+    academicSession: SCHOOL.academicSession,
+    dob: aanya.dob,
+    email: aanya.email,
+    phone: aanya.parentPhone,
+    bloodGroup: aanya.bloodGroup,
+    emergencyContact: `${aanya.parentName} (${aanya.parentPhone})`,
+    address: aanya.address,
     medical: { allergies: "Peanuts", conditions: "Mild Asthma", medications: "Inhaler (SOS)" },
     documents: [
       { name: "Birth Certificate", size: "1.2 MB", type: "PDF" },
@@ -238,10 +252,10 @@ export const MOCK_CHILDREN_FEES = {
 export const MOCK_CHILDREN_ACADEMICS = {
   "STU108902": {
     subjects: [
-      { name: 'Mathematics', teacher: 'Mr. Rajesh Kumar', syllabusProgress: 75, rooms: 'Room 302' },
-      { name: 'Science', teacher: 'Mrs. Sen', syllabusProgress: 68, rooms: 'Science Lab' },
-      { name: 'English', teacher: 'Ms. Kapoor', syllabusProgress: 80, rooms: 'Room 105' },
-      { name: 'Social Science', teacher: 'Mr. Khan', syllabusProgress: 60, rooms: 'Room 201' },
+      { name: 'Mathematics', teacher: AARAV_TEACHERS.maths, syllabusProgress: 75, rooms: 'Room 302' },
+      { name: 'Science', teacher: AARAV_TEACHERS.science, syllabusProgress: 68, rooms: 'Science Lab' },
+      { name: 'English', teacher: AARAV_TEACHERS.english, syllabusProgress: 80, rooms: 'Room 105' },
+      { name: 'Social Science', teacher: AARAV_TEACHERS.social, syllabusProgress: 60, rooms: 'Room 201' },
     ],
     materials: [
       { id: 'mat-1', title: 'Quadratic Equations Notes', type: 'PDF', size: '1.8 MB', subject: 'Mathematics', downloadUrl: '#' },
@@ -251,10 +265,10 @@ export const MOCK_CHILDREN_ACADEMICS = {
   },
   "STU108903": {
     subjects: [
-      { name: 'English Grammar', teacher: 'Mrs. D. Singh', syllabusProgress: 85, rooms: 'Room 101' },
-      { name: 'Science Basics', teacher: 'Mr. Joshi', syllabusProgress: 70, rooms: 'Biology Lab' },
-      { name: 'Hindi Literature', teacher: 'Mrs. Sharma', syllabusProgress: 75, rooms: 'Room 108' },
-      { name: 'Social Studies', teacher: 'Miss Sen', syllabusProgress: 65, rooms: 'Room 104' },
+      { name: 'English Grammar', teacher: AANYA_TEACHERS.english, syllabusProgress: 85, rooms: 'Room 101' },
+      { name: 'Science Basics', teacher: AANYA_TEACHERS.science, syllabusProgress: 70, rooms: 'Biology Lab' },
+      { name: 'Hindi Literature', teacher: AANYA_TEACHERS.hindi, syllabusProgress: 75, rooms: 'Room 108' },
+      { name: 'Social Studies', teacher: AANYA_TEACHERS.social, syllabusProgress: 65, rooms: 'Room 104' },
     ],
     materials: [
       { id: 'mat-4', title: 'Active & Passive Voice Rules', type: 'PDF', size: '1.1 MB', subject: 'English Grammar', downloadUrl: '#' },
@@ -267,30 +281,30 @@ export const MOCK_CHILDREN_ACADEMICS = {
 export const MOCK_CHILDREN_TIMETABLES = {
   "STU108902": {
     monday: [
-      { period: 1, subject: 'Mathematics', time: '08:30 - 09:15', teacher: 'Mr. Rajesh Kumar', room: '302' },
-      { period: 2, subject: 'Science', time: '09:15 - 10:00', teacher: 'Mrs. Sen', room: 'Science Lab' },
-      { period: 3, subject: 'English', time: '10:15 - 11:00', teacher: 'Ms. Kapoor', room: '105' },
-      { period: 4, subject: 'Social Science', time: '11:00 - 11:45', teacher: 'Mr. Khan', room: '201' },
+      { period: 1, subject: 'Mathematics', time: '08:30 - 09:15', teacher: AARAV_TEACHERS.maths, room: '302' },
+      { period: 2, subject: 'Science', time: '09:15 - 10:00', teacher: AARAV_TEACHERS.science, room: 'Science Lab' },
+      { period: 3, subject: 'English', time: '10:15 - 11:00', teacher: AARAV_TEACHERS.english, room: '105' },
+      { period: 4, subject: 'Social Science', time: '11:00 - 11:45', teacher: AARAV_TEACHERS.social, room: '201' },
     ],
     tuesday: [
-      { period: 1, subject: 'Science', time: '08:30 - 09:15', teacher: 'Mrs. Sen', room: 'Science Lab' },
-      { period: 2, subject: 'Mathematics', time: '09:15 - 10:00', teacher: 'Mr. Rajesh Kumar', room: '302' },
-      { period: 3, subject: 'Social Science', time: '10:15 - 11:00', teacher: 'Mr. Khan', room: '201' },
-      { period: 4, subject: 'English', time: '11:00 - 11:45', teacher: 'Ms. Kapoor', room: '105' },
+      { period: 1, subject: 'Science', time: '08:30 - 09:15', teacher: AARAV_TEACHERS.science, room: 'Science Lab' },
+      { period: 2, subject: 'Mathematics', time: '09:15 - 10:00', teacher: AARAV_TEACHERS.maths, room: '302' },
+      { period: 3, subject: 'Social Science', time: '10:15 - 11:00', teacher: AARAV_TEACHERS.social, room: '201' },
+      { period: 4, subject: 'English', time: '11:00 - 11:45', teacher: AARAV_TEACHERS.english, room: '105' },
     ]
   },
   "STU108903": {
     monday: [
-      { period: 1, subject: 'English Grammar', time: '08:30 - 09:15', teacher: 'Mrs. D. Singh', room: '101' },
-      { period: 2, subject: 'Science Basics', time: '09:15 - 10:00', teacher: 'Mr. Joshi', room: 'Biology Lab' },
-      { period: 3, subject: 'Hindi Literature', time: '10:15 - 11:00', teacher: 'Mrs. Sharma', room: '108' },
-      { period: 4, subject: 'Social Studies', time: '11:00 - 11:45', teacher: 'Miss Sen', room: '104' },
+      { period: 1, subject: 'English Grammar', time: '08:30 - 09:15', teacher: AANYA_TEACHERS.english, room: '101' },
+      { period: 2, subject: 'Science Basics', time: '09:15 - 10:00', teacher: AANYA_TEACHERS.science, room: 'Biology Lab' },
+      { period: 3, subject: 'Hindi Literature', time: '10:15 - 11:00', teacher: AANYA_TEACHERS.hindi, room: '108' },
+      { period: 4, subject: 'Social Studies', time: '11:00 - 11:45', teacher: AANYA_TEACHERS.social, room: '104' },
     ],
     tuesday: [
-      { period: 1, subject: 'Hindi Literature', time: '08:30 - 09:15', teacher: 'Mrs. Sharma', room: '108' },
-      { period: 2, subject: 'English Grammar', time: '09:15 - 10:00', teacher: 'Mrs. D. Singh', room: '101' },
-      { period: 3, subject: 'Social Studies', time: '10:15 - 11:00', teacher: 'Miss Sen', room: '104' },
-      { period: 4, subject: 'Science Basics', time: '11:00 - 11:45', teacher: 'Mr. Joshi', room: 'Biology Lab' },
+      { period: 1, subject: 'Hindi Literature', time: '08:30 - 09:15', teacher: AANYA_TEACHERS.hindi, room: '108' },
+      { period: 2, subject: 'English Grammar', time: '09:15 - 10:00', teacher: AANYA_TEACHERS.english, room: '101' },
+      { period: 3, subject: 'Social Studies', time: '10:15 - 11:00', teacher: AANYA_TEACHERS.social, room: '104' },
+      { period: 4, subject: 'Science Basics', time: '11:00 - 11:45', teacher: AANYA_TEACHERS.science, room: 'Biology Lab' },
     ]
   }
 };

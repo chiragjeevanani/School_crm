@@ -61,7 +61,7 @@ export const Settings = () => {
               />
               <div className="text-center sm:text-left space-y-1">
                 <h4 className="text-base font-bold text-slate-850 dark:text-slate-200">{user.name}</h4>
-                <p className="text-xs text-slate-450">{user.role} | Greenwood Future School</p>
+                <p className="text-xs text-slate-450">{user.role} | Greenfield Public School</p>
                 <span className="inline-flex px-2 py-0.5 bg-amber-50 dark:bg-amber-955/20 text-amber-600 dark:text-amber-400 rounded-lg text-3xs font-bold border border-amber-100 dark:border-amber-900/30">
                   ID: {user.id}
                 </span>
