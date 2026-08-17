@@ -1,35 +1,34 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Tabs } from '../../components/ui/Tabs';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
-import { MOCK_AUDIT_LOGS } from '../../utils/constants';
+import { useAppStore } from '../../../../shared/store/useAppStore';
 
 export const AuditLogs = () => {
-  const [logs, setLogs] = useState(MOCK_AUDIT_LOGS);
+  const { store } = useAppStore();
+  const logs = store.auditLogs || [];
 
   const columns = [
+    { header: 'Action ID', key: 'id', render: (val) => <Badge variant="default">{val}</Badge> },
     { header: 'Action User', key: 'user', render: (val) => <span className="font-bold text-slate-900 dark:text-white">{val}</span> },
-    { header: 'Action Label', key: 'action' },
-    { header: 'Category Module', key: 'module', render: (val) => <Badge variant="info">{val}</Badge> },
-    { header: 'Old Value State', key: 'oldValue' },
-    { header: 'New Value State', key: 'newValue', render: (val) => <span className="font-semibold text-indigo-650">{val}</span> },
-    { header: 'Date', key: 'date' },
-    { header: 'Time', key: 'time' },
-    { header: 'IP Location', key: 'ip' },
-    { header: 'Device Agent', key: 'device' }
+    { header: 'Role Scope', key: 'role', render: (val) => <Badge variant="info">{val || 'System'}</Badge> },
+    { header: 'Action Performed', key: 'action', render: (val) => <span className="font-bold text-indigo-600 dark:text-indigo-400">{val}</span> },
+    { header: 'Details & Impact', key: 'details', render: (val) => <span className="text-xs text-slate-600 dark:text-slate-300">{val}</span> },
+    { header: 'Timestamp', key: 'timestamp', render: (val) => val ? new Date(val).toLocaleString() : 'N/A' },
+    { header: 'IP Address', key: 'ip', render: (val) => <span className="font-mono text-[11px] text-slate-400">{val || '192.168.1.10'}</span> }
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader 
         title="Audit Logs Registry" 
-        subtitle="Review security changes, track student database modifications, and check administrator actions."
+        subtitle="Review security changes, track database modifications, and inspect live administrator activity."
       />
 
       <Tabs 
         tabs={[
-          { id: 'logs', label: 'All Operations logs', count: logs.length }
+          { id: 'logs', label: 'All Operations & Security Logs', count: logs.length }
         ]}
         activeTab="logs"
         onChange={() => {}}

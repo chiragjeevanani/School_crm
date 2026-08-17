@@ -17,9 +17,12 @@ export const StudentAcademics = () => {
   const { academics } = useAcademics();
   const [selectedSubject, setSelectedSubject] = useState('All');
 
+  const subjects = academics?.subjects || [];
+  const materials = academics?.materials || [];
+
   const filteredMaterials = selectedSubject === 'All' 
-    ? academics.materials 
-    : academics.materials.filter(m => m.subject === selectedSubject);
+    ? materials 
+    : materials.filter(m => m.subject === selectedSubject);
 
   const handleDownload = (fileName) => {
     alert(`Downloading ${fileName}... (Mock)`);
@@ -31,7 +34,7 @@ export const StudentAcademics = () => {
       <div>
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Assigned Subjects & Progress</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {academics.subjects.map((sub, i) => (
+          {subjects.map((sub, i) => (
             <Card 
               key={i} 
               onClick={() => setSelectedSubject(sub.name)}
@@ -85,7 +88,7 @@ export const StudentAcademics = () => {
 
         {/* Filter Row */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mb-4">
-          {['All', ...academics.subjects.map(s => s.name)].map((subName) => (
+          {['All', ...subjects.map(s => s.name)].map((subName) => (
             <button
               key={subName}
               onClick={() => setSelectedSubject(subName)}

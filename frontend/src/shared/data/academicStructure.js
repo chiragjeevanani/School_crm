@@ -59,3 +59,12 @@ export const findClass = (name, section) =>
   CLASSES.find((c) => c.name === name && (!section || c.section === section));
 
 export const getClassSectionLabel = (name, section) => (section ? `${name} ${section}` : name);
+
+export const ACADEMIC_STRUCTURE = {
+  CLASSES,
+  SUBJECT_SETS,
+  STREAMS,
+  CLASS_NAMES,
+  SECTIONS_BY_CLASS
+};
+

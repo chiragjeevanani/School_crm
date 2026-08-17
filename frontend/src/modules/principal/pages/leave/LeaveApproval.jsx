@@ -4,89 +4,58 @@ import { Tabs } from '../../components/ui/Tabs';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
-import { ShieldCheck, History, Award } from 'lucide-react';
-import { MOCK_LEAVE_REQUESTS, MOCK_AUDIT_LOGS } from '../../utils/constants';
+import { useAppStore } from '../../../../shared/store/useAppStore';
+import { ShieldCheck, History, Award, CheckCircle, XCircle } from 'lucide-react';
 
 export const LeaveApproval = () => {
   const [activeTab, setActiveTab] = useState('pending');
   const { showToast, ToastComponent } = useToast();
+  const { store, approveLeave } = useAppStore();
 
-  // Local Leave state
-  const [leaves, setLeaves] = useState(MOCK_LEAVE_REQUESTS);
-  const [auditLogs, setAuditLogs] = useState(MOCK_AUDIT_LOGS);
+  const leaves = store.leaves || [];
+  const pendingLeaves = leaves.filter(l => l.status === 'Pending');
+  const resolvedLeaves = leaves.filter(l => l.status !== 'Pending');
 
-  // Dialog triggers
-  const [confirmApproveId, setConfirmApproveId] = useState(null);
   const [confirmRejectId, setConfirmRejectId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
   const handleApprove = (id) => {
-    const record = leaves.find(l => l.id === id);
-    if (!record) return;
-
-    setLeaves(prev => prev.map(l => l.id === id ? { ...l, status: 'Approved' } : l));
-    
-    // Add to Audit Log
-    const newAudit = {
-      id: `AUD-00${auditLogs.length + 1}`,
-      user: 'Principal S. Chatterjee',
-      action: `Approved Leave Request ${id} for ${record.staffName}`,
-      date: new Date().toISOString(),
-      schoolId: 'SCH-2026-09'
-    };
-    setAuditLogs([newAudit, ...auditLogs]);
-
-    showToast(`Leave request for ${record.staffName} approved. Audit log generated!`, 'success');
-    setConfirmApproveId(null);
+    approveLeave(id, true, 'Approved by Principal Dr. S. Chatterjee', 'Dr. S. Chatterjee (Principal)');
+    showToast('Leave request approved! Balance deducted and institutional attendance updated.', 'success');
   };
 
   const handleReject = (e) => {
     e.preventDefault();
-    if (!confirmRejectId || !rejectReason) return;
+    if (!confirmRejectId) return;
 
-    const record = leaves.find(l => l.id === confirmRejectId);
-    if (!record) return;
-
-    setLeaves(prev => prev.map(l => l.id === confirmRejectId ? { ...l, status: 'Rejected', managerNotes: rejectReason } : l));
-
-    // Add to Audit Log
-    const newAudit = {
-      id: `AUD-00${auditLogs.length + 1}`,
-      user: 'Principal S. Chatterjee',
-      action: `Rejected Leave Request ${confirmRejectId} for ${record.staffName}. Reason: ${rejectReason}`,
-      date: new Date().toISOString(),
-      schoolId: 'SCH-2026-09'
-    };
-    setAuditLogs([newAudit, ...auditLogs]);
-
-    showToast(`Leave request for ${record.staffName} rejected. Reason logged.`, 'info');
+    approveLeave(confirmRejectId, false, rejectReason || 'Administrative disapproval based on term timetable.', 'Dr. S. Chatterjee (Principal)');
+    showToast('Leave request rejected with remarks.', 'info');
     setConfirmRejectId(null);
     setRejectReason('');
   };
 
-  // Columns for Pending Leave Table
   const pendingColumns = [
-    { key: 'staffName', title: 'Applicant Name', sortable: true },
-    { key: 'role', title: 'Staff Role' },
-    { key: 'dates', title: 'Leave Dates' },
-    { key: 'days', title: 'Days count' },
-    { key: 'reason', title: 'Detailed Reason Statement' },
+    { key: 'applicantName', title: 'Applicant Name', sortable: true },
+    { key: 'applicantType', title: 'Type', render: (val) => <Badge variant="info">{val}</Badge> },
+    { key: 'department', title: 'Dept / Class', render: (val, row) => val || row.class || 'Faculty' },
+    { key: 'leaveType', title: 'Category' },
+    { key: 'dates', title: 'Leave Duration', render: (_, row) => `${row.startDate} to ${row.endDate} (${row.days} days)` },
+    { key: 'reason', title: 'Statement / Reason' },
     { 
       key: 'actions', 
-      title: 'Approval Signature Actions',
+      title: 'Principal Actions',
       render: (_, row) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => setConfirmRejectId(row.id)}
-            className="px-2.5 py-1 text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 rounded-lg transition-all"
+            className="px-2.5 py-1 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all"
           >
             Reject
           </button>
           <button
-            onClick={() => setConfirmApproveId(row.id)}
-            className="px-2.5 py-1 text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-all shadow-sm"
+            onClick={() => handleApprove(row.id)}
+            className="px-3 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-all shadow-sm"
           >
             Approve
           </button>
@@ -95,121 +64,74 @@ export const LeaveApproval = () => {
     }
   ];
 
-  // Columns for Leave Archive History
   const historyColumns = [
-    { key: 'staffName', title: 'Applicant Name', sortable: true },
-    { key: 'role', title: 'Staff Role' },
-    { key: 'dates', title: 'Leave Dates' },
-    { key: 'days', title: 'Days' },
+    { key: 'applicantName', title: 'Applicant Name', sortable: true },
+    { key: 'applicantType', title: 'Type' },
+    { key: 'leaveType', title: 'Category' },
+    { key: 'dates', title: 'Duration', render: (_, row) => `${row.startDate} to ${row.endDate}` },
     { 
       key: 'status', 
       title: 'Status',
       render: (val) => (
-        <Badge variant={val === 'Approved' ? 'success' : val === 'Pending' ? 'warning' : 'danger'}>
+        <Badge variant={val === 'Approved' ? 'success' : 'danger'}>
           {val}
         </Badge>
       )
     },
-    { key: 'managerNotes', title: 'Principal Remarks' }
+    { key: 'comments', title: 'Manager / Principal Remarks' }
   ];
-
-  const pendingLeaves = leaves.filter(l => l.status === 'Pending');
-  const historyLeaves = leaves.filter(l => l.status !== 'Pending');
 
   return (
     <div className="space-y-6">
       <PageHeader 
-        title="Leave Approvals Panel" 
-        subtitle="Review leave applications submitted by academic faculty or administrative staff. Sign off or decline." 
+        title="Leave Approval Desk" 
+        subtitle="Review institutional faculty and student leave requests, authorize absences, and audit operational rosters." 
       />
 
       <Tabs 
         tabs={[
-          { id: 'pending', label: `Pending Signatures (${pendingLeaves.length})` },
-          { id: 'history', label: 'Leave Archive History' },
-          { id: 'audit', label: 'Principal Approval Audit Logs' }
-        ]} 
-        activeTab={activeTab} 
-        onChange={setActiveTab} 
+          { id: 'pending', label: 'Pending Requests', count: pendingLeaves.length },
+          { id: 'history', label: 'Approved & Historical Logs', count: resolvedLeaves.length }
+        ]}
+        activeTab={activeTab}
+        onChange={setActiveTab}
       />
 
-      {activeTab === 'pending' && (
+      <div className="bg-white dark:bg-slate-900 border border-border rounded-3xl p-6 shadow-sm">
         <DataTable 
-          columns={pendingColumns} 
-          data={pendingLeaves} 
-          searchPlaceholder="Search leave requests by name..."
-          searchKey="staffName"
-          emptyMessage="All pending leave requests approved."
+          columns={activeTab === 'pending' ? pendingColumns : historyColumns} 
+          data={activeTab === 'pending' ? pendingLeaves : resolvedLeaves}
+          searchPlaceholder="Search leave requests..." 
         />
-      )}
+      </div>
 
-      {activeTab === 'history' && (
-        <DataTable 
-          columns={historyColumns} 
-          data={historyLeaves} 
-          searchPlaceholder="Search history logs..."
-          searchKey="staffName"
-        />
-      )}
-
-      {activeTab === 'audit' && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-3 pb-3 border-b">
-            <History className="w-5 h-5 text-emerald-650" />
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-850 dark:text-white">Authorized Signature Audits</h4>
-          </div>
-          <div className="space-y-3.5 text-xs font-semibold">
-            {auditLogs.map((log) => (
-              <div key={log.id} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 rounded-2xl flex items-start justify-between">
-                <div>
-                  <span className="font-bold text-slate-905 dark:text-white block">{log.action}</span>
-                  <span className="text-[10px] text-slate-400 mt-1 block">Signed by: {log.user} • School Reference ID: {log.schoolId}</span>
-                </div>
-                <span className="text-[10px] text-slate-400 shrink-0 font-medium">{new Date(log.date).toLocaleDateString()}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Approve Dialog */}
-      <ConfirmDialog
-        isOpen={confirmApproveId !== null}
-        onClose={() => setConfirmApproveId(null)}
-        onConfirm={() => handleApprove(confirmApproveId)}
-        title="Approve Leave Application"
-        message="Are you sure you want to sign off and approve this leave request? This action will generate a permanent audit log entry."
-        confirmText="Approve & Sign"
-        variant="success"
-      />
-
-      {/* Reject Modal */}
-      <Modal isOpen={confirmRejectId !== null} onClose={() => setConfirmRejectId(null)} title="Decline Leave Application">
-        <form onSubmit={handleReject} className="space-y-4 text-xs font-semibold">
+      {/* REJECT DIALOG */}
+      <Modal isOpen={!!confirmRejectId} onClose={() => setConfirmRejectId(null)} title="Disapprove Leave Application">
+        <form onSubmit={handleReject} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-450 block">Decline Reason Remarks</label>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Reason for Rejection *</label>
             <textarea
+              required
               rows={3}
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Provide a brief explanation for declining this leave..."
-              required
-              className="w-full bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border focus:outline-none focus:ring-1 focus:ring-emerald-650 font-sans"
+              placeholder="State institutional reason..."
+              className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border text-foreground"
             />
           </div>
-          <div className="flex justify-end gap-2.5">
+          <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={() => setConfirmRejectId(null)}
-              className="px-3.5 py-2 text-slate-500 hover:bg-slate-100 border rounded-xl"
+              className="px-4 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-sm"
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold"
             >
-              Decline Application
+              Confirm Disapproval
             </button>
           </div>
         </form>

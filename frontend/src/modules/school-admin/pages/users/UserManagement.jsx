@@ -5,11 +5,7 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../components/ui/Toast';
-import { 
-  MOCK_TEACHERS, 
-  MOCK_STUDENTS, 
-  MOCK_EMPLOYEES 
-} from '../../utils/constants';
+import { useAppStore } from '../../../../shared/store/useAppStore';
 import { 
   Plus, 
   Upload, 
@@ -17,18 +13,19 @@ import {
   Key, 
   UserX, 
   UserCheck, 
-  Edit3,
-  ShieldCheck
+  Edit3, 
+  ShieldCheck,
+  CheckCircle2
 } from 'lucide-react';
 
 export const UserManagement = () => {
   const [activeTab, setActiveTab] = useState('teachers');
   const { showToast, ToastComponent } = useToast();
+  const { store, registerUser, updateStudentStatus, updateStore } = useAppStore();
 
-  // User lists state
-  const [teachers, setTeachers] = useState(MOCK_TEACHERS);
-  const [students, setStudents] = useState(MOCK_STUDENTS);
-  const [employees, setEmployees] = useState(MOCK_EMPLOYEES);
+  const teachers = store.staff.filter(s => s.role === 'Teacher');
+  const students = store.students;
+  const employees = store.staff.filter(s => s.role !== 'Teacher');
 
   // Edit / Details Modals States
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -40,57 +37,83 @@ export const UserManagement = () => {
     email: '',
     phone: '',
     role: 'Teacher',
-    class: '',
-    section: ''
+    class: '10',
+    section: 'A',
+    department: 'Mathematics',
+    password: 'password123'
   });
 
   // Action Handlers
   const handleToggleStatus = (user, listType) => {
     const newStatus = user.status === 'Active' ? 'Inactive' : 'Active';
-    const updater = (prev) => prev.map(u => u.id === user.id ? { ...u, status: newStatus } : u);
+    
+    if (listType === 'students') {
+      updateStudentStatus(user.id, newStatus, 'Vikramaditya (Admin)');
+    } else {
+      updateStore(prev => ({
+        ...prev,
+        staff: prev.staff.map(s => s.id === user.id ? { ...s, status: newStatus } : s),
+        auth: {
+          ...prev.auth,
+          users: prev.auth.users.map(u => (u.email === user.email || u.username === user.username) ? { ...u, status: newStatus } : u)
+        }
+      }), 'STAFF_STATUS_UPDATED', { user: user.name, newStatus });
+    }
 
-    if (listType === 'teachers') setTeachers(updater);
-    else if (listType === 'students') setStudents(updater);
-    else setEmployees(updater);
-
-    showToast(`User status updated to ${newStatus}`, 'success');
+    showToast(`${user.name} status updated to ${newStatus}`, 'success');
   };
 
   const handleResetPassword = (user) => {
-    showToast(`Password reset link sent to ${user.email}`, 'info');
+    showToast(`Password reset link & temporary OTP dispatched to ${user.email}`, 'info');
   };
 
   const handleCreateUser = (e) => {
     e.preventDefault();
-    const mockId = Date.now().toString();
-    const createdUser = {
-      id: mockId,
+    const roleSlug = newUser.role.toLowerCase().replace(/\s+/g, '-');
+    const mockEmpId = `EMP${Math.floor(100 + Math.random() * 900)}`;
+
+    if (newUser.role === 'Teacher' || newUser.role === 'Accountant' || newUser.role === 'HR' || newUser.role === 'Librarian' || newUser.role === 'Transport') {
+      const newStaffObj = {
+        id: mockEmpId,
+        employeeId: mockEmpId,
+        name: newUser.name,
+        email: newUser.email,
+        phone: newUser.phone,
+        role: newUser.role,
+        department: newUser.department || 'General',
+        designation: newUser.role,
+        qualification: 'Master of Education / Relevant Degree',
+        joiningDate: new Date().toISOString().split('T')[0],
+        status: 'Active',
+        basicSalary: newUser.role === 'Teacher' ? 45000 : 38000,
+        allowances: 7500,
+        deductions: 2800,
+        leaveBalance: { casual: 8, sick: 10, earned: 15, unpaid: 0 }
+      };
+
+      updateStore(prev => ({
+        ...prev,
+        staff: [newStaffObj, ...prev.staff]
+      }), 'STAFF_REGISTERED');
+    }
+
+    // Register user account in authStore so they can log in
+    registerUser({
       name: newUser.name,
       email: newUser.email,
       phone: newUser.phone,
-      department: 'General',
-      qualification: 'N/A',
-      status: 'Active',
-      role: newUser.role,
-      admissionNo: `ADM-${mockId.slice(-4)}`,
-      class: newUser.class || '10',
-      section: newUser.section || 'A'
-    };
-
-    if (newUser.role === 'Teacher') {
-      setTeachers(prev => [createdUser, ...prev]);
-    } else if (newUser.role === 'Student') {
-      setStudents(prev => [createdUser, ...prev]);
-    } else {
-      setEmployees(prev => [createdUser, ...prev]);
-    }
+      role: roleSlug === 'teacher' ? 'teacher' : (roleSlug === 'school-admin' ? 'school-admin' : roleSlug),
+      employeeId: mockEmpId,
+      username: newUser.email || mockEmpId,
+      password: newUser.password || 'password123'
+    }, 'Vikramaditya (Admin)');
 
     setCreateModalOpen(false);
-    showToast('New user account created!', 'success');
+    showToast(`User account for ${newUser.name} (${newUser.role}) created successfully! Credentials active for immediate login.`, 'success');
   };
 
   const handleAssignRole = () => {
-    showToast(`Assigned new role privileges to ${selectedUser.name}`, 'success');
+    showToast(`Assigned new role privileges to ${selectedUser?.name}`, 'success');
     setRoleAssignModalOpen(false);
   };
 
@@ -100,7 +123,7 @@ export const UserManagement = () => {
     { header: 'Department', key: 'department' },
     { header: 'Email', key: 'email' },
     { header: 'Phone', key: 'phone' },
-    { header: 'Classes Allocated', key: 'classes' },
+    { header: 'Classes Allocated', key: 'classes', render: (val, row) => row.classes || '10-A, 10-B' },
     {
       header: 'Status',
       key: 'status',
@@ -114,14 +137,14 @@ export const UserManagement = () => {
           <button 
             onClick={() => handleToggleStatus(row, 'teachers')}
             title={row.status === 'Active' ? 'Deactivate User' : 'Activate User'}
-            className="p-1 hover:bg-slate-100 rounded text-slate-500"
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500"
           >
-            {row.status === 'Active' ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+            {row.status === 'Active' ? <UserX className="w-3.5 h-3.5 text-rose-500" /> : <UserCheck className="w-3.5 h-3.5 text-emerald-500" />}
           </button>
           <button 
             onClick={() => handleResetPassword(row)}
             title="Reset Password"
-            className="p-1 hover:bg-slate-100 rounded text-slate-500"
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500"
           >
             <Key className="w-3.5 h-3.5" />
           </button>
@@ -131,9 +154,9 @@ export const UserManagement = () => {
               setRoleAssignModalOpen(true);
             }}
             title="Assign Roles/Permissions"
-            className="p-1 hover:bg-slate-100 rounded text-slate-500"
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500"
           >
-            <ShieldCheck className="w-3.5 h-3.5" />
+            <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
           </button>
         </div>
       )
@@ -143,9 +166,9 @@ export const UserManagement = () => {
   const studentColumns = [
     { header: 'Roll No / Adm No', key: 'admissionNo' },
     { header: 'Student Name', key: 'name' },
-    { header: 'Class', key: 'class', render: (val, row) => `${val}-${row.section}` },
+    { header: 'Class', key: 'class', render: (val, row) => `${val || ''} ${row.section ? `(${row.section})` : ''}` },
     { header: 'Guardian Name', key: 'parentName' },
-    { header: 'Contact Phone', key: 'phone' },
+    { header: 'Contact Phone', key: 'parentPhone', render: (val, row) => val || row.phone },
     {
       header: 'Status',
       key: 'status',
@@ -158,13 +181,13 @@ export const UserManagement = () => {
         <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
           <button 
             onClick={() => handleToggleStatus(row, 'students')}
-            className="p-1 hover:bg-slate-100 rounded text-slate-500"
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500"
           >
-            {row.status === 'Active' ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+            {row.status === 'Active' ? <UserX className="w-3.5 h-3.5 text-rose-500" /> : <UserCheck className="w-3.5 h-3.5 text-emerald-500" />}
           </button>
           <button 
             onClick={() => handleResetPassword(row)}
-            className="p-1 hover:bg-slate-100 rounded text-slate-500"
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500"
           >
             <Key className="w-3.5 h-3.5" />
           </button>
@@ -191,13 +214,13 @@ export const UserManagement = () => {
         <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
           <button 
             onClick={() => handleToggleStatus(row, 'employees')}
-            className="p-1 hover:bg-slate-100 rounded text-slate-500"
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500"
           >
-            {row.status === 'Active' ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+            {row.status === 'Active' ? <UserX className="w-3.5 h-3.5 text-rose-500" /> : <UserCheck className="w-3.5 h-3.5 text-emerald-500" />}
           </button>
           <button 
             onClick={() => handleResetPassword(row)}
-            className="p-1 hover:bg-slate-100 rounded text-slate-500"
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500"
           >
             <Key className="w-3.5 h-3.5" />
           </button>
@@ -206,182 +229,159 @@ export const UserManagement = () => {
     }
   ];
 
-  const handleBulkImport = () => {
-    showToast('Bulk import file parsed. Added 42 records.', 'success');
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader 
         title="User & Account Management" 
-        subtitle="Provision logins, reset credentials, deactivate profiles, assign roles, and manage list imports."
+        subtitle="Provision employee accounts, assign permissions, audit security statuses, and manage role credentials."
         actions={
-          <>
-            <button
-              onClick={handleBulkImport}
-              className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold rounded-xl"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Bulk Import CSV</span>
-            </button>
-            <button
-              onClick={() => setCreateModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Create User Account</span>
-            </button>
-          </>
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Create User Account</span>
+          </button>
         }
       />
 
-      <Tabs 
+      <Tabs
         tabs={[
-          { id: 'teachers', label: 'Teachers', count: teachers.length },
-          { id: 'students', label: 'Students', count: students.length },
-          { id: 'employees', label: 'Staff & Support Employees', count: employees.length }
+          { id: 'teachers', label: 'Faculty & Teachers', count: teachers.length },
+          { id: 'students', label: 'Enrolled Students', count: students.length },
+          { id: 'employees', label: 'Administrative Staff', count: employees.length }
         ]}
         activeTab={activeTab}
         onChange={setActiveTab}
       />
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-        {activeTab === 'teachers' && (
-          <DataTable 
-            columns={teacherColumns} 
-            data={teachers} 
-            searchPlaceholder="Search teachers..." 
-            exportFilename="teachers_list.csv"
-          />
-        )}
-        {activeTab === 'students' && (
-          <DataTable 
-            columns={studentColumns} 
-            data={students} 
-            searchPlaceholder="Search students..." 
-            exportFilename="students_list.csv"
-          />
-        )}
-        {activeTab === 'employees' && (
-          <DataTable 
-            columns={employeeColumns} 
-            data={employees} 
-            searchPlaceholder="Search staff..." 
-            exportFilename="staff_employees_list.csv"
-          />
-        )}
+        <DataTable
+          columns={
+            activeTab === 'teachers' ? teacherColumns :
+            activeTab === 'students' ? studentColumns :
+            employeeColumns
+          }
+          data={
+            activeTab === 'teachers' ? teachers :
+            activeTab === 'students' ? students :
+            employees
+          }
+          searchPlaceholder="Search directory..."
+        />
       </div>
 
       {/* CREATE USER MODAL */}
-      <Modal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Create User Login Profile">
+      <Modal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Provision New Institutional Account">
         <form onSubmit={handleCreateUser} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-400">Full Display Name</label>
-            <input 
-              type="text" 
-              required
-              placeholder="e.g. John Doe"
-              value={newUser.name}
-              onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-              className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none"
-            />
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Target Role *</label>
+            <select
+              value={newUser.role}
+              onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+              className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
+            >
+              <option value="Teacher">Faculty / Teacher</option>
+              <option value="Accountant">Finance / Accountant</option>
+              <option value="HR">HR / Admin Staff</option>
+              <option value="Librarian">Librarian</option>
+              <option value="Transport">Transport Manager</option>
+              <option value="Principal">School Principal</option>
+            </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400">Primary Role</label>
-              <select
-                value={newUser.role}
-                onChange={(e) => setNewUser({...newUser, role: e.target.value})}
-                className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none"
-              >
-                <option value="Teacher">Teacher</option>
-                <option value="Student">Student</option>
-                <option value="Accountant">Accountant</option>
-                <option value="Librarian">Librarian</option>
-                <option value="Transport Manager">Transport Manager</option>
-                <option value="HR Manager">HR Staff</option>
-              </select>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Full Name *</label>
+              <input
+                type="text"
+                required
+                value={newUser.name}
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                placeholder="e.g. Dr. Ananya Sen"
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
+              />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400">Email Address</label>
-              <input 
-                type="email" 
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Department</label>
+              <input
+                type="text"
+                value={newUser.department}
+                onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                placeholder="e.g. Science / Mathematics"
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Email (Username) *</label>
+              <input
+                type="email"
                 required
-                placeholder="email@school.edu"
                 value={newUser.email}
-                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none"
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                placeholder="ananya.sen@greenfield.edu"
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Phone</label>
+              <input
+                type="tel"
+                value={newUser.phone}
+                onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                placeholder="+91 98000 77777"
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-400">Contact Number</label>
-            <input 
-              type="text" 
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Initial Password *</label>
+            <input
+              type="text"
               required
-              placeholder="+91 99999 00000"
-              value={newUser.phone}
-              onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
-              className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none"
+              value={newUser.password}
+              onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+              placeholder="password123"
+              className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border font-mono"
             />
           </div>
 
-          {newUser.role === 'Student' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400">Class Allocation</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. 10" 
-                  value={newUser.class} 
-                  onChange={(e) => setNewUser({...newUser, class: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none" 
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400">Section Allocation</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. A" 
-                  value={newUser.section} 
-                  onChange={(e) => setNewUser({...newUser, section: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none" 
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <button type="button" onClick={() => setCreateModalOpen(false)} className="px-4 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl">Create Account</button>
-          </div>
+          <button
+            type="submit"
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all"
+          >
+            Provision Account & Activate Credentials
+          </button>
         </form>
       </Modal>
 
       {/* ROLE ASSIGN MODAL */}
-      <Modal isOpen={roleAssignModalOpen} onClose={() => setRoleAssignModalOpen(false)} title={`Assign Privileges for: ${selectedUser?.name}`}>
-        <div className="space-y-4">
-          <p className="text-xs text-slate-500">Modify role templates for the user. System privileges are adjusted instantly.</p>
-          <div className="space-y-2">
-            {['School Admin', 'Teacher', 'Head of Department', 'Invigilator'].map((roleOpt) => (
-              <label key={roleOpt} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-xl cursor-pointer">
-                <input 
-                  type="radio" 
-                  name="user-role-select" 
-                  defaultChecked={roleOpt === 'Teacher'} 
-                  className="text-indigo-600 focus:ring-indigo-500" 
-                />
-                <span className="text-xs font-bold text-slate-850 dark:text-slate-200">{roleOpt}</span>
-              </label>
-            ))}
+      <Modal isOpen={roleAssignModalOpen} onClose={() => setRoleAssignModalOpen(false)} title="Assign RBAC Privileges">
+        {selectedUser && (
+          <div className="space-y-4">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              Configure access privileges and modular operational scopes for <strong>{selectedUser.name}</strong>.
+            </p>
+            <div className="space-y-2">
+              {['Academic Marks Verification', 'Attendance Modification', 'Student File Editing', 'Financial Record Access'].map((perm, idx) => (
+                <label key={idx} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border bg-slate-50 dark:bg-slate-950 cursor-pointer text-xs font-semibold">
+                  <input type="checkbox" defaultChecked={idx < 2} className="rounded text-indigo-600 focus:ring-indigo-500" />
+                  <span>{perm}</span>
+                </label>
+              ))}
+            </div>
+            <button
+              onClick={handleAssignRole}
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold"
+            >
+              Save Permission Matrix
+            </button>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <button onClick={() => setRoleAssignModalOpen(false)} className="px-4 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100">Cancel</button>
-            <button onClick={handleAssignRole} className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl">Apply Role Permissions</button>
-          </div>
-        </div>
+        )}
       </Modal>
 
       <ToastComponent />

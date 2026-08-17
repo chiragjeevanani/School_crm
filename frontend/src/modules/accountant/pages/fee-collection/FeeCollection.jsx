@@ -1,92 +1,80 @@
 import React, { useState } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
-import { AmountCalculator } from '../../components/ui/AmountCalculator';
-import { ReceiptCard } from '../../components/ui/ReceiptCard';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../components/ui/Toast';
 import { Badge } from '../../components/ui/Badge';
-import { MOCK_STUDENTS } from '../../utils/constants';
-import { Coins, Search, ArrowLeft, CheckCircle } from 'lucide-react';
+import { useAppStore } from '../../../../shared/store/useAppStore';
+import { PrintReportModal } from '../../../../shared/components/PrintReportModal';
+import { Coins, Search, ArrowLeft, CheckCircle, Printer, FileText } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 
 export const FeeCollection = () => {
   const [step, setStep] = useState(1);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const { showToast, ToastComponent } = useToast();
+  const { store, collectFee } = useAppStore();
 
-  // Calculator Outputs
-  const [calculatorData, setCalculatorData] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('UPI');
+  const [collectAmount, setCollectAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [transactionRef, setTransactionRef] = useState('');
-
-  // Generated Receipt Modal
+  const [remarks, setRemarks] = useState('');
   const [generatedReceipt, setGeneratedReceipt] = useState(null);
+
+  const students = store.students || [];
 
   const handleStudentSelect = (student) => {
     setSelectedStudent(student);
+    setCollectAmount(String(student.pendingFees || 20000));
     setStep(2);
   };
 
   const handleConfirmCollection = (e) => {
     e.preventDefault();
-    if (!calculatorData) return;
+    const paidNum = Number(collectAmount) || 0;
+    if (paidNum <= 0) {
+      showToast('Please enter a valid payment amount', 'error');
+      return;
+    }
 
-    // Mock receipt model matching backend plan
-    const mockReceipt = {
-      id: `RCT-2026-00${Math.floor(Math.random() * 900) + 100}`,
+    const receipt = collectFee({
       studentId: selectedStudent.id,
       studentName: selectedStudent.name,
-      class: selectedStudent.class,
-      section: selectedStudent.section,
       admissionNo: selectedStudent.admissionNo,
-      schoolId: 'SCH-2026-09',
-      academicSession: '2026-2027',
-      paymentDate: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      totalAmount: calculatorData.netPayable,
-      paidAmount: calculatorData.amountPaid,
-      discountAmount: calculatorData.discountAmount,
-      scholarshipAmount: calculatorData.scholarshipAmount,
-      lateFine: calculatorData.lateFine,
-      remainingBalance: calculatorData.remainingBalance,
-      paymentMethod: paymentMethod,
-      transactionRef: transactionRef || `REF${Date.now().toString().slice(-8)}`,
-      status: calculatorData.remainingBalance === 0 ? 'Paid' : 'Partial',
-      feeHeads: calculatorData.feeHeads,
-      createdBy: 'ACC-001'
-    };
+      class: selectedStudent.class,
+      paidAmount: paidNum,
+      paymentMethod,
+      transactionRef: transactionRef || `REF-${Date.now().toString().slice(-6)}`,
+      remarks: remarks || 'Fee collected at institution collection counter',
+      collector: 'Accountant (Mr. Alok Sharma)'
+    });
 
-    setGeneratedReceipt(mockReceipt);
-    showToast(`Fee transaction processed! Receipt #${mockReceipt.id} generated.`, 'success');
-    
-    // Reset collection state
+    setGeneratedReceipt(receipt);
+    showToast(`Fee transaction processed! Receipt #${receipt.receiptNo} generated.`, 'success');
     setStep(1);
     setSelectedStudent(null);
-    setTransactionRef('');
   };
 
   const columns = [
     { key: 'admissionNo', title: 'Admn No', sortable: true },
     { key: 'name', title: 'Student Name', sortable: true },
-    { key: 'class', title: 'Class' },
-    { key: 'section', title: 'Sec' },
-    { key: 'guardianName', title: 'Guardian' },
+    { key: 'class', title: 'Class', render: (val, row) => `${val || ''} (${row.section || 'A'})` },
+    { key: 'parentName', title: 'Guardian' },
     { 
       key: 'pendingFees', 
       title: 'Outstanding Dues',
       render: (val) => (
-        <span className={`font-bold ${val > 0 ? 'text-rose-600' : 'text-slate-500'}`}>
-          {formatCurrency(val)}
+        <span className={`font-bold ${Number(val) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+          {formatCurrency(val || 0)}
         </span>
       )
     },
     { 
-      key: 'status', 
-      title: 'Status',
+      key: 'feeStatus', 
+      title: 'Fee Status',
       render: (val) => (
-        <Badge variant={val === 'Active' ? 'success' : 'danger'}>
-          {val}
+        <Badge variant={val === 'Paid' ? 'success' : val === 'Partial' ? 'warning' : 'danger'}>
+          {val || 'Due'}
         </Badge>
       )
     }
@@ -96,128 +84,151 @@ export const FeeCollection = () => {
     <div className="space-y-6">
       <PageHeader 
         title="Fee Collection Desk" 
-        subtitle="Search student files, configure payment items, deduct concessions, and generate verified receipts." 
+        subtitle="Search student profiles, process payments across modes, and generate official institutional receipts." 
       />
 
       {step === 1 && (
-        <div className="space-y-4">
-          <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">Step 1: Search student ledger</span>
+        <div className="bg-white dark:bg-slate-900 border border-border rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="flex justify-between items-center pb-2">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Student for Fee Collection</span>
+            <span className="text-xs text-slate-400 font-semibold">{students.length} Registered Students</span>
+          </div>
           <DataTable 
             columns={columns} 
-            data={MOCK_STUDENTS} 
-            searchPlaceholder="Search student by name or admission number..."
-            searchKey="name"
+            data={students} 
             onRowClick={handleStudentSelect}
-            filterOptions={[
-              {
-                key: 'class',
-                label: 'Class',
-                options: [
-                  { value: '8', label: 'Class 8' },
-                  { value: '9', label: 'Class 9' },
-                  { value: '10', label: 'Class 10' },
-                  { value: '11', label: 'Class 11' },
-                  { value: '12', label: 'Class 12' }
-                ]
-              }
-            ]}
+            searchPlaceholder="Search student by name, admission no, or roll..." 
           />
         </div>
       )}
 
       {step === 2 && selectedStudent && (
-        <form onSubmit={handleConfirmCollection} className="space-y-6 text-xs font-semibold">
-          <div className="flex items-center gap-2">
-            <button 
-              type="button" 
-              onClick={() => { setStep(1); setSelectedStudent(null); }}
-              className="flex items-center gap-1 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-violet-600"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to search</span>
-            </button>
-            <span className="text-slate-400">|</span>
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Step 2: Live invoice configurations</span>
-          </div>
+        <div className="bg-white dark:bg-slate-900 border border-border rounded-3xl p-8 shadow-sm space-y-6 max-w-3xl mx-auto">
+          <button
+            onClick={() => setStep(1)}
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Student Roster</span>
+          </button>
 
-          {/* Student Header Summary Card */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-4 bg-indigo-50 dark:bg-indigo-950/50 rounded-2xl border border-indigo-200 dark:border-indigo-800 flex justify-between items-center">
             <div>
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Currently Billing Student</span>
-              <h3 className="text-sm font-black text-slate-900 dark:text-white mt-1">{selectedStudent.name}</h3>
-              <p className="text-[10px] text-slate-400 mt-1">Admission No: {selectedStudent.admissionNo} • Class: {selectedStudent.class}-{selectedStudent.section} • Guardian: {selectedStudent.guardianName}</p>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">{selectedStudent.name}</h3>
+              <p className="text-xs text-slate-500 font-semibold">{selectedStudent.admissionNo} • Class {selectedStudent.class}-{selectedStudent.section || 'A'}</p>
             </div>
-            <div className="text-left sm:text-right border-l pl-4 sm:border-l-0 sm:pl-0">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Pre-recorded Outstanding Balance</span>
-              <h4 className="text-sm font-black text-rose-600 mt-1">{formatCurrency(selectedStudent.pendingFees)}</h4>
+            <div className="text-right">
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">Outstanding Due</span>
+              <span className="text-base font-black text-rose-600">{formatCurrency(selectedStudent.pendingFees || 0)}</span>
             </div>
           </div>
 
-          {/* Inline Calculator */}
-          <AmountCalculator onChange={setCalculatorData} />
-
-          {/* Payment Method inputs */}
-          <div className="bg-white dark:bg-slate-900 border rounded-2xl p-5 shadow-sm space-y-4">
-            <span className="text-[10px] font-black uppercase text-slate-455 tracking-wider block border-b pb-2">Step 3: Collect payment details</span>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <form onSubmit={handleConfirmCollection} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400">Payment Channel Method</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Amount Being Collected (INR) *</label>
+                <input
+                  type="number"
+                  required
+                  value={collectAmount}
+                  onChange={(e) => setCollectAmount(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-border bg-slate-50 dark:bg-slate-900 text-foreground"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Payment Method *</label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border focus:outline-none focus:ring-1 focus:ring-violet-600 cursor-pointer"
+                  className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-border bg-slate-50 dark:bg-slate-900 text-foreground"
                 >
-                  <option value="UPI">UPI Payment</option>
-                  <option value="Cash">Cash at Desk</option>
+                  <option value="Cash">Cash (Counter Deposit)</option>
+                  <option value="UPI">UPI (QR / App Transfer)</option>
                   <option value="Cheque">Bank Cheque</option>
-                  <option value="Credit Card">Credit Card</option>
-                  <option value="Debit Card">Debit Card</option>
-                  <option value="Net Banking">Net Banking</option>
-                  <option value="Bank Transfer">Direct Bank Transfer</option>
+                  <option value="Demand Draft">Demand Draft (DD)</option>
+                  <option value="POS Card">POS Card Swipe</option>
+                  <option value="Net Banking">Net Banking NEFT/RTGS</option>
                 </select>
               </div>
+            </div>
 
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] text-slate-400">Transaction Reference Number / Check No</label>
-                <input
-                  type="text"
-                  value={transactionRef}
-                  onChange={(e) => setTransactionRef(e.target.value)}
-                  placeholder="e.g. UPI20260717123456 or Bank receipt reference..."
-                  required
-                  className="w-full bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border focus:outline-none focus:ring-1 focus:ring-violet-600"
-                />
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Transaction Reference / Cheque No</label>
+              <input
+                type="text"
+                value={transactionRef}
+                onChange={(e) => setTransactionRef(e.target.value)}
+                placeholder="e.g. CHQ-990812 or UPI-Ref-7788"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-slate-50 dark:bg-slate-900 text-foreground"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Remarks</label>
+              <input
+                type="text"
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                placeholder="e.g. Term 2 Fee Paid with late fee waiver"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-slate-50 dark:bg-slate-900 text-foreground"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95"
+            >
+              Collect {formatCurrency(Number(collectAmount) || 0)} & Issue Official Receipt
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* PRINTABLE RECEIPT MODAL */}
+      {generatedReceipt && (
+        <PrintReportModal
+          isOpen={!!generatedReceipt}
+          onClose={() => setGeneratedReceipt(null)}
+          title={`Official Fee Receipt — ${generatedReceipt.receiptNo}`}
+          documentType="Official Fee Receipt"
+        >
+          <div className="space-y-6">
+            <div className="text-center pb-4 border-b border-border">
+              <h2 className="text-xl font-black">Greenfield Public School</h2>
+              <p className="text-xs text-slate-500">Official Fee Payment Receipt • Sector 15, Dwarka, New Delhi</p>
+              <span className="text-xs font-bold text-indigo-600 mt-1 block">Receipt No: {generatedReceipt.receiptNo}</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-slate-400 block font-semibold">Student Name:</span>
+                <span className="font-bold">{generatedReceipt.studentName}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-semibold">Admission No:</span>
+                <span className="font-bold">{generatedReceipt.admissionNo}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-semibold">Payment Date:</span>
+                <span className="font-bold">{generatedReceipt.paymentDate}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-semibold">Payment Method:</span>
+                <span className="font-bold">{generatedReceipt.paymentMethod}</span>
               </div>
             </div>
 
-            <div className="flex justify-end pt-3">
-              <button
-                type="submit"
-                className="flex items-center gap-1.5 px-5 py-3 bg-violet-600 hover:bg-violet-750 text-white rounded-xl font-bold shadow-sm"
-              >
-                <CheckCircle className="w-4 h-4" />
-                <span>Confirm Dues & Collect Fees</span>
-              </button>
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-border flex justify-between items-center text-sm font-black">
+              <span>Paid Amount:</span>
+              <span className="text-emerald-600">{formatCurrency(generatedReceipt.paidAmount)}</span>
+            </div>
+
+            <div className="flex justify-between pt-6 text-xs font-bold text-slate-400">
+              <span>Issued By: {generatedReceipt.collector || 'Accountant'}</span>
+              <span>Authorized Signature: ________________</span>
             </div>
           </div>
-        </form>
-      )}
-
-      {/* Generated Receipt Card Modal */}
-      {generatedReceipt && (
-        <Modal 
-          isOpen={true} 
-          onClose={() => setGeneratedReceipt(null)} 
-          title="Electronic Transaction Invoice Copy"
-          size="lg"
-        >
-          <ReceiptCard 
-            receipt={generatedReceipt} 
-            onSendEmail={() => showToast('Receipt copy emailed to guardian inbox.', 'success')}
-            onSendSms={() => showToast('SMS confirmation receipt dispatched.', 'success')}
-          />
-        </Modal>
+        </PrintReportModal>
       )}
 
       <ToastComponent />

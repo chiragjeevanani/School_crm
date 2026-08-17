@@ -3,47 +3,58 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { useToast } from '../../components/ui/Toast';
-import { MOCK_STUDENTS, MOCK_ROUTES, MOCK_VEHICLES, MOCK_PICKUP_POINTS, MOCK_ASSIGNMENTS } from '../../utils/constants';
+import { useAppStore } from '../../../../shared/store/useAppStore';
 import { formatDate } from '../../utils/formatters';
-import { Search, User, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Search, User, CheckCircle2, ChevronRight, Bus, MapPin, Trash2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 export const StudentAssignments = () => {
   const toast = useToast();
-  const [assignments, setAssignments] = useState(MOCK_ASSIGNMENTS);
+  const { store, assignStudentTransport, updateStore } = useAppStore();
+
   const [step, setStep] = useState(1);
-  
   const [studentQuery, setStudentQuery] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
-  
   const [selectedRoute, setSelectedRoute] = useState(null);
-  const [selectedVehicle, setSelectedVehicle] = useState(null);
-  
   const [selectedPickup, setSelectedPickup] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Search Students
-  const filteredStudents = MOCK_STUDENTS.filter(s => 
+  const students = store.students || [];
+  const routes = store.transport?.routes || [];
+
+  // Build assignments from students with transportRouteId
+  const assignments = students.filter(s => s.transportRouteId).map((s, idx) => {
+    const route = routes.find(r => r.id === s.transportRouteId) || routes[0];
+    return {
+      id: `ASN-0${100 + idx}`,
+      studentId: s.id,
+      studentName: s.name,
+      class: s.class,
+      section: s.section || 'A',
+      admissionNumber: s.admissionNo,
+      routeId: s.transportRouteId,
+      routeName: route?.routeName || 'Assigned Route',
+      vehicleNumber: route?.vehicleNo || 'DL-01-CD-5678',
+      pickupPointName: s.pickupPoint || route?.stops?.[0] || 'Bus Stop Gate',
+      startDate: '2026-04-01',
+      status: 'Active'
+    };
+  });
+
+  const filteredStudents = students.filter(s => 
     s.name.toLowerCase().includes(studentQuery.toLowerCase()) ||
     s.id.toLowerCase().includes(studentQuery.toLowerCase()) ||
-    s.admissionNumber.toLowerCase().includes(studentQuery.toLowerCase())
+    (s.admissionNo && s.admissionNo.toLowerCase().includes(studentQuery.toLowerCase()))
   );
 
   const handleSelectStudent = (student) => {
-    // Check if already assigned
-    const alreadyAssigned = assignments.some(a => a.studentId === student.id);
-    if (alreadyAssigned) {
-      toast.error('Student is already assigned to a transport route.');
-      return;
-    }
     setSelectedStudent(student);
     setStep(2);
   };
 
   const handleSelectRoute = (route) => {
-    const veh = MOCK_VEHICLES.find(v => v.id === route.vehicleId);
     setSelectedRoute(route);
-    setSelectedVehicle(veh);
+    setSelectedPickup(route.stops?.[0] || 'Stop 1');
     setStep(3);
   };
 
@@ -53,220 +64,227 @@ export const StudentAssignments = () => {
       return;
     }
 
-    const pkp = MOCK_PICKUP_POINTS.find(p => p.id === selectedPickup);
+    assignStudentTransport(
+      selectedStudent.id,
+      selectedRoute.id,
+      selectedPickup,
+      'Mr. Gurpreet Singh (Transport Manager)'
+    );
 
-    const newAssignment = {
-      id: `ASN-0${Math.floor(Math.random() * 900) + 100}`,
-      studentId: selectedStudent.id,
-      studentName: selectedStudent.name,
-      class: selectedStudent.class,
-      section: selectedStudent.section,
-      admissionNumber: selectedStudent.admissionNumber,
-      vehicleId: selectedVehicle?.id || '',
-      vehicleNumber: selectedVehicle?.vehicleNumber || '-',
-      routeId: selectedRoute.id,
-      routeName: selectedRoute.routeName,
-      pickupPointId: selectedPickup,
-      pickupPointName: pkp?.name || 'Assigned Stop',
-      startDate: startDate,
-      endDate: '2027-04-30',
-      feeStatus: 'Pending',
-      status: 'Active'
-    };
-
-    setAssignments(prev => [newAssignment, ...prev]);
-    toast.success(`Assigned ${selectedStudent.name} to route ${selectedRoute.routeName} stop.`);
-    
-    // Notify Parents Simulation
-    toast.info(`Sent auto-route assignment notification SMS to parents of ${selectedStudent.name}.`);
-    
+    toast.success(`Assigned ${selectedStudent.name} to route ${selectedRoute.routeName}! Synced with Student and Parent dashboard.`);
     handleReset();
   };
 
-  const handleRemoveAssignment = (id) => {
-    setAssignments(prev => prev.filter(x => x.id !== id));
-    toast.success('Transport Assignment revoked.');
+  const handleRemoveAssignment = (studentId) => {
+    assignStudentTransport(studentId, null, null, 'Mr. Gurpreet Singh (Transport Manager)');
+    toast.success('Transport route allocation revoked.');
   };
 
   const handleReset = () => {
     setStep(1);
     setSelectedStudent(null);
     setSelectedRoute(null);
-    setSelectedVehicle(null);
     setSelectedPickup('');
     setStudentQuery('');
   };
 
   const columns = [
+    { title: 'Allocation ID', key: 'id', sortable: true },
     { title: 'Student Name', key: 'studentName', sortable: true },
-    { title: 'Admission No', key: 'admissionNumber', sortable: true },
-    { title: 'Class/Sec', key: 'class', render: (_, row) => `${row.class}-${row.section}` },
+    { title: 'Admission No', key: 'admissionNumber' },
+    { title: 'Class', key: 'class', render: (val, row) => `${val || ''} (${row.section || 'A'})` },
     { title: 'Route Name', key: 'routeName' },
+    { title: 'Bus Reg No', key: 'vehicleNumber' },
     { title: 'Pickup Stop', key: 'pickupPointName' },
-    { title: 'Vehicle Plate', key: 'vehicleNumber' },
-    { title: 'Start Date', key: 'startDate', render: (val) => formatDate(val) },
-    { title: 'Fee Status', key: 'feeStatus', render: (val) => (
-        <Badge variant={val === 'Paid' ? 'success' : val === 'Pending' ? 'warning' : 'danger'}>
-          {val}
-        </Badge>
-      )
-    },
-    { title: 'Actions', key: 'actions', render: (_, row) => (
+    { title: 'Status', key: 'status', render: (val) => <Badge variant="success">{val}</Badge> },
+    { 
+      title: 'Actions', 
+      key: 'actions', 
+      render: (_, row) => (
         <button
-          onClick={() => handleRemoveAssignment(row.id)}
-          className="px-2.5 py-1 text-2xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-955 rounded-lg border border-rose-200 dark:border-rose-900/30"
+          onClick={() => handleRemoveAssignment(row.studentId)}
+          className="p-1 text-slate-400 hover:text-rose-500 rounded"
+          title="Revoke Assignment"
         >
-          Revoke
+          <Trash2 className="w-4 h-4" />
         </button>
       )
     }
   ];
 
   return (
-    <div className="space-y-6 text-xs">
+    <div className="space-y-6">
       <PageHeader
-        title="Student Assignments"
-        subtitle="Map students to active vehicles and stops. Automatically dispatches alerts to parents."
+        title="Student Transport Assignments"
+        subtitle="3-step allocation: Select Student → Choose Bus Route → Set Pickup Stop & Sync."
       />
 
-      {/* Assignment Wizard Panel */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-202 dark:border-slate-800 rounded-3xl p-6 md:p-8 space-y-5 max-w-xl mx-auto">
-        <h3 className="text-xs font-black text-slate-850 dark:text-slate-200 uppercase tracking-wide border-b pb-2">Assign Student Wizard</h3>
-        
-        {/* Progress Line */}
-        <div className="flex items-center justify-center gap-2 border border-slate-100 dark:border-slate-850 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 font-bold">
-          <span className={cn(step >= 1 ? "text-cyan-600 dark:text-cyan-400" : "text-slate-400")}>1. Student</span>
-          <ChevronRight className="h-4 w-4 text-slate-300" />
-          <span className={cn(step >= 2 ? "text-cyan-600 dark:text-cyan-400" : "text-slate-400")}>2. Route</span>
-          <ChevronRight className="h-4 w-4 text-slate-300" />
-          <span className={cn(step >= 3 ? "text-cyan-600 dark:text-cyan-400" : "text-slate-400")}>3. Stop</span>
-        </div>
-
-        {step === 1 && (
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-450" />
-              <input
-                type="text"
-                placeholder="Search Student Name, Admission No..."
-                value={studentQuery}
-                onChange={(e) => setStudentQuery(e.target.value)}
-                className="w-full h-11 pl-11 pr-4 border border-slate-200 dark:border-slate-850 rounded-2xl bg-slate-50 dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              />
+      {/* STEP INDICATOR */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { num: 1, title: 'Select Student', desc: selectedStudent ? selectedStudent.name : 'Choose student' },
+          { num: 2, title: 'Choose Route', desc: selectedRoute ? selectedRoute.routeName : 'Select fleet route' },
+          { num: 3, title: 'Pickup Stop & Confirm', desc: selectedPickup || 'Choose stop' }
+        ].map((s) => (
+          <div 
+            key={s.num}
+            className={cn(
+              "p-3.5 rounded-2xl border transition-all flex items-center gap-3",
+              step === s.num 
+                ? "border-amber-500 bg-amber-50/50 dark:bg-amber-950/20" 
+                : step > s.num
+                  ? "border-border bg-slate-50 dark:bg-slate-900"
+                  : "border-border opacity-60"
+            )}
+          >
+            <div className={cn(
+              "w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0",
+              step === s.num ? "bg-amber-600 text-white" : step > s.num ? "bg-slate-200 text-slate-700 dark:bg-slate-800" : "bg-slate-100 text-slate-400"
+            )}>
+              {step > s.num ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : s.num}
             </div>
-
-            <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-202 dark:border-slate-850 rounded-xl overflow-hidden max-h-52 overflow-y-auto no-scrollbar bg-white dark:bg-slate-950">
-              {filteredStudents.map(stud => (
-                <div
-                  key={stud.id}
-                  onClick={() => handleSelectStudent(stud)}
-                  className="p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-850/50 cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <User className="h-4 w-4 text-slate-500" />
-                    <div>
-                      <span className="font-bold text-slate-900 dark:text-white block">{stud.name}</span>
-                      <span className="text-3xs text-slate-450 block">{stud.class}-{stud.section} | ID: {stud.admissionNumber}</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-slate-400" />
-                </div>
-              ))}
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{s.title}</p>
+              <p className="text-[10px] text-slate-400 truncate">{s.desc}</p>
             </div>
           </div>
-        )}
-
-        {step === 2 && selectedStudent && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-950 p-3.5 border border-slate-200 rounded-xl">
-              <div>
-                <span className="text-4xs font-bold text-slate-400 uppercase tracking-widest">Student Selected</span>
-                <span className="font-bold text-slate-805 dark:text-slate-200 block">{selectedStudent.name}</span>
-              </div>
-              <button onClick={() => setStep(1)} className="text-rose-600 font-bold">Change</button>
-            </div>
-
-            <p className="font-bold text-slate-800 dark:text-slate-200">Select Circulation Route</p>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-202 dark:border-slate-850 rounded-xl overflow-hidden max-h-52 overflow-y-auto no-scrollbar bg-white dark:bg-slate-950">
-              {MOCK_ROUTES.filter(r => r.status === 'Active').map(route => (
-                <div
-                  key={route.id}
-                  onClick={() => handleSelectRoute(route)}
-                  className="p-3 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-850/50 cursor-pointer"
-                >
-                  <div>
-                    <span className="font-bold text-slate-905 dark:text-white block">{route.routeName}</span>
-                    <span className="text-3xs text-slate-450 block">{route.routeCode} | Stops: {route.stops.length}</span>
-                  </div>
-                  <Badge variant="cyan">{route.studentCount} Assigned</Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {step === 3 && selectedStudent && selectedRoute && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-50 dark:bg-slate-950 p-3 border border-slate-202 dark:border-slate-800 rounded-2xl">
-                <span className="text-4xs font-bold text-slate-400 uppercase">Student</span>
-                <span className="font-bold block text-slate-800 dark:text-slate-200 truncate">{selectedStudent.name}</span>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-955 p-3 border border-slate-202 dark:border-slate-800 rounded-2xl">
-                <span className="text-4xs font-bold text-slate-400 uppercase">Route</span>
-                <span className="font-bold block text-slate-800 dark:text-slate-200 truncate">{selectedRoute.routeName}</span>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="font-bold text-slate-550 dark:text-slate-450">Select Pickup Stop Point <span className="text-rose-500">*</span></label>
-              <select
-                value={selectedPickup}
-                onChange={(e) => setSelectedPickup(e.target.value)}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950"
-              >
-                <option value="" disabled>Choose Stop...</option>
-                {MOCK_PICKUP_POINTS.filter(p => p.routeId === selectedRoute.id).map(p => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.pickupTime} AM)</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="font-bold text-slate-550 dark:text-slate-450">Transport Start Date</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full h-10 px-3 border border-slate-202 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-850">
-              <button onClick={() => setStep(2)} className="h-10 px-4 border border-slate-200 rounded-xl">Back</button>
-              <button
-                onClick={handleConfirmAssignment}
-                className="h-10 px-4 bg-cyan-600 hover:bg-cyan-705 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-xs"
-              >
-                <CheckCircle2 className="h-4.5 w-4.5" />
-                <span>Confirm Assignment</span>
-              </button>
-            </div>
-          </div>
-        )}
+        ))}
       </div>
 
-      {/* Active Listings */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-202 dark:border-slate-800 rounded-3xl p-6">
-        <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider mb-4">Active Assignments Log</h3>
-        <DataTable
-          columns={columns}
-          data={assignments}
-          searchPlaceholder="Search active assignments..."
-          searchKeys={['studentName', 'routeName', 'pickupPointName']}
-          csvFilename="student_transport_assignments.csv"
-        />
+      {/* STEP 1: SELECT STUDENT */}
+      {step === 1 && (
+        <div className="bg-white dark:bg-slate-900 border border-border rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="flex justify-between items-center pb-2">
+            <div className="flex items-center gap-2">
+              <User className="w-5 h-5 text-amber-600" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Step 1: Select Student to Allocate Bus Route</h3>
+            </div>
+          </div>
+
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+            <input
+              type="text"
+              placeholder="Search student by name, admission no..."
+              value={studentQuery}
+              onChange={(e) => setStudentQuery(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-950 pl-9 pr-4 py-2.5 rounded-xl border border-border text-xs focus:outline-none"
+            />
+          </div>
+
+          <div className="divide-y divide-border border border-border rounded-2xl overflow-hidden max-h-80 overflow-y-auto">
+            {filteredStudents.map((st) => (
+              <div 
+                key={st.id}
+                onClick={() => handleSelectStudent(st)}
+                className="p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">{st.name}</span>
+                    <Badge variant={st.transportRouteId ? 'success' : 'default'}>
+                      {st.transportRouteId ? `Route: ${st.transportRouteId}` : 'Unassigned'}
+                    </Badge>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    {st.admissionNo} • Class {st.class} • Guardian: {st.parentName}
+                  </p>
+                </div>
+                <button className="text-xs font-bold text-amber-600 flex items-center gap-1 hover:underline">
+                  <span>Select</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* STEP 2: SELECT ROUTE */}
+      {step === 2 && (
+        <div className="bg-white dark:bg-slate-900 border border-border rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="flex justify-between items-center pb-2">
+            <div className="flex items-center gap-2">
+              <Bus className="w-5 h-5 text-amber-600" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Step 2: Select Operational Fleet Route</h3>
+            </div>
+            <button onClick={() => setStep(1)} className="text-xs text-slate-400 hover:text-slate-600">Back</button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {routes.map((rt) => (
+              <div
+                key={rt.id}
+                onClick={() => handleSelectRoute(rt)}
+                className="p-4 rounded-2xl border border-border hover:border-amber-500 hover:shadow-sm cursor-pointer transition-all space-y-3"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">{rt.routeName}</h4>
+                    <span className="text-[10px] text-amber-600 font-bold uppercase">{rt.id}</span>
+                  </div>
+                  <Badge variant="primary">{rt.vehicleNo}</Badge>
+                </div>
+                <div className="text-[11px] text-slate-400 space-y-1 font-semibold">
+                  <div>Driver: {rt.driverName} ({rt.driverPhone})</div>
+                  <div>Departure: {rt.morningDeparture} • Drop: {rt.afternoonDrop}</div>
+                  <div>Stops: {rt.stops?.join(' → ')}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3: PICKUP & CONFIRM */}
+      {step === 3 && (
+        <div className="bg-white dark:bg-slate-900 border border-border rounded-3xl p-8 shadow-sm space-y-6 max-w-2xl mx-auto">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Step 3: Choose Designated Pickup Point</h3>
+
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-border">
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Student</span>
+              <h4 className="font-bold text-slate-900 dark:text-white mt-1">{selectedStudent.name}</h4>
+              <p className="text-slate-400">{selectedStudent.admissionNo} • Class {selectedStudent.class}</p>
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-border">
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Selected Route</span>
+              <h4 className="font-bold text-slate-900 dark:text-white mt-1">{selectedRoute.routeName}</h4>
+              <p className="text-slate-400">{selectedRoute.vehicleNo} • Driver: {selectedRoute.driverName}</p>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Designated Stop Location *</label>
+            <select
+              value={selectedPickup}
+              onChange={(e) => setSelectedPickup(e.target.value)}
+              className="w-full px-3 py-2.5 text-xs font-bold rounded-xl border border-border bg-slate-50 dark:bg-slate-900 text-foreground"
+            >
+              {selectedRoute.stops?.map((st, i) => (
+                <option key={i} value={st}>{st}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex justify-between items-center pt-4 border-t border-border">
+            <button onClick={() => setStep(2)} className="text-xs font-semibold text-slate-400 hover:text-slate-600">Back</button>
+            <button
+              onClick={handleConfirmAssignment}
+              className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95"
+            >
+              Confirm Route Allocation & Sync Portals
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ALLOCATIONS TABLE */}
+      <div className="bg-white dark:bg-slate-900 border border-border rounded-3xl p-6 shadow-sm space-y-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Current Fleet Allocations</h3>
+        <DataTable columns={columns} data={assignments} searchPlaceholder="Search allocations..." />
       </div>
     </div>
   );
 };
+export default StudentAssignments;

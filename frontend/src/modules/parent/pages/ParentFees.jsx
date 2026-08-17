@@ -1,124 +1,122 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParentAuth } from '../context/ParentAuthContext';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { useToast } from '../components/ui/Toast';
-import { MOCK_CHILDREN_FEES } from '../data/mockData';
-import { CreditCard, Download, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { useAppStore } from '../../../shared/store/useAppStore';
+import { formatCurrency } from '../../student/utils/formatters';
+import { PrintReportModal } from '../../../shared/components/PrintReportModal';
+import { CreditCard, Download, CheckCircle, XCircle, AlertCircle, Loader2, Printer } from 'lucide-react';
 
 export const ParentFees = () => {
   const toast = useToast();
   const { selectedChildId } = useParentAuth();
-  const [fees, setFees] = useState(null);
+  const { store, collectFee } = useAppStore();
+
   const [payingInstallment, setPayingInstallment] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('UPI');
   const [paymentStatus, setPaymentStatus] = useState('idle'); // idle | loading | success | failure
-  const [transactionId, setTransactionId] = useState('');
+  const [selectedReceipt, setSelectedReceipt] = useState(null);
 
-  useEffect(() => {
-    setFees(MOCK_CHILDREN_FEES[selectedChildId] || null);
-  }, [selectedChildId]);
+  const student = store.students.find(s => s.id === (selectedChildId || 'STU108902')) || store.students[0];
+  const receipts = store.receipts.filter(r => r.studentId === student?.id || r.admissionNo === student?.admissionNo);
+
+  const totalFees = student?.totalFees || 85000;
+  const paidFees = student?.paidFees || 55000;
+  const pendingFees = student?.pendingFees || (totalFees - paidFees);
+
+  const installments = [
+    { name: 'Term 1 Tuition Fee', amount: 35000, dueDate: '2026-05-15', status: 'Paid', receiptNo: receipts[0]?.receiptNo || 'RCT-2026-0891' },
+    { name: 'Term 2 Tuition Fee', amount: 20000, dueDate: '2026-08-30', status: paidFees >= 55000 ? 'Paid' : 'Unpaid', receiptNo: paidFees >= 55000 ? (receipts[1]?.receiptNo || 'RCT-2026-0892') : null },
+    { name: 'Term 3 Final Tuition Fee', amount: 30000, dueDate: '2026-11-30', status: paidFees >= 85000 ? 'Paid' : 'Unpaid', receiptNo: paidFees >= 85000 ? (receipts[2]?.receiptNo || 'RCT-2026-0893') : null }
+  ];
 
   const handlePayClick = (inst) => {
     setPayingInstallment(inst);
     setPaymentStatus('idle');
   };
 
-  const handleProcessPayment = async (forceSuccess = true) => {
+  const handleProcessPayment = async () => {
     setPaymentStatus('loading');
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 1200));
 
-    if (forceSuccess) {
-      const txId = 'TXN-' + Math.floor(100000 + Math.random() * 900000);
-      setTransactionId(txId);
-      
-      // Update local storage or local state
-      const updatedFees = {
-        ...fees,
-        pendingFees: Math.max(0, fees.pendingFees - payingInstallment.amount),
-        paidFees: fees.paidFees + payingInstallment.amount,
-        installments: fees.installments.map(inst => {
-          if (inst.name === payingInstallment.name) {
-            return { ...inst, status: 'Paid', receiptNo: 'REC-' + Math.floor(1000 + Math.random() * 9000) };
-          }
-          return inst;
-        }),
-        history: [
-          {
-            paymentId: txId,
-            date: new Date().toISOString().split('T')[0],
-            amount: payingInstallment.amount,
-            mode: paymentMethod,
-            receiptNo: 'REC-' + Math.floor(1000 + Math.random() * 9000)
-          },
-          ...fees.history
-        ]
-      };
-      
-      setFees(updatedFees);
-      setPaymentStatus('success');
-      toast.success('Tuition fee payment processed successfully!');
-    } else {
-      setPaymentStatus('failure');
-      toast.error('Payment gateway timed out. Please try again.');
-    }
-  };
+    const receipt = collectFee({
+      studentId: student?.id || 'STU108902',
+      studentName: student?.name || 'Aarav Sharma',
+      admissionNo: student?.admissionNo || 'ADM-2024-8902',
+      class: student?.class || 'Class 10',
+      paidAmount: payingInstallment.amount,
+      paymentMethod: `${paymentMethod} (Parent Gateway)`,
+      remarks: `Settlement for ${payingInstallment.name}`,
+      collector: 'Parent (Ramesh Sharma)'
+    });
 
-  const handleDownloadReceipt = (receiptNo) => {
-    toast.success(`Downloading fee receipt: ${receiptNo}`);
+    setPaymentStatus('success');
+    toast.success(`Payment of ${formatCurrency(payingInstallment.amount)} processed successfully! Receipt: ${receipt?.receiptNo}`);
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-black text-foreground">Fees Ledger</h2>
-        <p className="text-xs text-slate-500 mt-0.5">Pay outstanding tuition fees online and review payment records</p>
+        <h2 className="text-lg font-black text-foreground">Fees Ledger & Payments</h2>
+        <p className="text-xs text-slate-500 mt-0.5">Pay outstanding tuition fees online and access verified institution receipts</p>
       </div>
 
       {/* Summary Cards */}
-      {fees && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="text-center">
-            <p className="text-xl font-black text-foreground">₹{fees.totalFees}</p>
-            <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Total Assigned Fees</p>
-          </Card>
-          <Card className="text-center">
-            <p className="text-xl font-black text-emerald-500">₹{fees.paidFees}</p>
-            <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Fees Paid</p>
-          </Card>
-          <Card className="text-center">
-            <p className="text-xl font-black text-rose-500">₹{fees.pendingFees}</p>
-            <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Outstanding Balance</p>
-          </Card>
-        </div>
-      )}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="text-center p-4">
+          <p className="text-xl font-black text-foreground">{formatCurrency(totalFees)}</p>
+          <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Total Academic Fees</p>
+        </Card>
+        <Card className="text-center p-4 border-l-4 border-emerald-500">
+          <p className="text-xl font-black text-emerald-500">{formatCurrency(paidFees)}</p>
+          <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Total Paid to Date</p>
+        </Card>
+        <Card className="text-center p-4 border-l-4 border-rose-500">
+          <p className="text-xl font-black text-rose-500">{formatCurrency(pendingFees)}</p>
+          <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Outstanding Dues</p>
+        </Card>
+      </div>
 
       {/* Installments List */}
       <div>
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Installment Schedules</h3>
         <div className="space-y-3">
-          {fees?.installments.map((inst, index) => (
-            <Card key={index} className="flex items-center justify-between p-4 border border-border">
+          {installments.map((inst, idx) => (
+            <Card key={idx} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div>
-                <h4 className="text-xs font-bold text-foreground">{inst.name}</h4>
-                <p className="text-[10px] text-slate-400 mt-0.5">Due date: {inst.dueDate} • Amount: ₹{inst.amount}</p>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-foreground">{inst.name}</h4>
+                  <Badge variant={inst.status === 'Paid' ? 'success' : 'danger'}>
+                    {inst.status}
+                  </Badge>
+                </div>
+                <span className="text-[10px] text-slate-400 font-semibold mt-0.5 block">Due Date: {inst.dueDate} {inst.receiptNo && `• Receipt ${inst.receiptNo}`}</span>
               </div>
+
               <div className="flex items-center gap-3">
-                <Badge variant={inst.status === 'Paid' ? 'success' : 'danger'}>
-                  {inst.status}
-                </Badge>
+                <span className="text-sm font-black text-foreground">{formatCurrency(inst.amount)}</span>
                 {inst.status === 'Paid' ? (
                   <button
-                    onClick={() => handleDownloadReceipt(inst.receiptNo)}
-                    className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 text-slate-600 dark:text-slate-350"
+                    onClick={() => setSelectedReceipt({
+                      receiptNo: inst.receiptNo || 'RCT-2026-0891',
+                      studentName: student.name,
+                      admissionNo: student.admissionNo,
+                      class: student.class,
+                      paidAmount: inst.amount,
+                      paymentDate: '2026-08-14',
+                      paymentMethod: 'UPI Online'
+                    })}
+                    className="flex items-center gap-1 px-3 py-1.5 border border-border hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    <Printer className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>View Receipt</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => handlePayClick(inst)}
-                    className="px-4 py-2 bg-primary text-white text-[10px] font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-premium"
+                    className="px-4 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl shadow-sm transition-all"
                   >
                     Pay Online
                   </button>
@@ -130,171 +128,153 @@ export const ParentFees = () => {
       </div>
 
       {/* Payment History */}
-      <div>
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Transaction logs</h3>
-        <div className="space-y-2">
-          {fees?.history.map((tx, idx) => (
-            <Card key={idx} className="flex items-center justify-between p-3.5 border border-border">
-              <div>
-                <h4 className="text-xs font-bold text-foreground">Transaction ID: {tx.paymentId}</h4>
-                <p className="text-[10px] text-slate-400 mt-0.5">Paid: {tx.date} · Mode: {tx.mode}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-black text-foreground">₹{tx.amount}</span>
+      <Card className="p-5 space-y-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Institutional Receipts History</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left">
+            <thead className="border-b">
+              <tr>
+                <th className="p-2">Receipt No</th>
+                <th className="p-2">Date</th>
+                <th className="p-2">Amount</th>
+                <th className="p-2">Payment Method</th>
+                <th className="p-2">Status</th>
+                <th className="p-2">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {receipts.map(rc => (
+                <tr key={rc.receiptNo}>
+                  <td className="p-2 font-bold text-indigo-600">{rc.receiptNo}</td>
+                  <td className="p-2">{rc.paymentDate}</td>
+                  <td className="p-2 font-bold">{formatCurrency(rc.paidAmount)}</td>
+                  <td className="p-2">{rc.paymentMethod}</td>
+                  <td className="p-2"><Badge variant="success">Verified</Badge></td>
+                  <td className="p-2">
+                    <button
+                      onClick={() => setSelectedReceipt(rc)}
+                      className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>PDF</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* PAYMENT GATEWAY MODAL */}
+      <Modal isOpen={!!payingInstallment} onClose={() => setPayingInstallment(null)} title="Secure Payment Gateway">
+        {payingInstallment && (
+          <div className="space-y-4">
+            {paymentStatus === 'idle' && (
+              <>
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-border text-xs">
+                  <div className="flex justify-between font-bold">
+                    <span>{payingInstallment.name}</span>
+                    <span className="text-indigo-600">{formatCurrency(payingInstallment.amount)}</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 block mt-1">Student: {student?.name} ({student?.admissionNo})</span>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Choose Payment Method</label>
+                  {['UPI (Google Pay, PhonePe, Paytm)', 'Net Banking (All Major Banks)', 'Credit / Debit Card'].map(m => (
+                    <label key={m} className="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-white dark:bg-slate-950 cursor-pointer text-xs font-semibold">
+                      <input
+                        type="radio"
+                        name="paymethod"
+                        checked={paymentMethod.startsWith(m.slice(0, 3))}
+                        onChange={() => setPaymentMethod(m)}
+                      />
+                      <span>{m}</span>
+                    </label>
+                  ))}
+                </div>
+
                 <button
-                  onClick={() => handleDownloadReceipt(tx.receiptNo)}
-                  className="p-1.5 text-primary bg-primary/10 rounded-lg hover:bg-primary/20"
+                  onClick={handleProcessPayment}
+                  className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95"
                 >
-                  <Download className="w-3.5 h-3.5" />
+                  Confirm & Pay {formatCurrency(payingInstallment.amount)}
+                </button>
+              </>
+            )}
+
+            {paymentStatus === 'loading' && (
+              <div className="py-8 flex flex-col items-center justify-center space-y-3">
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-300">Processing secure transaction with bank server...</p>
+              </div>
+            )}
+
+            {paymentStatus === 'success' && (
+              <div className="py-6 flex flex-col items-center justify-center text-center space-y-3">
+                <CheckCircle className="w-12 h-12 text-emerald-500" />
+                <h4 className="text-sm font-bold">Payment Verified & Settled!</h4>
+                <p className="text-xs text-slate-400">Institutional receipt generated. Ledger synchronized in real time.</p>
+                <button
+                  onClick={() => setPayingInstallment(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-xs font-bold rounded-xl"
+                >
+                  Close & Refresh
                 </button>
               </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Pay Online Modal */}
-      <Modal
-        isOpen={!!payingInstallment}
-        onClose={() => setPayingInstallment(null)}
-        title={paymentStatus === 'idle' || paymentStatus === 'loading' ? 'Complete Fee Payment' : 'Transaction Status'}
-        size="md"
-      >
-        {paymentStatus === 'idle' && payingInstallment && (
-          <div className="space-y-4">
-            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-border">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">Installment</span>
-              <h4 className="text-xs font-extrabold text-foreground">{payingInstallment.name}</h4>
-              <p className="text-sm font-black text-primary mt-2">₹{payingInstallment.amount}</p>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Payment Method</label>
-              <div className="grid grid-cols-3 gap-2">
-                {['UPI', 'Card', 'Net Banking'].map((method) => (
-                  <button
-                    key={method}
-                    type="button"
-                    onClick={() => setPaymentMethod(method)}
-                    className={`py-2 px-3 border rounded-xl text-xs font-bold text-center ${
-                      paymentMethod === method ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-card'
-                    }`}
-                  >
-                    {method}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {paymentMethod === 'Card' && (
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Card Number"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-slate-50 dark:bg-slate-950 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    placeholder="Expiry MM/YY"
-                    className="px-3.5 py-2.5 rounded-xl border border-border bg-slate-50 dark:bg-slate-950 text-xs focus:outline-none"
-                  />
-                  <input
-                    type="password"
-                    maxLength={3}
-                    placeholder="CVV"
-                    className="px-3.5 py-2.5 rounded-xl border border-border bg-slate-50 dark:bg-slate-950 text-xs focus:outline-none"
-                  />
-                </div>
-              </div>
             )}
-
-            {paymentMethod === 'UPI' && (
-              <input
-                type="text"
-                placeholder="Enter UPI VPA (e.g. name@upi)"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-slate-50 dark:bg-slate-950 text-xs focus:outline-none"
-              />
-            )}
-
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => handleProcessPayment(false)}
-                className="flex-1 py-2.5 rounded-xl border border-rose-250 text-rose-500 text-xs font-bold hover:bg-rose-50"
-              >
-                Mock Failure
-              </button>
-              <button
-                onClick={() => handleProcessPayment(true)}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold shadow-premium hover:bg-primary-hover"
-              >
-                Pay Now
-              </button>
-            </div>
-          </div>
-        )}
-
-        {paymentStatus === 'loading' && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <h4 className="text-xs font-bold text-foreground mt-4">Connecting Gateway</h4>
-            <p className="text-[10px] text-slate-400 mt-1">Please do not refresh or close the page...</p>
-          </div>
-        )}
-
-        {paymentStatus === 'success' && (
-          <div className="flex flex-col items-center justify-center text-center py-6">
-            <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-full mb-4">
-              <CheckCircle className="w-10 h-10" />
-            </div>
-            <h3 className="text-sm font-black text-foreground">Payment Successful!</h3>
-            <p className="text-[10px] text-slate-400 mt-1">Transaction ID: {transactionId}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mt-3 leading-relaxed">
-              Your payment has been recorded successfully. You can download the invoice receipt below.
-            </p>
-            <div className="flex gap-2 w-full mt-6">
-              <button
-                onClick={() => handleDownloadReceipt('REC-MOCK')}
-                className="flex-grow py-2.5 border border-border text-xs font-bold rounded-xl"
-              >
-                Print Receipt
-              </button>
-              <button
-                onClick={() => setPayingInstallment(null)}
-                className="flex-grow py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-premium hover:bg-primary-hover"
-              >
-                Back to Ledger
-              </button>
-            </div>
-          </div>
-        )}
-
-        {paymentStatus === 'failure' && (
-          <div className="flex flex-col items-center justify-center text-center py-6">
-            <div className="p-3 bg-rose-500/10 text-rose-500 rounded-full mb-4">
-              <XCircle className="w-10 h-10" />
-            </div>
-            <h3 className="text-sm font-black text-foreground animate-pulse">Payment Transaction Failed</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mt-3 leading-relaxed">
-              We could not authenticate your account or process the billing request from your bank account. No money was deducted.
-            </p>
-            <div className="flex gap-3 w-full mt-6">
-              <button
-                onClick={() => setPaymentStatus('idle')}
-                className="flex-grow py-2.5 bg-primary text-white text-xs font-bold rounded-xl"
-              >
-                Try Again
-              </button>
-              <button
-                onClick={() => setPayingInstallment(null)}
-                className="flex-grow py-2.5 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-xl"
-              >
-                Cancel
-              </button>
-            </div>
           </div>
         )}
       </Modal>
+
+      {/* RECEIPT PREVIEW MODAL */}
+      {selectedReceipt && (
+        <PrintReportModal
+          isOpen={!!selectedReceipt}
+          onClose={() => setSelectedReceipt(null)}
+          title={`Fee Receipt — ${selectedReceipt.receiptNo}`}
+          documentType="Official Fee Receipt"
+        >
+          <div className="space-y-6">
+            <div className="text-center pb-4 border-b border-border">
+              <h2 className="text-xl font-black">Greenfield Public School</h2>
+              <p className="text-xs text-slate-500">Official Fee Payment Receipt</p>
+              <span className="text-xs font-bold text-indigo-600">{selectedReceipt.receiptNo}</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-slate-400 block">Student Name:</span>
+                <span className="font-bold">{selectedReceipt.studentName}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block">Admission Number:</span>
+                <span className="font-bold">{selectedReceipt.admissionNo}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block">Payment Date:</span>
+                <span className="font-bold">{selectedReceipt.paymentDate}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block">Payment Method:</span>
+                <span className="font-bold">{selectedReceipt.paymentMethod}</span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-xl border flex justify-between items-center text-sm font-black">
+              <span>Amount Paid:</span>
+              <span className="text-emerald-600">{formatCurrency(selectedReceipt.paidAmount)}</span>
+            </div>
+
+            <div className="flex justify-between pt-6 text-xs font-bold text-slate-400">
+              <span>Collector: Accounts Department</span>
+              <span>Authorized Signature: ________________</span>
+            </div>
+          </div>
+        </PrintReportModal>
+      )}
     </div>
   );
 };
+export default ParentFees;

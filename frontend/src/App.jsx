@@ -1,5 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AppStoreProvider } from './shared/store/useAppStore';
+import { UnifiedDemoBar } from './shared/components/UnifiedDemoBar';
+import { UniversalLogin } from './shared/components/UniversalLogin';
+
 import { StudentAuthProvider } from './modules/student/context/StudentAuthContext';
 import { ThemeProvider } from './modules/student/context/ThemeContext';
 import { NotificationProvider } from './modules/student/context/NotificationContext';
@@ -75,149 +79,156 @@ import { TransportRoutes } from './modules/transport/routes/TransportRoutes';
 
 function App() {
   return (
-    <BrowserRouter>
-      <ThemeProvider>
-        <StudentAuthProvider>
-          <NotificationProvider>
-            <TeacherThemeProvider>
-              <TeacherAuthProvider>
-                <TeacherNotificationProvider>
-                  <ToastProvider>
-                    <ParentThemeProvider>
-                      <ParentAuthProvider>
-                        <ParentNotificationProvider>
-                          <ParentToastProvider>
-                            <SchoolAdminThemeProvider>
-                              <SchoolAdminAuthProvider>
-                                <SchoolAdminNotificationProvider>
-                                  <PrincipalThemeProvider>
-                                    <PrincipalAuthProvider>
-                                      <PrincipalNotificationProvider>
-                                        <AccountantThemeProvider>
-                                          <AccountantAuthProvider>
-                                            <AccountantNotificationProvider>
-                                              <HRThemeProvider>
-                                                <HRAuthProvider>
-                                                  <HRNotificationProvider>
-                                                     <LibrarianThemeProvider>
-                                                       <LibrarianAuthProvider>
-                                                         <LibrarianNotificationProvider>
-                                                           <LibrarianToastProvider>
-                                                             <TransportThemeProvider>
-                                                               <TransportAuthProvider>
-                                                                 <TransportNotificationProvider>
-                                                                   <TransportToastProvider>
-                                                                     <Routes>
-                                                                       {/* Student Routes */}
-                                                                       <Route path="/student/login" element={<StudentLogin />} />
-                                                                       <Route path="/student/*" element={<StudentLayout />}>
-                                                                         <Route path="*" element={<StudentRoutes />} />
-                                                                       </Route>
+    <AppStoreProvider>
+      <BrowserRouter>
+        <ThemeProvider>
+          <StudentAuthProvider>
+            <NotificationProvider>
+              <TeacherThemeProvider>
+                <TeacherAuthProvider>
+                  <TeacherNotificationProvider>
+                    <ToastProvider>
+                      <ParentThemeProvider>
+                        <ParentAuthProvider>
+                          <ParentNotificationProvider>
+                            <ParentToastProvider>
+                              <SchoolAdminThemeProvider>
+                                <SchoolAdminAuthProvider>
+                                  <SchoolAdminNotificationProvider>
+                                    <PrincipalThemeProvider>
+                                      <PrincipalAuthProvider>
+                                        <PrincipalNotificationProvider>
+                                          <AccountantThemeProvider>
+                                            <AccountantAuthProvider>
+                                              <AccountantNotificationProvider>
+                                                <HRThemeProvider>
+                                                  <HRAuthProvider>
+                                                    <HRNotificationProvider>
+                                                       <LibrarianThemeProvider>
+                                                         <LibrarianAuthProvider>
+                                                           <LibrarianNotificationProvider>
+                                                             <LibrarianToastProvider>
+                                                               <TransportThemeProvider>
+                                                                 <TransportAuthProvider>
+                                                                   <TransportNotificationProvider>
+                                                                     <TransportToastProvider>
+                                                                       {/* Global Floating Demo Bar */}
+                                                                       <UnifiedDemoBar />
 
-                                                                       {/* Teacher Routes */}
-                                                                       <Route path="/teacher/login" element={<TeacherLogin />} />
-                                                              <Route path="/teacher/*" element={<TeacherLayout />}>
-                                                                <Route path="*" element={<TeacherRoutes />} />
-                                                              </Route>
+                                                                       <Routes>
+                                                                         {/* Universal Single Sign-On */}
+                                                                         <Route path="/login" element={<UniversalLogin />} />
 
-                                                              {/* Parent Routes */}
-                                                              <Route path="/parent/login" element={<ParentLogin />} />
-                                                              <Route path="/parent/*" element={<ParentLayout />}>
-                                                                <Route path="*" element={<ParentRoutes />} />
-                                                              </Route>
+                                                                         {/* Student Routes */}
+                                                                         <Route path="/student/login" element={<StudentLogin />} />
+                                                                         <Route path="/student/*" element={<StudentLayout />}>
+                                                                           <Route path="*" element={<StudentRoutes />} />
+                                                                         </Route>
 
-                                                              {/* School Admin Routes */}
-                                                              <Route path="/school-admin/login" element={<SchoolAdminLogin />} />
-                                                              <Route path="/school-admin/*" element={<SchoolAdminLayout />}>
-                                                                <Route path="*" element={<SchoolAdminRoutes />} />
-                                                              </Route>
+                                                                         {/* Teacher Routes */}
+                                                                         <Route path="/teacher/login" element={<TeacherLogin />} />
+                                                                         <Route path="/teacher/*" element={<TeacherLayout />}>
+                                                                           <Route path="*" element={<TeacherRoutes />} />
+                                                                         </Route>
 
-                                                              {/* Principal Routes */}
-                                                              <Route path="/principal/login" element={<PrincipalLogin />} />
-                                                              <Route path="/principal/*" element={<PrincipalLayout />}>
-                                                                <Route path="*" element={<PrincipalRoutes />} />
-                                                              </Route>
+                                                                         {/* Parent Routes */}
+                                                                         <Route path="/parent/login" element={<ParentLogin />} />
+                                                                         <Route path="/parent/*" element={<ParentLayout />}>
+                                                                           <Route path="*" element={<ParentRoutes />} />
+                                                                         </Route>
 
-                                                              {/* Accountant Routes */}
-                                                              <Route path="/accountant/login" element={<AccountantLogin />} />
-                                                              <Route path="/accountant/*" element={<AccountantLayout />}>
-                                                                <Route path="*" element={<AccountantRoutes />} />
-                                                              </Route>
+                                                                         {/* School Admin Routes */}
+                                                                         <Route path="/school-admin/login" element={<SchoolAdminLogin />} />
+                                                                         <Route path="/school-admin/*" element={<SchoolAdminLayout />}>
+                                                                           <Route path="*" element={<SchoolAdminRoutes />} />
+                                                                         </Route>
 
-                                                              {/* HR Routes */}
-                                                              <Route path="/hr/login" element={<HRLogin />} />
-                                                              <Route path="/hr/*" element={<HRLayout />}>
-                                                                <Route path="*" element={<HRRoutes />} />
-                                                              </Route>
+                                                                         {/* Principal Routes */}
+                                                                         <Route path="/principal/login" element={<PrincipalLogin />} />
+                                                                         <Route path="/principal/*" element={<PrincipalLayout />}>
+                                                                           <Route path="*" element={<PrincipalRoutes />} />
+                                                                         </Route>
 
-                                                              {/* Librarian Routes */}
-                                                              <Route path="/librarian/login" element={<LibrarianLogin />} />
-                                                              <Route path="/librarian/*" element={<LibrarianLayout />}>
-                                                                <Route path="*" element={<LibrarianRoutes />} />
-                                                              </Route>
+                                                                         {/* Accountant Routes */}
+                                                                         <Route path="/accountant/login" element={<AccountantLogin />} />
+                                                                         <Route path="/accountant/*" element={<AccountantLayout />}>
+                                                                           <Route path="*" element={<AccountantRoutes />} />
+                                                                         </Route>
 
-                                                              {/* Transport Routes */}
-                                                              <Route path="/transport/login" element={<TransportLogin />} />
-                                                              <Route path="/transport/*" element={<TransportRoutes />} />
+                                                                         {/* HR Routes */}
+                                                                         <Route path="/hr/login" element={<HRLogin />} />
+                                                                         <Route path="/hr/*" element={<HRLayout />}>
+                                                                           <Route path="*" element={<HRRoutes />} />
+                                                                         </Route>
 
-                                                              {/* Super Admin Routes */}
-                                                              <Route path="/super-admin/login" element={
-                                                                <SuperAdminAuthProvider>
-                                                                  <SuperAdminNotificationProvider>
-                                                                    <SuperAdminLogin />
-                                                                  </SuperAdminNotificationProvider>
-                                                                </SuperAdminAuthProvider>
-                                                              } />
-                                                              <Route path="/super-admin/*" element={
-                                                                <SuperAdminAuthProvider>
-                                                                  <SuperAdminThemeProvider>
-                                                                    <SuperAdminNotificationProvider>
-                                                                      <SuperAdminLayout />
-                                                                    </SuperAdminNotificationProvider>
-                                                                  </SuperAdminThemeProvider>
-                                                                </SuperAdminAuthProvider>
-                                                              }>
-                                                                <Route path="*" element={<SuperAdminRoutes />} />
-                                                              </Route>
+                                                                         {/* Librarian Routes */}
+                                                                         <Route path="/librarian/login" element={<LibrarianLogin />} />
+                                                                         <Route path="/librarian/*" element={<LibrarianLayout />}>
+                                                                           <Route path="*" element={<LibrarianRoutes />} />
+                                                                         </Route>
 
-                                                              {/* Default Redirect */}
-                                                              <Route path="*" element={<Navigate to="/student/login" replace />} />
-                                                            </Routes>
-                                                           </TransportToastProvider>
-                                                         </TransportNotificationProvider>
-                                                       </TransportAuthProvider>
-                                                     </TransportThemeProvider>
-                                                   </LibrarianToastProvider>
-                                                 </LibrarianNotificationProvider>
-                                               </LibrarianAuthProvider>
-                                             </LibrarianThemeProvider>
-                                           </HRNotificationProvider>
-                                         </HRAuthProvider>
-                                       </HRThemeProvider>
-                                     </AccountantNotificationProvider>
-                                   </AccountantAuthProvider>
-                                 </AccountantThemeProvider>
-                               </PrincipalNotificationProvider>
-                             </PrincipalAuthProvider>
-                           </PrincipalThemeProvider>
-                                </SchoolAdminNotificationProvider>
-                              </SchoolAdminAuthProvider>
-                            </SchoolAdminThemeProvider>
-                          </ParentToastProvider>
-                        </ParentNotificationProvider>
-                      </ParentAuthProvider>
-                    </ParentThemeProvider>
-                  </ToastProvider>
-                </TeacherNotificationProvider>
-              </TeacherAuthProvider>
-            </TeacherThemeProvider>
-          </NotificationProvider>
-        </StudentAuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+                                                                         {/* Transport Routes */}
+                                                                         <Route path="/transport/login" element={<TransportLogin />} />
+                                                                         <Route path="/transport/*" element={<TransportRoutes />} />
+
+                                                                         {/* Super Admin Routes */}
+                                                                         <Route path="/super-admin/login" element={
+                                                                           <SuperAdminAuthProvider>
+                                                                             <SuperAdminNotificationProvider>
+                                                                               <SuperAdminLogin />
+                                                                             </SuperAdminNotificationProvider>
+                                                                           </SuperAdminAuthProvider>
+                                                                         } />
+                                                                         <Route path="/super-admin/*" element={
+                                                                           <SuperAdminAuthProvider>
+                                                                             <SuperAdminThemeProvider>
+                                                                               <SuperAdminNotificationProvider>
+                                                                                 <SuperAdminLayout />
+                                                                               </SuperAdminNotificationProvider>
+                                                                             </SuperAdminThemeProvider>
+                                                                           </SuperAdminAuthProvider>
+                                                                         }>
+                                                                           <Route path="*" element={<SuperAdminRoutes />} />
+                                                                         </Route>
+
+                                                                         {/* Default Route -> Universal Login */}
+                                                                         <Route path="/" element={<UniversalLogin />} />
+                                                                         <Route path="*" element={<Navigate to="/login" replace />} />
+                                                                       </Routes>
+                                                                     </TransportToastProvider>
+                                                                   </TransportNotificationProvider>
+                                                                 </TransportAuthProvider>
+                                                               </TransportThemeProvider>
+                                                             </LibrarianToastProvider>
+                                                           </LibrarianNotificationProvider>
+                                                         </LibrarianAuthProvider>
+                                                       </LibrarianThemeProvider>
+                                                     </HRNotificationProvider>
+                                                   </HRAuthProvider>
+                                                 </HRThemeProvider>
+                                               </AccountantNotificationProvider>
+                                             </AccountantAuthProvider>
+                                           </AccountantThemeProvider>
+                                         </PrincipalNotificationProvider>
+                                       </PrincipalAuthProvider>
+                                     </PrincipalThemeProvider>
+                                          </SchoolAdminNotificationProvider>
+                                        </SchoolAdminAuthProvider>
+                                      </SchoolAdminThemeProvider>
+                                    </ParentToastProvider>
+                                  </ParentNotificationProvider>
+                                </ParentAuthProvider>
+                              </ParentThemeProvider>
+                            </ToastProvider>
+                          </TeacherNotificationProvider>
+                        </TeacherAuthProvider>
+                      </TeacherThemeProvider>
+                    </NotificationProvider>
+                  </StudentAuthProvider>
+                </ThemeProvider>
+      </BrowserRouter>
+    </AppStoreProvider>
   );
 }
 
 export default App;
-
-

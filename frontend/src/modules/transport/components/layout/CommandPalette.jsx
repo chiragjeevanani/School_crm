@@ -23,6 +23,16 @@ export const CommandPalette = ({ isOpen, onClose }) => {
     };
   }, [isOpen]);
 
+  const filteredItems = NAVIGATION_ITEMS.filter(item => 
+    item.name.toLowerCase().includes(query.toLowerCase()) ||
+    item.category.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const handleSelect = (item) => {
+    navigate(item.path);
+    onClose();
+  };
+
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -30,10 +40,10 @@ export const CommandPalette = ({ isOpen, onClose }) => {
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex(prev => (prev + 1) % filteredItems.length);
+        setSelectedIndex(prev => (prev + 1) % (filteredItems.length || 1));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex(prev => (prev - 1 + filteredItems.length) % filteredItems.length);
+        setSelectedIndex(prev => (prev - 1 + filteredItems.length) % (filteredItems.length || 1));
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (filteredItems[selectedIndex]) {
@@ -46,17 +56,8 @@ export const CommandPalette = ({ isOpen, onClose }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, selectedIndex, query]);
+  }, [isOpen, selectedIndex, query, filteredItems]);
 
-  const filteredItems = NAVIGATION_ITEMS.filter(item => 
-    item.name.toLowerCase().includes(query.toLowerCase()) ||
-    item.category.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const handleSelect = (item) => {
-    navigate(item.path);
-    onClose();
-  };
 
   if (!isOpen) return null;
 

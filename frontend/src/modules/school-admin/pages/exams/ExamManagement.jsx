@@ -5,76 +5,75 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../components/ui/Toast';
-import { MOCK_EXAMS } from '../../utils/constants';
+import { useAppStore } from '../../../../shared/store/useAppStore';
 import { 
   Plus, 
   BookOpen, 
   CheckSquare, 
   Globe, 
   Send,
-  Eye
+  Eye,
+  CheckCircle2,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export const ExamManagement = () => {
   const [activeTab, setActiveTab] = useState('exams');
   const { showToast, ToastComponent } = useToast();
+  const { store, publishExamResults, updateStore } = useAppStore();
 
-  const [exams, setExams] = useState(MOCK_EXAMS);
-  const [invigilators, setInvigilators] = useState([
-    { id: '1', exam: 'First Term Exams', teacher: 'Dr. Ramesh Kumar', room: 'Hall A', date: '2026-05-10' },
-    { id: '2', exam: 'First Term Exams', teacher: 'Mrs. Sunita Rao', room: 'Hall B', date: '2026-05-11' },
-    { id: '3', exam: 'Half Yearly Exams', teacher: 'Mr. David D\'souza', room: 'Room 301', date: '2026-09-15' }
-  ]);
-
-  const [marksRoll, setMarksRoll] = useState([
-    { id: '1', studentName: 'Aarav Sharma', subject: 'Mathematics', marks: 88, maxMarks: 100, grade: 'A' },
-    { id: '2', studentName: 'Diya Patel', subject: 'Mathematics', marks: 92, maxMarks: 100, grade: 'A+' },
-    { id: '3', studentName: 'Kabir Verma', subject: 'Mathematics', marks: 54, maxMarks: 100, grade: 'C' },
-    { id: '4', studentName: 'Ananya Iyer', subject: 'Mathematics', marks: 78, maxMarks: 100, grade: 'B+' }
-  ]);
+  const exams = store.exams || [];
+  const results = store.results || {};
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [viewMarksModalOpen, setViewMarksModalOpen] = useState(false);
+  const [selectedExam, setSelectedExam] = useState(null);
 
   const [newExam, setNewExam] = useState({
     name: '',
-    type: 'Written',
-    status: 'Scheduled',
+    type: 'Written Exam',
+    gradingType: 'Percentage / Marks',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    classes: ['10', '9']
   });
 
   const handleCreateExam = (e) => {
     e.preventDefault();
-    setExams(prev => [...prev, { id: Date.now().toString(), ...newExam }]);
+    const newExamObj = {
+      id: `EXAM-${Date.now().toString().slice(-4)}`,
+      name: newExam.name,
+      session: '2026-2027',
+      startDate: newExam.startDate,
+      endDate: newExam.endDate,
+      status: 'Upcoming',
+      gradingType: newExam.gradingType,
+      classes: newExam.classes,
+      schedule: [
+        { date: newExam.startDate, time: '09:00 - 10:30 AM', subject: 'Mathematics', maxMarks: 50 },
+        { date: newExam.endDate, time: '09:00 - 10:30 AM', subject: 'Science', maxMarks: 50 }
+      ]
+    };
+
+    updateStore(prev => ({
+      ...prev,
+      exams: [newExamObj, ...prev.exams]
+    }), 'EXAM_CREATED', { name: newExam.name });
+
     setCreateModalOpen(false);
-    showToast('New exam term created!', 'success');
+    showToast(`Exam term "${newExam.name}" scheduled successfully!`, 'success');
   };
 
-  const handlePublishResults = (examName) => {
-    showToast(`Exam results for ${examName} published instantly to parent/student portals!`, 'success');
-  };
-
-  const handleUpdateMarks = (id, newScore) => {
-    const score = Number(newScore);
-    if (score > 100 || score < 0) return;
-    
-    let grade = 'F';
-    if (score >= 90) grade = 'A+';
-    else if (score >= 80) grade = 'A';
-    else if (score >= 70) grade = 'B+';
-    else if (score >= 60) grade = 'B';
-    else if (score >= 50) grade = 'C';
-    else if (score >= 40) grade = 'D';
-
-    setMarksRoll(prev => prev.map(m => m.id === id ? { ...m, marks: score, grade } : m));
+  const handlePublish = (examId, examName) => {
+    publishExamResults(examId, 'Vikramaditya (Admin)');
+    showToast(`Verified and published results for ${examName}! Report cards unlocked and notification sent to students and parents.`, 'success');
   };
 
   // Columns Definitions
   const examColumns = [
     { header: 'Exam Term Name', key: 'name' },
-    { header: 'Type', key: 'type', render: (val) => <Badge variant="info">{val}</Badge> },
+    { header: 'Session', key: 'session', render: (val) => val || '2026-2027' },
     { header: 'Start Date', key: 'startDate' },
     { header: 'End Date', key: 'endDate' },
     { header: 'Status', key: 'status', render: (val) => (
@@ -84,62 +83,70 @@ export const ExamManagement = () => {
       header: 'Actions',
       key: 'actions',
       render: (_, row) => (
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-          {row.status === 'Completed' && (
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => {
+              setSelectedExam(row);
+              setViewMarksModalOpen(true);
+            }}
+            className="flex items-center gap-1 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-indigo-600"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>Review Marks</span>
+          </button>
+
+          {row.status !== 'Published' ? (
             <button
-              onClick={() => handlePublishResults(row.name)}
-              className="flex items-center gap-1 text-xs font-bold text-indigo-650 hover:underline"
+              onClick={() => handlePublish(row.id, row.name)}
+              className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline"
             >
               <Send className="w-3.5 h-3.5" />
               <span>Publish Results</span>
             </button>
-          )}
-          {row.status === 'Scheduled' && (
-            <span className="text-[10px] text-slate-400 font-bold uppercase select-none">Awaiting start</span>
-          )}
-          {row.status === 'Published' && (
-            <Badge variant="success">Results Published</Badge>
+          ) : (
+            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Live in Portals</span>
+            </span>
           )}
         </div>
       )
     }
   ];
 
-  const invigilatorColumns = [
-    { header: 'Exam Term', key: 'exam' },
-    { header: 'Invigilator Staff', key: 'teacher', render: (val) => <span className="font-bold">{val}</span> },
-    { header: 'Date Slot', key: 'date' },
-    { header: 'Room No / Hall', key: 'room', render: (val) => <Badge variant="primary">{val}</Badge> }
-  ];
+  // Marks registry rows from store
+  const marksRows = Object.values(results['EXAM-2026-UT1'] || {}).map((r, i) => ({
+    id: String(i + 1),
+    studentId: r.studentId,
+    studentName: r.studentName,
+    class: `${r.class}-${r.section}`,
+    percentage: `${r.percentage}%`,
+    gpa: r.gpa,
+    rank: `#${r.rank}`,
+    status: r.status
+  }));
 
   const marksColumns = [
+    { header: 'Student ID', key: 'studentId' },
     { header: 'Student Name', key: 'studentName' },
-    { header: 'Subject', key: 'subject' },
-    { header: 'Max Score', key: 'maxMarks' },
-    {
-      header: 'Obtained Score',
-      key: 'marks',
-      render: (val, row) => (
-        <input
-          type="number"
-          value={val}
-          onChange={(e) => handleUpdateMarks(row.id, e.target.value)}
-          className="w-20 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-center font-bold"
-        />
-      )
-    },
-    { header: 'Calculated Grade', key: 'grade', render: (val) => <Badge variant={val === 'F' ? 'danger' : 'success'}>{val}</Badge> }
+    { header: 'Class & Section', key: 'class' },
+    { header: 'Score %', key: 'percentage' },
+    { header: 'GPA', key: 'gpa' },
+    { header: 'Class Rank', key: 'rank' },
+    { header: 'Grade Status', key: 'status', render: (val) => (
+      <Badge variant={val.includes('Passed') ? 'success' : 'warning'}>{val}</Badge>
+    )}
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader 
-        title="Examination & Results Hub" 
-        subtitle="Schedule school exams, allocate invigilator hall details, enter marks sheets, and publish final results."
+        title="Examination & Marks Registry" 
+        subtitle="Schedule term examinations, verify subject marks submitted by teachers, and publish official report cards."
         actions={
           <button
             onClick={() => setCreateModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Create Exam Term</span>
@@ -147,150 +154,131 @@ export const ExamManagement = () => {
         }
       />
 
-      <Tabs 
+      <Tabs
         tabs={[
-          { id: 'exams', label: 'Exam Terms', count: exams.length },
-          { id: 'invigilators', label: 'Invigilator Slots', count: invigilators.length },
-          { id: 'marks', label: 'Marks Registry Entry', count: marksRoll.length }
+          { id: 'exams', label: 'Examinations Terms', count: exams.length },
+          { id: 'marks', label: 'Marks Verification Registry', count: marksRows.length }
         ]}
         activeTab={activeTab}
         onChange={setActiveTab}
       />
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-        {activeTab === 'exams' && <DataTable columns={examColumns} data={exams} />}
-        {activeTab === 'invigilators' && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-650">Invigilator Allocations Table</h4>
-              <button
-                onClick={() => setAssignModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-xs font-bold"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Assign Invigilator</span>
-              </button>
-            </div>
-            <DataTable columns={invigilatorColumns} data={invigilators} />
-          </div>
-        )}
-        {activeTab === 'marks' && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 rounded-2xl">
-              <span className="text-xs font-semibold text-slate-500">Currently entering grades for Class 10-A (Mathematics)</span>
-              <button 
-                onClick={() => showToast('Marks verification successful and locked!', 'success')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl"
-              >
-                <CheckSquare className="w-3.5 h-3.5" />
-                <span>Verify & Lock Grades</span>
-              </button>
-            </div>
-            <DataTable columns={marksColumns} data={marksRoll} />
-          </div>
-        )}
+        <DataTable
+          columns={activeTab === 'exams' ? examColumns : marksColumns}
+          data={activeTab === 'exams' ? exams : marksRows}
+          searchPlaceholder="Search examinations or marks records..."
+        />
       </div>
 
       {/* CREATE EXAM MODAL */}
-      <Modal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Create Exam Term Schedule">
+      <Modal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Create New Examination Term">
         <form onSubmit={handleCreateExam} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-400">Exam Term Name</label>
-            <input 
-              type="text" 
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Exam Term Name *</label>
+            <input
+              type="text"
               required
-              placeholder="e.g. Half Yearly Examinations" 
-              value={newExam.name} 
-              onChange={(e) => setNewExam({...newExam, name: e.target.value})} 
-              className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none"
+              value={newExam.name}
+              onChange={(e) => setNewExam({ ...newExam, name: e.target.value })}
+              placeholder="e.g. Unit Test 2 or Half-Yearly Exams"
+              className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400">Exam Format</label>
-              <select
-                value={newExam.type}
-                onChange={(e) => setNewExam({...newExam, type: e.target.value})}
-                className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none"
-              >
-                <option value="Written">Written Examination</option>
-                <option value="Practical">Practical Board Exam</option>
-                <option value="Oral / Viva">Oral / Viva Voce</option>
-                <option value="Unit Test">Class Unit Test</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400">Term Status</label>
-              <select
-                value={newExam.status}
-                onChange={(e) => setNewExam({...newExam, status: e.target.value})}
-                className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none"
-              >
-                <option value="Scheduled">Scheduled</option>
-                <option value="Completed">Completed</option>
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400">Term Start Date</label>
-              <input 
-                type="date" 
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Start Date *</label>
+              <input
+                type="date"
                 required
-                value={newExam.startDate} 
-                onChange={(e) => setNewExam({...newExam, startDate: e.target.value})} 
-                className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none"
+                value={newExam.startDate}
+                onChange={(e) => setNewExam({ ...newExam, startDate: e.target.value })}
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400">Term End Date</label>
-              <input 
-                type="date" 
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">End Date *</label>
+              <input
+                type="date"
                 required
-                value={newExam.endDate} 
-                onChange={(e) => setNewExam({...newExam, endDate: e.target.value})} 
-                className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none"
+                value={newExam.endDate}
+                onChange={(e) => setNewExam({ ...newExam, endDate: e.target.value })}
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
               />
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <button type="button" onClick={() => setCreateModalOpen(false)} className="px-4 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl">Save Schedule</button>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Grading System</label>
+            <select
+              value={newExam.gradingType}
+              onChange={(e) => setNewExam({ ...newExam, gradingType: e.target.value })}
+              className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
+            >
+              <option value="Percentage / Marks">Percentage & Numerical Marks (CBSE Standard)</option>
+              <option value="GPA (10-Point Scale)">10-Point GPA Scale</option>
+              <option value="Letter Grades (A-F)">Letter Grades Only (A+, A, B, C, D, F)</option>
+            </select>
           </div>
+
+          <button
+            type="submit"
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md"
+          >
+            Create Term & Initialize Timetable
+          </button>
         </form>
       </Modal>
 
-      {/* ASSIGN INVIGILATOR MODAL */}
-      <Modal isOpen={assignModalOpen} onClose={() => setAssignModalOpen(false)} title="Assign Invigilator Allocation">
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-400">Exam Term</label>
-            <select className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none">
-              {exams.map(e => <option key={e.id} value={e.name}>{e.name}</option>)}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400">Instructor Staff</label>
-              <select className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none">
-                <option value="Dr. Ramesh Kumar">Dr. Ramesh Kumar</option>
-                <option value="Mrs. Sunita Rao">Mrs. Sunita Rao</option>
-                <option value="Mr. David D'souza">Mr. David D'souza</option>
-              </select>
+      {/* REVIEW MARKS MODAL */}
+      <Modal isOpen={viewMarksModalOpen} onClose={() => setViewMarksModalOpen(false)} title={`Subject Marks Review — ${selectedExam?.name || 'Exam'}`}>
+        {selectedExam && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl">
+              <div>
+                <span className="text-xs font-bold">Class 10-A Subjects Performance</span>
+                <p className="text-[11px] text-slate-500">Graded by Subject Faculty: Mathematics, Science, English, Social Studies, CS</p>
+              </div>
+              <button
+                onClick={() => {
+                  handlePublish(selectedExam.id, selectedExam.name);
+                  setViewMarksModalOpen(false);
+                }}
+                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm"
+              >
+                Approve & Publish Report Cards
+              </button>
             </div>
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400">Examination Room / Hall</label>
-              <input type="text" placeholder="e.g. Hall B" className="w-full bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none" />
+
+            <div className="overflow-x-auto border border-border rounded-xl">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-50 dark:bg-slate-800/80 border-b">
+                  <tr>
+                    <th className="p-2.5">Student</th>
+                    <th className="p-2.5">Math</th>
+                    <th className="p-2.5">Science</th>
+                    <th className="p-2.5">English</th>
+                    <th className="p-2.5">SST</th>
+                    <th className="p-2.5">CS</th>
+                    <th className="p-2.5 font-bold">Overall %</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {Object.values(results[selectedExam.id] || results['EXAM-2026-UT1'] || {}).map((st, i) => (
+                    <tr key={i} className="hover:bg-slate-50/50">
+                      <td className="p-2.5 font-bold">{st.studentName} ({st.class}-{st.section})</td>
+                      {st.subjects?.map((sub, sIdx) => (
+                        <td key={sIdx} className="p-2.5">{sub.marksObtained}/{sub.maxMarks}</td>
+                      ))}
+                      <td className="p-2.5 font-black text-indigo-600">{st.percentage}% (GPA {st.gpa})</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <button onClick={() => setAssignModalOpen(false)} className="px-4 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100">Cancel</button>
-            <button onClick={() => {
-              showToast('Invigilator allocation completed!', 'success');
-              setAssignModalOpen(false);
-            }} className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl">Save Allocation</button>
-          </div>
-        </div>
+        )}
       </Modal>
 
       <ToastComponent />

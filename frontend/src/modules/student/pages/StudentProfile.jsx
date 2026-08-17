@@ -42,7 +42,7 @@ export const StudentProfile = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Profile Header Card */}
       <Card className="p-6">
         <div className="flex flex-col sm:flex-row items-center gap-5">

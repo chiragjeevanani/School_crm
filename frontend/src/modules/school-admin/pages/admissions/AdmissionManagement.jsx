@@ -5,7 +5,7 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../components/ui/Toast';
-import { MOCK_ADMISSIONS } from '../../utils/constants';
+import { useAppStore } from '../../../../shared/store/useAppStore';
 import { 
   Check, 
   X, 
@@ -13,20 +13,35 @@ import {
   FileCheck, 
   UserPlus, 
   IdCard, 
-  Download,
-  AlertTriangle
+  Download, 
+  AlertTriangle,
+  Printer
 } from 'lucide-react';
 
 export const AdmissionManagement = () => {
   const [activeTab, setActiveTab] = useState('review');
   const { showToast, ToastComponent } = useToast();
+  const { store, approveAdmission, updateStore } = useAppStore();
 
-  const [admissions, setAdmissions] = useState(MOCK_ADMISSIONS);
+  const admissions = store.admissions || [];
   const [selectedAdm, setSelectedAdm] = useState(null);
   
   // Modals
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [idCardModalOpen, setIdCardModalOpen] = useState(false);
+  const [offlineModalOpen, setOfflineModalOpen] = useState(false);
+
+  const [offlineForm, setOfflineForm] = useState({
+    name: '',
+    gender: 'Male',
+    dob: '2012-05-15',
+    class: '10',
+    section: 'A',
+    parentName: '',
+    phone: '',
+    email: '',
+    address: 'New Delhi'
+  });
 
   // Stats
   const pendingCount = admissions.filter(a => a.status === 'Pending Review').length;
@@ -34,39 +49,49 @@ export const AdmissionManagement = () => {
   const approvedCount = admissions.filter(a => a.status === 'Approved').length;
 
   const handleUpdateStatus = (id, nextStatus) => {
-    let message = `Admission application ${nextStatus.toLowerCase()}`;
     if (nextStatus === 'Approved') {
-      message = 'Admission approved! Student ID and admission number generated.';
-      setAdmissions(prev => prev.map(a => a.id === id ? { 
-        ...a, 
-        status: nextStatus,
-        documentsStatus: 'Verified',
-        admissionNo: `ADM-2026-${Math.floor(1000 + Math.random() * 9000)}` 
-      } : a));
+      const student = approveAdmission(id, selectedAdm?.class || '10', 'A', 'Vikramaditya (Admin)');
+      showToast(`Admission approved! Generated Student ID: ${student?.id} & Admission No: ${student?.admissionNo}. Profile propagated to all school modules.`, 'success');
     } else {
-      setAdmissions(prev => prev.map(a => a.id === id ? { ...a, status: nextStatus } : a));
+      updateStore(prev => ({
+        ...prev,
+        admissions: prev.admissions.map(a => a.id === id ? { ...a, status: nextStatus } : a)
+      }), 'ADMISSION_STATUS_UPDATED', { id, nextStatus });
+      showToast(`Candidate application moved to ${nextStatus}`, nextStatus === 'Rejected' ? 'warning' : 'info');
     }
-    showToast(message, nextStatus === 'Rejected' ? 'warning' : 'success');
     setReviewModalOpen(false);
   };
 
-  const handleOfflineAdmission = () => {
-    const mockId = Date.now().toString();
-    const newAdm = {
-      id: mockId,
-      name: 'Rohan Sen',
-      gender: 'Male',
-      dob: '2012-10-18',
-      class: '10',
-      parentName: 'Vikram Sen',
-      phone: '+91 99000 11223',
-      email: 'rohan.sen@gmail.com',
+  const handleOfflineSubmit = (e) => {
+    e.preventDefault();
+    const newAdmId = `ADM-OFF-${Date.now().toString().slice(-4)}`;
+    const newAdmObj = {
+      id: newAdmId,
+      name: offlineForm.name,
+      gender: offlineForm.gender,
+      dob: offlineForm.dob,
+      class: offlineForm.class,
+      section: offlineForm.section,
+      parentName: offlineForm.parentName,
+      phone: offlineForm.phone,
+      email: offlineForm.email || `${offlineForm.name.toLowerCase().replace(/\s+/g, '.')}@greenfield.edu`,
+      address: offlineForm.address,
       documentsStatus: 'Verified',
-      status: 'Approved',
-      admissionNo: `ADM-2026-${Math.floor(1000 + Math.random() * 9000)}`
+      status: 'Pending Review',
+      appliedDate: new Date().toISOString().split('T')[0],
+      previousSchool: 'Transfer Student',
+      category: 'General'
     };
-    setAdmissions(prev => [newAdm, ...prev]);
-    showToast('Offline Student admitted directly!', 'success');
+
+    updateStore(prev => ({
+      ...prev,
+      admissions: [newAdmObj, ...prev.admissions]
+    }), 'OFFLINE_ADMISSION_REGISTERED');
+
+    // Auto approve offline candidate
+    const student = approveAdmission(newAdmId, offlineForm.class, offlineForm.section, 'Vikramaditya (Admin)');
+    setOfflineModalOpen(false);
+    showToast(`Offline candidate admitted directly! Student ID: ${student?.id}`, 'success');
   };
 
   const reviewColumns = [
@@ -75,7 +100,7 @@ export const AdmissionManagement = () => {
     { header: 'Guardian', key: 'parentName' },
     { header: 'Docs Verified', key: 'documentsStatus', render: (val) => (
       <Badge variant={val === 'Verified' ? 'success' : val === 'Rejected' ? 'danger' : 'warning'}>
-        {val}
+        {val || 'Pending'}
       </Badge>
     )},
     { header: 'Application Status', key: 'status', render: (val) => (
@@ -87,7 +112,7 @@ export const AdmissionManagement = () => {
       header: 'Actions',
       key: 'actions',
       render: (_, row) => (
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => {
               setSelectedAdm(row);
@@ -108,7 +133,7 @@ export const AdmissionManagement = () => {
               className="flex items-center gap-1 text-xs font-bold text-emerald-650 hover:underline"
             >
               <IdCard className="w-3.5 h-3.5" />
-              <span>Generate ID</span>
+              <span>ID Card</span>
             </button>
           )}
         </div>
@@ -123,8 +148,8 @@ export const AdmissionManagement = () => {
         subtitle="Manage prospective candidate profiles, document validations, waitlists, and admission approvals."
         actions={
           <button
-            onClick={handleOfflineAdmission}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm"
+            onClick={() => setOfflineModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95"
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>Register Offline Admission</span>
@@ -195,19 +220,19 @@ export const AdmissionManagement = () => {
 
             <div className="space-y-2">
               <span className="text-[10px] font-bold text-slate-455 uppercase block">Uploaded Documents Status</span>
-              <div className="flex items-center justify-between p-3.5 border border-slate-200 rounded-xl">
+              <div className="flex items-center justify-between p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl">
                 <div className="flex items-center gap-2 text-xs font-semibold">
                   <FileCheck className="w-5 h-5 text-indigo-600" />
-                  <span>Transfer Certificate, Birth Marksheet, Address Proof</span>
+                  <span>Transfer Certificate, Birth Certificate, Aadhaar Proof</span>
                 </div>
                 <Badge variant={selectedAdm.documentsStatus === 'Verified' ? 'success' : 'warning'}>
-                  {selectedAdm.documentsStatus}
+                  {selectedAdm.documentsStatus || 'Pending'}
                 </Badge>
               </div>
             </div>
 
             {selectedAdm.status === 'Pending Review' && (
-              <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+              <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   onClick={() => handleUpdateStatus(selectedAdm.id, 'Rejected')}
                   className="px-4 py-2 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold transition-all"
@@ -223,9 +248,9 @@ export const AdmissionManagement = () => {
                   </button>
                   <button
                     onClick={() => handleUpdateStatus(selectedAdm.id, 'Approved')}
-                    className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all"
+                    className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
                   >
-                    Approve Admission
+                    Approve Admission & Create Record
                   </button>
                 </div>
               </div>
@@ -234,23 +259,116 @@ export const AdmissionManagement = () => {
         )}
       </Modal>
 
+      {/* OFFLINE ADMISSION MODAL */}
+      <Modal isOpen={offlineModalOpen} onClose={() => setOfflineModalOpen(false)} title="Register Offline Student Admission">
+        <form onSubmit={handleOfflineSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Candidate Full Name *</label>
+              <input
+                type="text"
+                required
+                value={offlineForm.name}
+                onChange={(e) => setOfflineForm({ ...offlineForm, name: e.target.value })}
+                placeholder="e.g. Siddharth Verma"
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Gender</label>
+              <select
+                value={offlineForm.gender}
+                onChange={(e) => setOfflineForm({ ...offlineForm, gender: e.target.value })}
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Class *</label>
+              <select
+                value={offlineForm.class}
+                onChange={(e) => setOfflineForm({ ...offlineForm, class: e.target.value })}
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
+              >
+                {['6', '7', '8', '9', '10', '11', '12'].map(c => (
+                  <option key={c} value={c}>Class {c}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Section</label>
+              <select
+                value={offlineForm.section}
+                onChange={(e) => setOfflineForm({ ...offlineForm, section: e.target.value })}
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
+              >
+                <option value="A">Section A</option>
+                <option value="B">Section B</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Date of Birth</label>
+              <input
+                type="date"
+                value={offlineForm.dob}
+                onChange={(e) => setOfflineForm({ ...offlineForm, dob: e.target.value })}
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Parent / Guardian Name *</label>
+              <input
+                type="text"
+                required
+                value={offlineForm.parentName}
+                onChange={(e) => setOfflineForm({ ...offlineForm, parentName: e.target.value })}
+                placeholder="e.g. Ramesh Verma"
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Contact Phone *</label>
+              <input
+                type="tel"
+                required
+                value={offlineForm.phone}
+                onChange={(e) => setOfflineForm({ ...offlineForm, phone: e.target.value })}
+                placeholder="+91 98765 00000"
+                className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 dark:bg-slate-900 border-border"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md"
+          >
+            Admit Student & Generate Official Credentials
+          </button>
+        </form>
+      </Modal>
+
       {/* ID CARD MODAL */}
       <Modal isOpen={idCardModalOpen} onClose={() => setIdCardModalOpen(false)} title="Student ID Card Preview">
         {selectedAdm && (
           <div className="flex flex-col items-center py-4 space-y-6">
-            {/* Front of ID Card */}
-            <div className="w-80 h-[480px] bg-slate-950 border border-slate-800 text-white rounded-3xl overflow-hidden shadow-2xl relative flex flex-col items-center justify-between p-6">
-              {/* Card Ribbon / Accent Header */}
+            <div className="w-80 h-[460px] bg-slate-950 border border-slate-800 text-white rounded-3xl overflow-hidden shadow-2xl relative flex flex-col items-center justify-between p-6">
               <div className="absolute top-0 inset-x-0 h-4 bg-indigo-600"></div>
 
-              {/* School branding */}
               <div className="text-center mt-3">
-                <h2 className="text-base font-black tracking-tight leading-none text-white">Greenfield School</h2>
-                <span className="text-[9px] text-slate-500 font-extrabold uppercase tracking-widest mt-1 block">Student Identification</span>
+                <h2 className="text-base font-black tracking-tight leading-none text-white">Greenfield Public School</h2>
+                <span className="text-[9px] text-indigo-400 font-extrabold uppercase tracking-widest mt-1 block">Official Student Identity Card</span>
               </div>
 
-              {/* Student avatar */}
-              <div className="w-32 h-32 rounded-2xl border-4 border-slate-850 overflow-hidden bg-slate-900">
+              <div className="w-28 h-28 rounded-2xl border-4 border-slate-800 overflow-hidden bg-slate-900">
                 <img 
                   src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80" 
                   alt="Student Photo" 
@@ -258,17 +376,15 @@ export const AdmissionManagement = () => {
                 />
               </div>
 
-              {/* Card info */}
               <div className="text-center space-y-1">
                 <h3 className="text-lg font-bold text-white leading-none">{selectedAdm.name}</h3>
                 <span className="text-[10px] text-indigo-400 font-extrabold uppercase tracking-wide">Class {selectedAdm.class} - A</span>
               </div>
 
-              {/* Technical details barcodes */}
-              <div className="w-full border-t border-slate-850 pt-4 space-y-2.5 text-left text-[11px] font-semibold text-slate-400">
+              <div className="w-full border-t border-slate-800 pt-3 space-y-2 text-left text-[11px] font-semibold text-slate-400">
                 <div className="flex justify-between">
-                  <span>Student ID:</span>
-                  <span className="text-white font-bold">{selectedAdm.admissionNo || 'N/A'}</span>
+                  <span>Admission No:</span>
+                  <span className="text-white font-bold">{selectedAdm.admissionNo || `ADM-2026-${selectedAdm.id.slice(-4)}`}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Guardian:</span>
@@ -280,8 +396,7 @@ export const AdmissionManagement = () => {
                 </div>
               </div>
 
-              {/* Mock Barcode pattern lines */}
-              <div className="flex gap-0.5 justify-center w-full mt-2 h-7 opacity-75">
+              <div className="flex gap-0.5 justify-center w-full mt-1 h-6 opacity-75">
                 {[1, 3, 2, 4, 1, 2, 3, 1, 4, 2, 1, 3, 4, 2, 1, 2, 3, 1, 4].map((width, idx) => (
                   <div key={idx} className="bg-white shrink-0" style={{ width: `${width}px` }}></div>
                 ))}
@@ -289,11 +404,11 @@ export const AdmissionManagement = () => {
             </div>
 
             <button 
-              onClick={() => showToast('Student ID Badge PDF Download Triggered!', 'success')}
+              onClick={() => window.print()}
               className="flex items-center gap-1.5 px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download Badge PDF</span>
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Official ID Badge</span>
             </button>
           </div>
         )}
