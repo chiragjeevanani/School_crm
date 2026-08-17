@@ -1,19 +1,35 @@
 import React from 'react';
 import { cn } from './Button';
 
+export function Pulse({ className }) {
+  return <div className={cn('animate-pulse rounded-md bg-slate-200 dark:bg-slate-800', className)} />;
+}
+
 export const SkeletonLoader = ({ className, count = 1, ...props }) => {
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (
-        <div
-          key={i}
-          className={cn('animate-pulse rounded bg-slate-800/80 h-4 w-full', className)}
-          {...props}
-        />
+        <Pulse key={i} className={cn('h-4 w-full', className)} {...props} />
       ))}
     </>
   );
 };
+
+export function KpiSkeleton({ count = 4 }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"
+        >
+          <Pulse className="h-2.5 w-16" />
+          <Pulse className="h-7 w-14" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export const EmptyState = ({ title, description, icon: Icon, action }) => {
   return (

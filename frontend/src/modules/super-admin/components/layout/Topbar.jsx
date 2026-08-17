@@ -1,17 +1,22 @@
-import React, { useState } from 'react';
-import { Search, Bell, Sun, Moon, Sparkles } from 'lucide-react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Sun, Moon, Settings, LogOut, User } from 'lucide-react';
 import { useSuperAdminTheme } from '../../context/SuperAdminThemeContext';
-import { useSuperAdminNotifications } from '../../context/SuperAdminNotificationContext';
-import { Button } from '../ui/Button';
+import { useSuperAdminAuth } from '../../context/SuperAdminAuthContext';
+import { Dropdown, DropdownTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../ui/Dropdown';
 
 export const Topbar = ({ onOpenCommandPalette }) => {
+  const navigate = useNavigate();
   const { isDark, toggleTheme } = useSuperAdminTheme();
-  const { unreadCount, notifications, markAllRead } = useSuperAdminNotifications();
-  const [showNotifications, setShowNotifications] = useState(false);
+  const { admin, logout } = useSuperAdminAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/super-admin/login');
+  };
 
   return (
     <header className="h-16 border-b border-slate-200 dark:border-slate-900 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30 select-none">
-      {/* Search Trigger */}
       <div className="flex items-center gap-4">
         <button
           onClick={onOpenCommandPalette}
@@ -25,9 +30,7 @@ export const Topbar = ({ onOpenCommandPalette }) => {
         </button>
       </div>
 
-      {/* Action Triggers */}
-      <div className="flex items-center gap-4">
-        {/* Theme Toggle */}
+      <div className="flex items-center gap-3">
         <button
           onClick={toggleTheme}
           className="p-2 rounded-lg bg-slate-150 dark:bg-slate-900 border border-slate-200 dark:border-slate-900 hover:border-slate-300 dark:hover:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
@@ -35,44 +38,37 @@ export const Topbar = ({ onOpenCommandPalette }) => {
           {isDark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
-        {/* Notifications */}
-        <div className="relative">
-          <button
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="p-2 rounded-lg bg-slate-150 dark:bg-slate-900 border border-slate-200 dark:border-slate-900 hover:border-slate-300 dark:hover:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors relative"
-          >
-            <Bell size={18} />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-
-          {showNotifications && (
-            <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden z-50">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-900">
-                <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">Alert Center</span>
-                {unreadCount > 0 && (
-                  <button onClick={markAllRead} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
-                    Mark read
-                  </button>
-                )}
-              </div>
-              <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-900">
-                {notifications.map((notif) => (
-                  <div key={notif.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors flex gap-3">
-                    <Sparkles className="w-4 h-4 text-indigo-550 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">{notif.message}</p>
-                      <span className="text-[10px] text-slate-500 mt-1 block">{notif.time}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <Dropdown modal={false}>
+          <DropdownTrigger asChild>
+            <button
+              className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-150 text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-slate-900 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-slate-800 dark:hover:text-slate-200"
+              aria-label="Profile menu"
+            >
+              {admin?.avatar ? (
+                <img src={admin.avatar} alt={admin.name || 'Profile'} className="h-full w-full object-cover" />
+              ) : (
+                <User size={18} />
+              )}
+            </button>
+          </DropdownTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              className="gap-2.5 cursor-pointer"
+              onSelect={() => navigate('/super-admin/settings')}
+            >
+              <Settings size={15} className="text-slate-400" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="gap-2.5 cursor-pointer text-rose-500 focus:bg-rose-50 focus:text-rose-600 dark:focus:bg-rose-500/10 dark:focus:text-rose-400"
+              onSelect={handleLogout}
+            >
+              <LogOut size={15} />
+              Logout
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </Dropdown>
       </div>
     </header>
   );

@@ -3,7 +3,8 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { NAVIGATION_ITEMS } from '../../utils/constants';
 import { useLibrarianAuth } from '../../context/LibrarianAuthContext';
 import { cn } from '../../utils/cn';
-import { LogOut, BookOpen, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import BrandLogo from '../../../../shared/ui/BrandLogo';
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed, isOpen, toggleSidebar }) => {
   const { logout, user } = useLibrarianAuth();
@@ -31,9 +32,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isOpen, toggleSidebar }) 
           isCollapsed ? "flex-col justify-center gap-3 h-auto py-4" : "justify-between"
         )}>
           <div className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-2.5")}>
-            <div className="p-2 bg-amber-600 rounded-xl text-white">
-              <BookOpen className="h-5 w-5" />
-            </div>
+            <BrandLogo className="h-9 w-9" />
             {!isCollapsed && (
               <div>
                 <span className="font-bold text-sm tracking-wide block text-foreground dark:text-white">LMS PORTAL</span>

@@ -3,7 +3,8 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { NAVIGATION_ITEMS } from '../../utils/constants';
 import { useTransportAuth } from '../../context/TransportAuthContext';
 import { cn } from '../../utils/cn';
-import { LogOut, Bus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import BrandLogo from '../../../../shared/ui/BrandLogo';
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed, isOpen, toggleSidebar }) => {
   const { logout, user } = useTransportAuth();
@@ -30,9 +31,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isOpen, toggleSidebar }) 
           isCollapsed ? "flex-col justify-center gap-3 h-auto py-4" : "justify-between"
         )}>
           <div className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-2.5")}>
-            <div className="p-2 bg-cyan-600 rounded-xl text-white">
-              <Bus className="h-5 w-5" />
-            </div>
+            <BrandLogo className="h-9 w-9" />
             {!isCollapsed && (
               <div>
                 <span className="font-bold text-sm tracking-wide block text-foreground dark:text-white">FLEET PORTAL</span>

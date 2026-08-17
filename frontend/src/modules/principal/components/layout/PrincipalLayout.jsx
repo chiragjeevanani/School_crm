@@ -5,10 +5,21 @@ import { TopBar } from './TopBar';
 import { Breadcrumb } from './Breadcrumb';
 import { CommandPalette } from './CommandPalette';
 import { usePrincipalAuth } from '../../context/PrincipalAuthContext';
+import { usePrincipalNotifications } from '../../context/PrincipalNotificationContext';
+import { usePlatformPush } from '../../../../shared/hooks/usePlatformPush';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export const PrincipalLayout = () => {
   const { user, loading } = usePrincipalAuth();
+  const { mergeInbox, addNotification } = usePrincipalNotifications();
+
+  usePlatformPush({
+    enabled: Boolean(user),
+    role: 'principal',
+    user,
+    mergeInbox,
+    onPush: (item) => addNotification({ ...item, type: 'Announcements' }),
+  });
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);

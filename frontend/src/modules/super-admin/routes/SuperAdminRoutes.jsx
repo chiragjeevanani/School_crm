@@ -1,34 +1,36 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSuperAdminAuth } from '../context/SuperAdminAuthContext';
+import { Pulse, KpiSkeleton } from '../components/ui/SkeletonLoader';
 import Dashboard from '../pages/dashboard/Dashboard';
 import SchoolsIndex from '../pages/schools/SchoolsIndex';
 import SubscriptionsIndex from '../pages/subscriptions/SubscriptionsIndex';
-import LicensesIndex from '../pages/licenses/LicensesIndex';
-import ModulesIndex from '../pages/modules/ModulesIndex';
-import TenantsIndex from '../pages/tenants/TenantsIndex';
-import StorageIndex from '../pages/storage/StorageIndex';
-import RevenueIndex from '../pages/revenue/RevenueIndex';
-import SupportIndex from '../pages/support/SupportIndex';
-import BroadcastIndex from '../pages/broadcast/BroadcastIndex';
-import MonitoringIndex from '../pages/monitoring/MonitoringIndex';
-import AuditLogsIndex from '../pages/audit/AuditLogsIndex';
-import BackupIndex from '../pages/backup/BackupIndex';
-import SecurityIndex from '../pages/security/SecurityIndex';
-import IntegrationsIndex from '../pages/integrations/IntegrationsIndex';
-import PlatformSettingsIndex from '../pages/platform-settings/PlatformSettingsIndex';
-import ReportsIndex from '../pages/reports/ReportsIndex';
 import NotificationsIndex from '../pages/notifications/NotificationsIndex';
+import RevenueIndex from '../pages/revenue/RevenueIndex';
+import BillingIndex from '../pages/billing/BillingIndex';
+import ReportsIndex from '../pages/reports/ReportsIndex';
+import PrivacyPolicyIndex from '../pages/privacy/PrivacyPolicyIndex';
+import SupportIndex from '../pages/support/SupportIndex';
 import SettingsIndex from '../pages/settings/SettingsIndex';
 
-// Protected Route Shield wrapper
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useSuperAdminAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        Authenticating Secure Channel Node...
+      <div className="min-h-screen bg-slate-50 p-6 dark:bg-slate-950">
+        <div className="mb-6 space-y-2">
+          <Pulse className="h-7 w-56" />
+          <Pulse className="h-3 w-80" />
+        </div>
+        <div className="mb-6">
+          <KpiSkeleton count={4} />
+        </div>
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Pulse key={index} className="h-10 w-full" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -68,34 +70,10 @@ export const SuperAdminRoutes = () => {
         }
       />
       <Route
-        path="licenses"
+        path="notifications"
         element={
           <ProtectedRoute>
-            <LicensesIndex />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="modules"
-        element={
-          <ProtectedRoute>
-            <ModulesIndex />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="tenants"
-        element={
-          <ProtectedRoute>
-            <TenantsIndex />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="storage"
-        element={
-          <ProtectedRoute>
-            <StorageIndex />
+            <NotificationsIndex />
           </ProtectedRoute>
         }
       />
@@ -111,71 +89,7 @@ export const SuperAdminRoutes = () => {
         path="billing"
         element={
           <ProtectedRoute>
-            <RevenueIndex />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="support"
-        element={
-          <ProtectedRoute>
-            <SupportIndex />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="broadcast"
-        element={
-          <ProtectedRoute>
-            <BroadcastIndex />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="monitoring"
-        element={
-          <ProtectedRoute>
-            <MonitoringIndex />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="audit-logs"
-        element={
-          <ProtectedRoute>
-            <AuditLogsIndex />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="backup"
-        element={
-          <ProtectedRoute>
-            <BackupIndex />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="security"
-        element={
-          <ProtectedRoute>
-            <SecurityIndex />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="integrations"
-        element={
-          <ProtectedRoute>
-            <IntegrationsIndex />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="platform-settings"
-        element={
-          <ProtectedRoute>
-            <PlatformSettingsIndex />
+            <BillingIndex />
           </ProtectedRoute>
         }
       />
@@ -188,10 +102,18 @@ export const SuperAdminRoutes = () => {
         }
       />
       <Route
-        path="notifications"
+        path="privacy-policy"
         element={
           <ProtectedRoute>
-            <NotificationsIndex />
+            <PrivacyPolicyIndex />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="support"
+        element={
+          <ProtectedRoute>
+            <SupportIndex />
           </ProtectedRoute>
         }
       />
@@ -203,8 +125,6 @@ export const SuperAdminRoutes = () => {
           </ProtectedRoute>
         }
       />
-
-      {/* Redirect nested root path to Dashboard */}
       <Route path="" element={<Navigate to="dashboard" replace />} />
     </Routes>
   );

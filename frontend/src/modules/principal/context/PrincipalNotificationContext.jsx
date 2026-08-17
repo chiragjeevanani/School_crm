@@ -25,10 +25,24 @@ export const PrincipalNotificationProvider = ({ children }) => {
     ]);
   };
 
+  const mergeInbox = (items) => {
+    setNotifications((prev) => {
+      const ids = new Set(prev.map((item) => item.id));
+      const incoming = items
+        .filter((item) => item?.id && !ids.has(item.id))
+        .map((item) => ({
+          type: 'Announcements',
+          read: false,
+          ...item,
+        }));
+      return incoming.length ? [...incoming, ...prev] : prev;
+    });
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <PrincipalNotificationContext.Provider value={{ notifications, unreadCount, markAllAsRead, markAsRead, addNotification }}>
+    <PrincipalNotificationContext.Provider value={{ notifications, unreadCount, markAllAsRead, markAsRead, addNotification, mergeInbox }}>
       {children}
     </PrincipalNotificationContext.Provider>
   );

@@ -94,7 +94,7 @@ export const INITIAL_DATA = {
       { id: 'usr-hr-01', username: 'hr', email: 'hr@greenfield.edu', phone: '+91 98000 44444', role: 'hr', name: 'Meenakshi Iyer', employeeId: 'EMP301', password: 'hr123', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150', status: 'Active' },
       { id: 'usr-librarian-01', username: 'librarian', email: 'librarian@greenfield.edu', phone: '+91 98000 55555', role: 'librarian', name: 'Sanjay Kumar', employeeId: 'EMP401', password: 'lib123', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150', status: 'Active' },
       { id: 'usr-transport-01', username: 'transport', email: 'transport@greenfield.edu', phone: '+91 98000 66666', role: 'transport', name: 'Manish Dave', employeeId: 'EMP501', password: 'transport123', avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150', status: 'Active' },
-      { id: 'usr-superadmin-01', username: 'superadmin@appzeto.com', email: 'superadmin@appzeto.com', phone: '+91 99999 00000', role: 'super-admin', name: 'Global Administrator', password: 'admin123', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', status: 'Active' }
+      { id: 'usr-superadmin-01', username: 'superadmin@gmail.com', email: 'superadmin@gmail.com', phone: '+91 99999 00000', role: 'super-admin', name: 'Super Admin', password: '123', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', status: 'Active' }
     ],
     loginLogs: [
       { id: 'log-01', username: 'admin', role: 'school-admin', timestamp: new Date(Date.now() - 3600000).toISOString(), ip: '192.168.1.10', device: 'Chrome on Windows', status: 'Success' },

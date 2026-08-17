@@ -19,7 +19,7 @@ import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
 
 export const TopBar = ({ onMenuClick, onSearchClick }) => {
-  const { user, logout } = useSchoolAdminAuth();
+  const { user, logout, hasPlan } = useSchoolAdminAuth();
   const { darkMode, toggleTheme } = useSchoolAdminTheme();
   const { notifications, unreadCount, markRead, markAllRead } = useSchoolAdminNotifications();
   const navigate = useNavigate();
@@ -44,15 +44,16 @@ export const TopBar = ({ onMenuClick, onSearchClick }) => {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Global Search Bar trigger (Ctrl+K) */}
-        <button
-          onClick={onSearchClick}
-          className="hidden md:flex items-center gap-2 px-3.5 py-1.5 bg-slate-50 dark:bg-slate-950 text-slate-400 border border-slate-200 dark:border-slate-800 rounded-xl text-xs hover:border-slate-300 transition-colors w-64"
-        >
-          <Search className="w-3.5 h-3.5 shrink-0" />
-          <span className="flex-1 text-left">Search / Ask anything...</span>
-          <span className="text-[9px] font-bold bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">⌘K</span>
-        </button>
+        {hasPlan && (
+          <button
+            onClick={onSearchClick}
+            className="hidden md:flex items-center gap-2 px-3.5 py-1.5 bg-slate-50 dark:bg-slate-950 text-slate-400 border border-slate-200 dark:border-slate-800 rounded-xl text-xs hover:border-slate-300 transition-colors w-64"
+          >
+            <Search className="w-3.5 h-3.5 shrink-0" />
+            <span className="flex-1 text-left">Search / Ask anything...</span>
+            <span className="text-[9px] font-bold bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">⌘K</span>
+          </button>
+        )}
       </div>
 
       {/* Right Actions Grid */}
@@ -157,16 +158,18 @@ export const TopBar = ({ onMenuClick, onSearchClick }) => {
                   <span className="block text-[10px] text-slate-400 font-medium truncate mt-0.5">{user.email}</span>
                 </div>
 
-                <button
-                  onClick={() => {
-                    navigate('/school-admin/settings');
-                    setShowProfileMenu(false);
-                  }}
-                  className="flex items-center gap-2.5 w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-900"
-                >
-                  <Settings className="w-4 h-4 text-slate-400" />
-                  <span>Settings</span>
-                </button>
+                {hasPlan && (
+                  <button
+                    onClick={() => {
+                      navigate('/school-admin/settings');
+                      setShowProfileMenu(false);
+                    }}
+                    className="flex items-center gap-2.5 w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-900"
+                  >
+                    <Settings className="w-4 h-4 text-slate-400" />
+                    <span>Settings</span>
+                  </button>
+                )}
 
                 <button
                   onClick={handleLogout}

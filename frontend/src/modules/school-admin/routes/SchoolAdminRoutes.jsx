@@ -21,11 +21,14 @@ import { InventoryManagement } from '../pages/inventory/InventoryManagement';
 import { EventsManagement } from '../pages/events/EventsManagement';
 import { ReportsHub } from '../pages/reports/ReportsHub';
 import { AuditLogs } from '../pages/audit/AuditLogs';
+import { Support } from '../pages/support/Support';
 import { Settings } from '../pages/settings/Settings';
+import SubscriptionPlans from '../pages/plans/SubscriptionPlans';
 
 export const SchoolAdminRoutes = () => {
   return (
     <Routes>
+      <Route path="plans" element={<SubscriptionPlans />} />
       <Route path="dashboard" element={<Dashboard />} />
       <Route path="school-config" element={<SchoolConfig />} />
       <Route path="roles" element={<RolesAndPermissions />} />
@@ -47,6 +50,7 @@ export const SchoolAdminRoutes = () => {
       <Route path="events" element={<EventsManagement />} />
       <Route path="reports" element={<ReportsHub />} />
       <Route path="audit" element={<AuditLogs />} />
+      <Route path="support" element={<Support />} />
       <Route path="settings" element={<Settings />} />
       <Route path="*" element={<Navigate to="dashboard" replace />} />
     </Routes>

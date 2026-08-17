@@ -36,6 +36,20 @@ export const SchoolAdminNotificationProvider = ({ children }) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
+  const mergeInbox = (items) => {
+    setNotifications((prev) => {
+      const ids = new Set(prev.map((item) => item.id));
+      const incoming = items
+        .filter((item) => item?.id && !ids.has(item.id))
+        .map((item) => ({
+          type: 'info',
+          read: false,
+          ...item,
+        }));
+      return incoming.length ? [...incoming, ...prev] : prev;
+    });
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
@@ -45,7 +59,8 @@ export const SchoolAdminNotificationProvider = ({ children }) => {
       addNotification,
       markRead,
       markAllRead,
-      deleteNotification
+      deleteNotification,
+      mergeInbox
     }}>
       {children}
     </SchoolAdminNotificationContext.Provider>

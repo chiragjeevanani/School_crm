@@ -5,7 +5,7 @@ const SuperAdminThemeContext = createContext(null);
 export const SuperAdminThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('super_admin_theme');
-    return savedTheme || 'dark'; // Dark theme first
+    return savedTheme || 'light';
   });
 
   useEffect(() => {

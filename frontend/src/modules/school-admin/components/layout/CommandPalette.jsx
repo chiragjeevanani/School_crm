@@ -3,12 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, CornerDownLeft, Sparkles, Navigation } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { NAVIGATION_ITEMS } from '../../utils/constants';
+import { useSchoolAdminAuth } from '../../context/SchoolAdminAuthContext';
 
 export const CommandPalette = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef(null);
   const navigate = useNavigate();
+  const { hasPlan } = useSchoolAdminAuth();
+  const availableItems = hasPlan
+    ? NAVIGATION_ITEMS
+    : NAVIGATION_ITEMS.filter((item) => item.path === '/school-admin/plans');
 
   // Focus input when palette opens
   useEffect(() => {
@@ -32,7 +37,7 @@ export const CommandPalette = ({ isOpen, onClose }) => {
   }, [isOpen, onClose]);
 
   // Filter items based on user query
-  const filteredItems = NAVIGATION_ITEMS.filter((item) =>
+  const filteredItems = availableItems.filter((item) =>
     item.name.toLowerCase().includes(query.toLowerCase()) ||
     item.category.toLowerCase().includes(query.toLowerCase())
   );

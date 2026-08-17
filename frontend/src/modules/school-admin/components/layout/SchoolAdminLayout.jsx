@@ -5,10 +5,21 @@ import { TopBar } from './TopBar';
 import { Breadcrumb } from './Breadcrumb';
 import { CommandPalette } from './CommandPalette';
 import { useSchoolAdminAuth } from '../../context/SchoolAdminAuthContext';
+import { useSchoolAdminNotifications } from '../../context/SchoolAdminNotificationContext';
+import { usePlatformPush } from '../../../../shared/hooks/usePlatformPush';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export const SchoolAdminLayout = () => {
-  const { user, loading } = useSchoolAdminAuth();
+  const { user, loading, hasPlan } = useSchoolAdminAuth();
+  const { mergeInbox, addNotification } = useSchoolAdminNotifications();
+
+  usePlatformPush({
+    enabled: Boolean(user),
+    role: 'school-admin',
+    user,
+    mergeInbox,
+    onPush: (item) => addNotification(item.title, item.message, 'info'),
+  });
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -21,6 +32,7 @@ export const SchoolAdminLayout = () => {
 
   // Setup Command Palette shortcut (Ctrl+K)
   useEffect(() => {
+    if (!hasPlan) return undefined;
     const handleKeyDown = (e) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
@@ -29,7 +41,7 @@ export const SchoolAdminLayout = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [hasPlan]);
 
   if (loading) {
     return (
@@ -41,6 +53,11 @@ export const SchoolAdminLayout = () => {
 
   if (!user) {
     return <Navigate to="/school-admin/login" replace />;
+  }
+
+  const onPlansPage = location.pathname.startsWith('/school-admin/plans');
+  if (!hasPlan && !onPlansPage) {
+    return <Navigate to="/school-admin/plans" replace />;
   }
 
   return (

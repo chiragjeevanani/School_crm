@@ -3,8 +3,9 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { NAVIGATION_ITEMS } from '../../utils/constants';
 import { usePrincipalAuth } from '../../context/PrincipalAuthContext';
 import { cn } from '../../utils/cn';
-import { LogOut, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import BrandLogo from '../../../../shared/ui/BrandLogo';
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const { logout, user } = usePrincipalAuth();
@@ -36,9 +37,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         isCollapsed ? "flex-col items-center gap-4" : "items-center justify-between"
       )}>
         <div className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-3")}>
-          <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-500 dark:text-emerald-400">
-            <GraduationCap className="w-8 h-8 shrink-0" />
-          </div>
+          <BrandLogo className="h-10 w-10" />
           {!isCollapsed && (
             <motion.div
               initial={{ opacity: 0, x: -10 }}

@@ -41,12 +41,12 @@ export const Badge = ({ className, variant = 'default', children, ...props }) =>
         'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold tracking-wide border',
         {
           'bg-slate-100 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700': variant === 'default',
-          'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20': variant === 'success' || variant === 'Active',
-          'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20': variant === 'warning' || variant === 'Trial' || variant === 'Pending Approval',
-          'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20': variant === 'danger' || variant === 'Expired' || variant === 'Suspended' || variant === 'Failed' || variant === 'Cancelled',
+          'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20': variant === 'success' || variant === 'Active' || variant === 'Paid',
+          'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20': variant === 'warning' || variant === 'Trial' || variant === 'Pending Approval' || variant === 'Pending',
+          'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20': variant === 'danger' || variant === 'Expired' || variant === 'Suspended' || variant === 'Failed' || variant === 'Cancelled' || variant === 'Overdue',
           'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20': variant === 'info' || variant === 'Enterprise',
           'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20': variant === 'Growth',
-          'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20': variant === 'Basic',
+          'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20': variant === 'Basic' || variant === 'Refunded',
         },
         className
       )}

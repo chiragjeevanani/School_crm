@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { 
-  GraduationCap, 
   Lock, 
   User, 
   KeyRound, 
@@ -10,10 +9,10 @@ import {
   Sparkles, 
   CheckCircle2, 
   AlertCircle, 
-  School,
   ShieldCheck,
   RotateCcw
 } from 'lucide-react';
+import BrandLogo from '../ui/BrandLogo';
 
 export const UniversalLogin = () => {
   const navigate = useNavigate();
@@ -42,7 +41,7 @@ export const UniversalLogin = () => {
     { role: 'HR', label: 'Meenakshi Iyer (HR)', id: 'hr', pass: 'hr123', target: '/hr/dashboard', color: 'bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25' },
     { role: 'Librarian', label: 'Sanjay Kumar (Librarian)', id: 'librarian', pass: 'lib123', target: '/librarian/dashboard', color: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/25' },
     { role: 'Transport', label: 'Manish Dave (Transport)', id: 'transport', pass: 'transport123', target: '/transport/dashboard', color: 'bg-orange-500/15 text-orange-300 border-orange-500/30 hover:bg-orange-500/25' },
-    { role: 'Super Admin', label: 'Global SaaS Super Admin', id: 'superadmin@appzeto.com', pass: 'admin123', target: '/super-admin/dashboard', color: 'bg-slate-700/30 text-slate-200 border-slate-600/40 hover:bg-slate-700/50' }
+    { role: 'Super Admin', label: 'Global SaaS Super Admin', id: 'superadmin@gmail.com', pass: '123', target: '/super-admin/dashboard', color: 'bg-slate-700/30 text-slate-200 border-slate-600/40 hover:bg-slate-700/50' }
   ];
 
   const handleLogin = (e) => {
@@ -160,9 +159,7 @@ export const UniversalLogin = () => {
       <div className="lg:w-1/2 p-8 lg:p-14 flex flex-col justify-between bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 border-b lg:border-b-0 lg:border-r border-slate-800">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-500/30">
-              <School className="w-6 h-6" />
-            </div>
+            <BrandLogo className="h-11 w-11 rounded-xl shadow-lg shadow-black/40" />
             <div>
               <h1 className="text-xl font-black tracking-tight text-white">Greenfield Public School</h1>
               <span className="text-xs text-indigo-300 font-semibold">SaaS Multi-Role Cloud Portal</span>

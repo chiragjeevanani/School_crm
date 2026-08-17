@@ -1,201 +1,252 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { formatDistanceToNow } from 'date-fns';
 import {
-  School,
-  Users,
-  Database,
-  TrendingUp,
-  Plus,
-  TrendingDown,
-  UserCheck,
+  Bell,
   Building,
-  Key,
-  Download,
-  AlertCircle
+  CreditCard,
+  IndianRupee,
+  Users,
 } from 'lucide-react';
-import { Card, Button, Badge } from '../../components/ui/Button';
+import { Card, Badge } from '../../components/ui/Button';
 import { StatCard } from '../../components/dashboard/StatCard';
-import { PlatformHealthBar } from '../../components/dashboard/PlatformHealthBar';
 import { AnalyticsCharts } from '../../components/charts/AnalyticsCharts';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../components/ui/Table';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/Dialog';
-import { Input } from '../../components/ui/Input';
+import { Pulse } from '../../components/ui/SkeletonLoader';
 import { useSuperAdminNotifications } from '../../context/SuperAdminNotificationContext';
 import {
-  mockStats,
-  mockRecentRegistrations,
-  mockRecentActivities,
-  mockTimelineRevenue,
-  mockTimelineGrowth
-} from '../../data/mockData';
+  platformNotificationApi,
+  platformReportApi,
+  platformSupportApi,
+} from '../../../../shared/api/client';
+
+function formatInr(value) {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
+}
+
+function formatCount(value) {
+  return new Intl.NumberFormat('en-IN').format(Number(value) || 0);
+}
+
+function relativeTime(value) {
+  try {
+    return formatDistanceToNow(new Date(value), { addSuffix: true });
+  } catch {
+    return '';
+  }
+}
+
+function assignedPlan(plan) {
+  return plan ? plan : '—';
+}
 
 export default function Dashboard() {
   const { addNotification } = useSuperAdminNotifications();
-  const [backupLoading, setBackupLoading] = useState(false);
-  const [announcementMsg, setAnnouncementMsg] = useState('');
-  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [openTickets, setOpenTickets] = useState(0);
 
-  const handleBackup = () => {
-    setBackupLoading(true);
-    addNotification('info', 'Platform system backup initiated');
-    setTimeout(() => {
-      setBackupLoading(false);
-      addNotification('success', 'Backup database archive compiled successfully (2.4 GB)');
-    }, 2000);
+  const loadDashboard = async () => {
+    setLoading(true);
+    try {
+      const [reportResult, notificationResult, ticketResult] = await Promise.all([
+        platformReportApi.summary(),
+        platformNotificationApi.list(),
+        platformSupportApi.list({ page: 1, limit: 6 }),
+      ]);
+      setSummary(reportResult.data || reportResult);
+      setNotifications(notificationResult.data || []);
+      setTickets(ticketResult.data || []);
+      setOpenTickets(ticketResult.stats?.open || ticketResult.pagination?.total || 0);
+    } catch (err) {
+      addNotification('error', err.response?.data?.message || err.message || 'Unable to load dashboard.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleBroadcast = (e) => {
-    e.preventDefault();
-    if (!announcementMsg) return;
-    addNotification('info', `Broadcast notification dispatched: "${announcementMsg}"`);
-    setAnnouncementMsg('');
-    setBroadcastOpen(false);
-  };
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  const stats = summary?.summary || {};
+  const monthlyGrowth = summary?.monthlyGrowth || [];
+
+  const revenueData = useMemo(
+    () => monthlyGrowth.map((row) => ({ name: row.month, revenue: row.collected || 0 })),
+    [monthlyGrowth]
+  );
+  const growthData = useMemo(
+    () =>
+      monthlyGrowth.map((row) => ({
+        name: row.month,
+        schools: row.schools || 0,
+        invoices: row.paidInvoices || 0,
+      })),
+    [monthlyGrowth]
+  );
+
+  const activity = useMemo(() => {
+    const schoolItems = (summary?.recentSchools || []).slice(0, 5).map((school) => ({
+      id: `school-${school.id}`,
+      type: 'School',
+      details: `${school.name} registered${school.subscriptionPlan ? ` · ${school.subscriptionPlan}` : ''}`,
+      time: school.createdAt,
+      meta: school.status,
+    }));
+    const notificationItems = notifications.slice(0, 5).map((item) => ({
+      id: `notif-${item.id}`,
+      type: 'Notification',
+      details: item.title,
+      time: item.createdAt,
+      meta: item.delivery?.success ? `${item.delivery.success} sent` : 'Saved',
+    }));
+    const ticketItems = tickets.slice(0, 5).map((ticket) => ({
+      id: `ticket-${ticket.id}`,
+      type: 'Support',
+      details: ticket.subject,
+      time: ticket.createdAt || ticket.updatedAt,
+      meta: ticket.status,
+    }));
+
+    return [...schoolItems, ...notificationItems, ...ticketItems]
+      .sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0))
+      .slice(0, 8);
+  }, [summary, notifications, tickets]);
 
   return (
     <div className="space-y-6">
-      {/* Top Banner Row */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Super Admin Dashboard</h1>
-          <p className="text-xs text-slate-400">Manage all tenant structures, billing, analytics configurations.</p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Button onClick={handleBackup} disabled={backupLoading} variant="secondary" size="sm">
-            <Download size={14} className="mr-1.5" />
-            {backupLoading ? 'Backing up...' : 'Trigger Backup'}
-          </Button>
-
-          <Dialog open={broadcastOpen} onOpenChange={setBroadcastOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Megaphone size={14} className="mr-1.5" />
-                Global Broadcast
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Send Global SaaS Broadcast</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleBroadcast} className="space-y-4 mt-2">
-                <Input
-                  label="Broadcast Message"
-                  placeholder="Enter system banner / notification content..."
-                  value={announcementMsg}
-                  onChange={(e) => setAnnouncementMsg(e.target.value)}
-                  required
-                />
-                <Button type="submit" className="w-full">Dispatch Announcement</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Super Admin Dashboard</h1>
+        <p className="text-xs text-slate-400">Live schools, billing, notifications, and support across the platform.</p>
       </div>
 
-      {/* Core Platform Counters */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Schools" value={mockStats.totalSchools} change="8" trend="up" icon={Building} />
-        <StatCard title="Platform Users" value={mockStats.totalUsers} change="1,240" trend="up" icon={Users} />
-        <StatCard title="Active Sessions" value={mockStats.activeSessions} change="42" trend="up" icon={UserCheck} />
-        <StatCard title="Storage Used" value={mockStats.storageUsed} change="0.4 TB" trend="up" icon={Database} />
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index} className="space-y-3">
+              <Pulse className="h-3 w-24" />
+              <Pulse className="h-8 w-20" />
+              <Pulse className="h-3 w-32" />
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard title="Total Schools" value={formatCount(stats.totalSchools)} icon={Building} to="/super-admin/schools" />
+          <StatCard title="Platform Users" value={formatCount((stats.totalStudents || 0) + (stats.totalStaff || 0))} icon={Users} to="/super-admin/reports" />
+          <StatCard title="Collected" value={formatInr(stats.collectedAmount)} icon={IndianRupee} to="/super-admin/billing" />
+          <StatCard title="Est. Monthly Revenue" value={formatInr(stats.estimatedMonthlyRevenue)} icon={CreditCard} to="/super-admin/revenue" />
+        </div>
+      )}
 
-      {/* Auxiliary platform counters strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 bg-slate-100 dark:bg-slate-900/40 p-4 border border-slate-200 dark:border-slate-800/80 rounded-xl">
         {[
-          { label: 'Active', val: mockStats.activeSchools },
-          { label: 'Trial', val: mockStats.trialSchools },
-          { label: 'Expired', val: mockStats.expiredSchools },
-          { label: 'Failed Logins', val: mockStats.failedLogins },
-          { label: 'API Hits/Day', val: mockStats.totalApiRequests },
-          { label: 'Pending Renewals', val: mockStats.pendingRenewals }
-        ].map((item, idx) => (
-          <div key={idx} className="text-center md:text-left space-y-1">
+          { label: 'Active', val: formatCount(stats.activeSchools), to: '/super-admin/schools' },
+          { label: 'Trial', val: formatCount(stats.trialSchools), to: '/super-admin/schools' },
+          { label: 'Suspended', val: formatCount(stats.suspendedSchools), to: '/super-admin/schools' },
+          { label: 'No plan', val: formatCount(stats.unassignedPlan), to: '/super-admin/subscriptions' },
+          { label: 'Notifications', val: formatCount(stats.notificationsSent), to: '/super-admin/notifications' },
+          { label: 'Open tickets', val: formatCount(openTickets), to: '/super-admin/support' },
+        ].map((item) => (
+          <Link
+            key={item.label}
+            to={item.to}
+            className="text-center md:text-left space-y-1 rounded-lg p-1.5 -m-1.5 hover:bg-white/70 dark:hover:bg-slate-800/50 transition-colors"
+          >
             <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block">{item.label}</span>
-            <span className="text-lg font-bold text-slate-800 dark:text-slate-200">{item.val}</span>
-          </div>
+            <span className="text-lg font-bold text-slate-800 dark:text-slate-200">{loading ? '—' : item.val}</span>
+          </Link>
         ))}
       </div>
 
-      {/* Platform health summary widget */}
-      <PlatformHealthBar server={99.9} database={99.8} storage={100} queue={98.7} />
+      <AnalyticsCharts revenueData={revenueData} growthData={growthData} />
 
-      {/* Dynamic visual charts */}
-      <AnalyticsCharts revenueData={mockTimelineRevenue} growthData={mockTimelineGrowth} />
-
-      {/* Dual bottom sections: Registrations and Activities */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Registrations Table */}
         <Card className="space-y-4">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">New Tenant Registrations</h3>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>School Name</TableHead>
-                <TableHead>Requested Plan</TableHead>
-                <TableHead>Registration Date</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockRecentRegistrations.map((school) => (
-                <TableRow key={school.id}>
-                  <TableCell className="font-semibold text-slate-800 dark:text-slate-100">{school.name}</TableCell>
-                  <TableCell>{school.plan}</TableCell>
-                  <TableCell className="text-slate-500 dark:text-slate-400 text-xs">{school.date}</TableCell>
-                  <TableCell>
-                    <Badge variant={school.status}>{school.status}</Badge>
-                  </TableCell>
-                </TableRow>
+          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">New school registrations</h3>
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Pulse key={index} className="h-10 w-full" />
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          ) : (summary?.recentSchools || []).length === 0 ? (
+            <p className="text-sm text-slate-400 py-8 text-center">No schools registered yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>School</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Registered</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(summary?.recentSchools || []).slice(0, 6).map((school) => (
+                  <TableRow key={school.id}>
+                    <TableCell className="font-semibold text-slate-800 dark:text-slate-100">{school.name}</TableCell>
+                    <TableCell>{assignedPlan(school.subscriptionPlan)}</TableCell>
+                    <TableCell className="text-slate-500 dark:text-slate-400 text-xs">
+                      {relativeTime(school.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={school.status}>{school.status}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </Card>
 
-        {/* Audit Log Overview / Activities */}
         <Card className="space-y-4">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Recent System Audit logs</h3>
-          <div className="space-y-3.5 max-h-[320px] overflow-y-auto pr-2">
-            {mockRecentActivities.map((act) => (
-              <div key={act.id} className="flex justify-between items-start gap-4 p-3 bg-slate-100 dark:bg-slate-950/40 rounded-lg border border-slate-200 dark:border-slate-900 hover:border-slate-300 dark:hover:border-slate-800 transition-colors">
-                <div className="space-y-1">
-                  <span className="text-xs font-semibold text-indigo-650 dark:text-indigo-400 uppercase tracking-wide block">{act.type.replace('_', ' ')}</span>
-                  <p className="text-xs text-slate-750 dark:text-slate-300">{act.details || `School database profile modified`}</p>
-                  <span className="text-[10px] text-slate-500 block">Operator: {act.user}</span>
+          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Bell size={14} className="text-indigo-500" />
+            Recent activity
+          </h3>
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Pulse key={index} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : activity.length === 0 ? (
+            <p className="text-sm text-slate-400 py-8 text-center">No recent activity yet.</p>
+          ) : (
+            <div className="space-y-3.5 max-h-[320px] overflow-y-auto pr-2">
+              {activity.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex justify-between items-start gap-4 p-3 bg-slate-100 dark:bg-slate-950/40 rounded-lg border border-slate-200 dark:border-slate-900"
+                >
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide block">
+                      {item.type}
+                    </span>
+                    <p className="text-xs text-slate-700 dark:text-slate-300">{item.details}</p>
+                  </div>
+                  <div className="text-right flex flex-col items-end gap-1">
+                    <span className="text-[10px] text-slate-500">{relativeTime(item.time)}</span>
+                    {item.meta && (
+                      <Badge variant="default" className="text-[8px] px-1 py-0.5">
+                        {item.meta}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right flex flex-col items-end">
-                  <span className="text-[10px] text-slate-500">{act.time}</span>
-                  <Badge variant="default" className="text-[8px] px-1 py-0.5 mt-1 border-slate-900 bg-slate-900">{act.ip}</Badge>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </div>
-  );
-}
-
-// Icon helper workaround
-function Megaphone(props) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="m18 8 2 2" />
-      <path d="m14 2 8 8" />
-      <path d="M2 10h10a4 4 0 0 1 4 4v2a4 4 0 0 1-4 4H2" />
-      <path d="m22 22-1.5-1.5" />
-      <path d="M2 10a8 8 0 0 1 8-8" />
-      <path d="M2 14v4a2 2 0 0 0 2 2" />
-    </svg>
   );
 }

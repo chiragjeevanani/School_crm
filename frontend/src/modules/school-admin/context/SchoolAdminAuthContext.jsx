@@ -1,52 +1,82 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { schoolAdminAuthApi, schoolPortalApi } from '../../../shared/api/client';
 
 const SchoolAdminAuthContext = createContext();
+
+function persistUser(user) {
+  localStorage.setItem('school-admin-user', JSON.stringify(user));
+  return user;
+}
 
 export const SchoolAdminAuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const token = localStorage.getItem('school_admin_token');
     const storedUser = localStorage.getItem('school-admin-user');
+
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
-    setLoading(false);
+
+    schoolPortalApi
+      .me()
+      .then((result) => {
+        if (result.user) {
+          setUser(persistUser(result.user));
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem('school-admin-user');
+        localStorage.removeItem('school_admin_token');
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const login = (username, password) => {
-    if (username.toLowerCase() === 'admin' && password === 'admin123') {
-      const mockUser = {
-        id: 'ADM-001',
-        name: 'Principal S. Chatterjee',
-        photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-        role: 'School Admin',
-        schoolId: 'SCH-2026-09',
-        schoolName: 'Greenfield Public School',
-        academicSession: '2026-2027',
-        email: 'admin@greenfield.edu',
-        phone: '+91 99999 88888'
-      };
-      setUser(mockUser);
-      localStorage.setItem('school-admin-user', JSON.stringify(mockUser));
-      return { success: true };
+  const login = async (email, password) => {
+    const result = await schoolAdminAuthApi.login(email, password);
+    if (!result.success) {
+      throw new Error(result.message || 'Invalid email or password');
     }
-    return { success: false, message: 'Invalid Admin Credentials (Use admin / admin123)' };
+
+    if (result.token) {
+      localStorage.setItem('school_admin_token', result.token);
+    }
+    const next = persistUser(result.user);
+    setUser(next);
+    return next;
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('school-admin-user');
+    localStorage.removeItem('school_admin_token');
   };
 
   const updateProfile = (updatedFields) => {
-    const newUser = { ...user, ...updatedFields };
+    const newUser = persistUser({ ...user, ...updatedFields });
     setUser(newUser);
-    localStorage.setItem('school-admin-user', JSON.stringify(newUser));
   };
 
+  const applyUser = (nextUser) => {
+    const next = persistUser(nextUser);
+    setUser(next);
+    return next;
+  };
+
+  const hasPlan = Boolean(user?.hasPlan || user?.subscriptionPlan);
+
   return (
-    <SchoolAdminAuthContext.Provider value={{ user, login, logout, updateProfile, loading }}>
+    <SchoolAdminAuthContext.Provider
+      value={{ user, login, logout, updateProfile, applyUser, loading, hasPlan }}
+    >
       {children}
     </SchoolAdminAuthContext.Provider>
   );

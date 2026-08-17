@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppStoreProvider } from './shared/store/useAppStore';
-import { UnifiedDemoBar } from './shared/components/UnifiedDemoBar';
 import { UniversalLogin } from './shared/components/UniversalLogin';
 
 import { StudentAuthProvider } from './modules/student/context/StudentAuthContext';
@@ -112,9 +111,6 @@ function App() {
                                                                  <TransportAuthProvider>
                                                                    <TransportNotificationProvider>
                                                                      <TransportToastProvider>
-                                                                       {/* Global Floating Demo Bar */}
-                                                                       <UnifiedDemoBar />
-
                                                                        <Routes>
                                                                          {/* Universal Single Sign-On */}
                                                                          <Route path="/login" element={<UniversalLogin />} />

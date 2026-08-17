@@ -21,7 +21,8 @@ import {
   Megaphone,
   BarChart3,
   History,
-  Settings
+  Settings,
+  LifeBuoy
 } from 'lucide-react';
 
 import { MOCK_STUDENTS as SHARED_STUDENTS } from '../../../shared/data/students';
@@ -34,6 +35,7 @@ const findSharedStaff = (name) => SHARED_STAFF.find((s) => s.name === name);
 export const NAVIGATION_ITEMS = [
   // MAIN
   { name: 'Dashboard', path: '/school-admin/dashboard', icon: LayoutDashboard, category: 'Main' },
+  { name: 'Plans', path: '/school-admin/plans', icon: CreditCard, category: 'Main' },
   
   // ACADEMIC
   { name: 'School Config', path: '/school-admin/school-config', icon: Settings2, category: 'Academic' },
@@ -64,6 +66,7 @@ export const NAVIGATION_ITEMS = [
   { name: 'Communication', path: '/school-admin/communication', icon: Megaphone, category: 'System' },
   { name: 'Reports Hub', path: '/school-admin/reports', icon: BarChart3, category: 'System' },
   { name: 'Audit Logs', path: '/school-admin/audit', icon: History, category: 'System' },
+  { name: 'Help & Support', path: '/school-admin/support', icon: LifeBuoy, category: 'System' },
   { name: 'Settings', path: '/school-admin/settings', icon: Settings, category: 'System' }
 ];
 

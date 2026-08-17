@@ -3,7 +3,8 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { NAVIGATION_ITEMS } from '../../utils/constants';
 import { useParentAuth } from '../../context/ParentAuthContext';
 import { cn } from '../../utils/cn';
-import { LogOut, GraduationCap, ArrowUpDown } from 'lucide-react';
+import { LogOut, ArrowUpDown } from 'lucide-react';
+import BrandLogo from '../../../../shared/ui/BrandLogo';
 
 export const Sidebar = () => {
   const { logout, user, selectedChildId, changeSelectedChild, activeChildInfo } = useParentAuth();
@@ -26,9 +27,7 @@ export const Sidebar = () => {
     <aside className="hidden md:flex flex-col w-64 lg:w-72 h-screen sticky top-0 bg-white dark:bg-slate-950 border-r border-border px-4 py-6 overflow-y-auto no-scrollbar z-40 transition-all duration-300">
       {/* Brand Header */}
       <div className="flex items-center gap-3 px-3 mb-6">
-        <div className="p-2 bg-primary/10 rounded-xl text-primary">
-          <GraduationCap className="w-8 h-8" />
-        </div>
+        <BrandLogo className="h-10 w-10" />
         <div>
           <h1 className="text-base font-bold m-0 p-0 text-foreground tracking-tight leading-none">School Management</h1>
           <span className="text-[10px] text-slate-400 font-medium tracking-wider uppercase mt-1 block">Parent Portal</span>

@@ -19,8 +19,11 @@ export const AnalyticsCharts = ({ revenueData, growthData }) => {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
               <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
-              <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `$${v}`} />
-              <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f1f5f9' }} />
+              <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `₹${Number(v || 0).toLocaleString('en-IN')}`} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f1f5f9' }}
+                formatter={(value) => [`₹${Number(value || 0).toLocaleString('en-IN')}`, 'Collected']}
+              />
               <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" />
             </AreaChart>
           </ResponsiveContainer>
@@ -38,8 +41,8 @@ export const AnalyticsCharts = ({ revenueData, growthData }) => {
               <YAxis stroke="#94a3b8" fontSize={12} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f1f5f9' }} />
               <Legend />
-              <Bar dataKey="schools" name="Active Schools" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="students" name="Students (x100)" fill="#10b981" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="schools" name="New Schools" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="invoices" name="Paid Invoices" fill="#10b981" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

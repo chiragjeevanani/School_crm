@@ -1,9 +1,15 @@
 import React from 'react';
-import { Card } from '../ui/Button';
+import { Link } from 'react-router-dom';
+import { Card, cn } from '../ui/Button';
 
-export const StatCard = ({ title, value, change, trend = 'up', icon: Icon }) => {
-  return (
-    <Card className="flex items-center justify-between hover:scale-[1.01] transition-transform duration-200">
+export const StatCard = ({ title, value, change, trend = 'up', icon: Icon, to }) => {
+  const card = (
+    <Card
+      className={cn(
+        'flex items-center justify-between h-full hover:scale-[1.01] transition-transform duration-200',
+        to && 'cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500/50'
+      )}
+    >
       <div className="space-y-2">
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{title}</p>
         <h3 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{value}</h3>
@@ -26,5 +32,13 @@ export const StatCard = ({ title, value, change, trend = 'up', icon: Icon }) => 
         </div>
       )}
     </Card>
+  );
+
+  if (!to) return card;
+
+  return (
+    <Link to={to} className="block h-full outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 rounded-xl">
+      {card}
+    </Link>
   );
 };
