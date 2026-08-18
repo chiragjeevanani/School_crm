@@ -21,6 +21,7 @@ import {
   Megaphone,
   BarChart3,
   History,
+  Bell,
   Settings,
   LifeBuoy
 } from 'lucide-react';
@@ -39,7 +40,11 @@ export const NAVIGATION_ITEMS = [
   
   // ACADEMIC
   { name: 'School Config', path: '/school-admin/school-config', icon: Settings2, category: 'Academic' },
-  { name: 'Academics', path: '/school-admin/academics', icon: GraduationCap, category: 'Academic' },
+  { name: 'Academic Years', path: '/school-admin/academics/years', icon: CalendarDays, category: 'Academic' },
+  { name: 'Classes', path: '/school-admin/academics/classes', icon: GraduationCap, category: 'Academic' },
+  { name: 'Subjects', path: '/school-admin/academics/subjects', icon: BookOpen, category: 'Academic' },
+  { name: 'Subject Assignments', path: '/school-admin/academics/subject-assignments', icon: BookOpen, category: 'Academic' },
+  { name: 'Class Teachers', path: '/school-admin/academics/class-teachers', icon: UserCheck, category: 'Academic' },
   { name: 'Attendance', path: '/school-admin/attendance', icon: ClipboardCheck, category: 'Academic' },
   { name: 'Exams & Results', path: '/school-admin/exams', icon: FileSpreadsheet, category: 'Academic' },
   { name: 'Homework Monitor', path: '/school-admin/homework', icon: BookOpen, category: 'Academic' },
@@ -64,6 +69,7 @@ export const NAVIGATION_ITEMS = [
   // SYSTEM
   { name: 'Roles & Permissions', path: '/school-admin/roles', icon: Shield, category: 'System' },
   { name: 'Communication', path: '/school-admin/communication', icon: Megaphone, category: 'System' },
+  { name: 'Notifications', path: '/school-admin/notifications', icon: Bell, category: 'System' },
   { name: 'Reports Hub', path: '/school-admin/reports', icon: BarChart3, category: 'System' },
   { name: 'Audit Logs', path: '/school-admin/audit', icon: History, category: 'System' },
   { name: 'Help & Support', path: '/school-admin/support', icon: LifeBuoy, category: 'System' },

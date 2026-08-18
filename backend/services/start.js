@@ -13,6 +13,7 @@ const services = [
 ];
 
 const children = [];
+let isStopping = false;
 
 function prefixLine(color, name, chunk, stream) {
   const text = chunk.toString();
@@ -42,12 +43,21 @@ function startService({ name, color, dir }) {
   child.stderr.on('data', (chunk) => prefixLine(color, name, chunk, process.stderr));
   child.on('exit', (code) => {
     console.log(`${color}[${name}]${reset} exited (${code ?? 'killed'})`);
+    if (!isStopping) {
+      console.log(`${color}[${name}]${reset} restarting in 3 seconds...`);
+      setTimeout(() => {
+        if (!isStopping) {
+          startService({ name, color, dir });
+        }
+      }, 3000);
+    }
   });
 
   children.push(child);
 }
 
 function stopAll() {
+  isStopping = true;
   for (const child of children) {
     if (!child.pid || child.killed) continue;
     if (process.platform === 'win32') {
@@ -66,6 +76,15 @@ process.on('SIGINT', () => {
 process.on('SIGTERM', () => {
   stopAll();
   process.exit(0);
+});
+
+process.on('SIGUSR2', () => {
+  stopAll();
+  process.exit(0);
+});
+
+process.on('exit', () => {
+  stopAll();
 });
 
 console.log('Starting all backend services...\n');

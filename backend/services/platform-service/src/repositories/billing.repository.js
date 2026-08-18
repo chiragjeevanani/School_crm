@@ -113,6 +113,14 @@ export class BillingRepository {
     });
   }
 
+  findLatestForSchool(schoolId, planName) {
+    const query = { school: schoolId };
+    if (planName) {
+      query.planName = planName;
+    }
+    return Invoice.findOne(query).sort({ issuedAt: -1, createdAt: -1 });
+  }
+
   updateById(id, payload) {
     return Invoice.findByIdAndUpdate(id, payload, { new: true, runValidators: true });
   }

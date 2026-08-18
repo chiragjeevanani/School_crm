@@ -27,6 +27,7 @@ export const TransportAuthProvider = ({ children }) => {
             name: identity.name,
             email: identity.email,
             role: identity.designation,
+            schoolId: SCHOOL.id,
             schoolName: SCHOOL.name,
             academicSession: SCHOOL.academicSession,
             photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face'

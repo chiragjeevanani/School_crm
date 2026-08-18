@@ -10,6 +10,15 @@ export async function listNotifications(req, res, next) {
   }
 }
 
+export async function listSchoolNotifications(req, res, next) {
+  try {
+    const data = await notificationService.listForSchool(req.user?.schoolId || '');
+    res.json({ success: true, firebaseConfigured: data.firebaseConfigured, data: data.items });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function inboxNotifications(req, res, next) {
   try {
     const data = await notificationService.inbox({
@@ -34,6 +43,24 @@ export async function registerDevice(req, res, next) {
 export async function sendNotification(req, res, next) {
   try {
     const data = await notificationService.send(req.body, req.user?.sub || null);
+    res.status(201).json({
+      success: true,
+      message: data.delivery.skippedReason
+        ? `Notification saved. ${data.delivery.skippedReason}.`
+        : `Notification sent to ${data.delivery.success} device(s).`,
+      data,
+      firebaseConfigured: isFirebaseConfigured(),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function sendSchoolNotification(req, res, next) {
+  try {
+    const data = await notificationService.send(req.body, req.user?.sub || null, {
+      schoolId: req.user?.schoolId || '',
+    });
     res.status(201).json({
       success: true,
       message: data.delivery.skippedReason

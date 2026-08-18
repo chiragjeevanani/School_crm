@@ -41,7 +41,7 @@ function priorityVariant(priority) {
 }
 
 export const Support = () => {
-  const { user } = useSchoolAdminAuth();
+  const { user, loading: authLoading } = useSchoolAdminAuth();
   const { showToast, ToastComponent } = useToast();
   const schoolId = user?.schoolId;
   const [tickets, setTickets] = useState([]);
@@ -57,7 +57,10 @@ export const Support = () => {
   const [saving, setSaving] = useState(false);
 
   const loadTickets = async () => {
-    if (!schoolId) return;
+    if (!schoolId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const result = await schoolSupportApi.list(schoolId, { status });
@@ -175,10 +178,16 @@ export const Support = () => {
             ]}
           />
 
-          {loading ? (
+          {authLoading || loading ? (
             <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-400">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading your tickets...
+            </div>
+          ) : !schoolId ? (
+            <div className="flex flex-col items-center py-16 text-center">
+              <LifeBuoy className="mb-3 h-8 w-8 text-slate-300" />
+              <p className="text-sm font-bold text-slate-500">School not linked</p>
+              <p className="mt-1 text-xs text-slate-400">Sign in again to raise support tickets.</p>
             </div>
           ) : tickets.length === 0 ? (
             <div className="flex flex-col items-center py-16 text-center">

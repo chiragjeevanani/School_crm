@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../components/ui/Table';
 import { Button, Badge, Card } from '../../components/ui/Button';
+import { KpiIcon } from '../../components/dashboard/StatCard';
 import { Input, Select, Textarea } from '../../components/ui/Input';
 import {
   Dialog,
@@ -488,45 +489,37 @@ export default function BillingIndex() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Card className="flex items-center gap-4">
-            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-emerald-500">
-              <Wallet size={20} />
+          <Card className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Collected</p>
+              <p className="truncate text-2xl font-bold tracking-tight">{formatINR(stats.collectedAmount)}</p>
+              <p className="text-xs text-slate-500">{stats.paid} paid invoices</p>
             </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Collected</p>
-              <p className="text-xl font-bold">{formatINR(stats.collectedAmount)}</p>
-              <p className="text-[11px] text-slate-400">{stats.paid} paid invoices</p>
-            </div>
+            <KpiIcon icon={Wallet} tone="emerald" />
           </Card>
-          <Card className="flex items-center gap-4">
-            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-amber-500">
-              <Clock3 size={20} />
+          <Card className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Outstanding</p>
+              <p className="truncate text-2xl font-bold tracking-tight">{formatINR(stats.outstandingAmount)}</p>
+              <p className="text-xs text-slate-500">{stats.pending} pending</p>
             </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Outstanding</p>
-              <p className="text-xl font-bold">{formatINR(stats.outstandingAmount)}</p>
-              <p className="text-[11px] text-slate-400">{stats.pending} pending</p>
-            </div>
+            <KpiIcon icon={Clock3} tone="amber" />
           </Card>
-          <Card className="flex items-center gap-4">
-            <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-rose-500">
-              <AlertTriangle size={20} />
+          <Card className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Overdue</p>
+              <p className="truncate text-2xl font-bold tracking-tight">{stats.overdue}</p>
+              <p className="text-xs text-slate-500">Needs follow-up</p>
             </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Overdue</p>
-              <p className="text-xl font-bold">{stats.overdue}</p>
-              <p className="text-[11px] text-slate-400">Needs follow-up</p>
-            </div>
+            <KpiIcon icon={AlertTriangle} tone="rose" />
           </Card>
-          <Card className="flex items-center gap-4">
-            <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-3 text-indigo-500">
-              <Banknote size={20} />
+          <Card className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total billed</p>
+              <p className="truncate text-2xl font-bold tracking-tight">{formatINR(stats.totalAmount)}</p>
+              <p className="text-xs text-slate-500">{stats.totalCount} invoices</p>
             </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total billed</p>
-              <p className="text-xl font-bold">{formatINR(stats.totalAmount)}</p>
-              <p className="text-[11px] text-slate-400">{stats.totalCount} invoices</p>
-            </div>
+            <KpiIcon icon={Banknote} tone="indigo" />
           </Card>
         </div>
       )}

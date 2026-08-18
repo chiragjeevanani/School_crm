@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { MOCK_PARENT } from '../data/mockData';
+import { SCHOOL } from '../../../shared/data/school';
 
 const ParentAuthContext = createContext();
 
@@ -35,6 +36,9 @@ export const ParentAuthProvider = ({ children }) => {
     if (emailOrPhone && password) {
       const userData = {
         ...MOCK_PARENT,
+        schoolId: SCHOOL.id,
+        schoolName: SCHOOL.name,
+        academicSession: SCHOOL.academicSession,
         token: 'mock-parent-token-' + Date.now(),
       };
       setUser(userData);

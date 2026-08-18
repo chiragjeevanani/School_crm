@@ -4,9 +4,20 @@ import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { TopBar } from './TopBar';
 import { useParentAuth } from '../../context/ParentAuthContext';
+import { useParentNotifications } from '../../context/ParentNotificationContext';
+import { usePlatformPush } from '../../../../shared/hooks/usePlatformPush';
 
 export const ParentLayout = () => {
   const { user, loading } = useParentAuth();
+  const { mergeInbox, addNotification } = useParentNotifications();
+
+  usePlatformPush({
+    enabled: Boolean(user),
+    role: 'parent',
+    user,
+    mergeInbox,
+    onPush: (item) => addNotification(item),
+  });
 
   if (loading) {
     return (

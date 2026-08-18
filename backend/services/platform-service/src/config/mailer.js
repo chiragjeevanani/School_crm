@@ -58,3 +58,41 @@ export async function sendSchoolWelcomeEmail({ to, schoolName, password, loginUr
 
   return true;
 }
+
+export async function sendSchoolResetEmail({ to, schoolName, resetUrl }) {
+  const subject = `${schoolName} — reset your School Admin password`;
+  const text = [
+    `We received a request to reset the School Admin password for ${schoolName}.`,
+    '',
+    'Open this link to choose a new password (valid for 30 minutes):',
+    resetUrl,
+    '',
+    'If you did not request this, you can ignore this email.',
+  ].join('\n');
+
+  const html = `
+    <div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:0 auto;color:#0f172a">
+      <h2 style="margin-bottom:8px">${schoolName}</h2>
+      <p>We received a request to reset your School Admin password.</p>
+      <p><a href="${resetUrl}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:10px 16px;border-radius:10px">Reset password</a></p>
+      <p style="color:#64748b;font-size:13px">This link expires in 30 minutes. If you did not request it, ignore this email.</p>
+    </div>
+  `;
+
+  if (!isSmtpConfigured()) {
+    if (env.nodeEnv !== 'production') {
+      console.log(`[dev email] To: ${to}\n${text}`);
+    }
+    return false;
+  }
+
+  await transporter().sendMail({
+    from: env.smtp.from || env.smtp.user,
+    to,
+    subject,
+    text,
+    html,
+  });
+
+  return true;
+}

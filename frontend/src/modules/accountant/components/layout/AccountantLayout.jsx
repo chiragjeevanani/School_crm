@@ -5,10 +5,21 @@ import { TopBar } from './TopBar';
 import { Breadcrumb } from './Breadcrumb';
 import { CommandPalette } from './CommandPalette';
 import { useAccountantAuth } from '../../context/AccountantAuthContext';
+import { useAccountantNotifications } from '../../context/AccountantNotificationContext';
+import { usePlatformPush } from '../../../../shared/hooks/usePlatformPush';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export const AccountantLayout = () => {
   const { user, loading } = useAccountantAuth();
+  const { mergeInbox, addNotification } = useAccountantNotifications();
+
+  usePlatformPush({
+    enabled: Boolean(user),
+    role: 'accountant',
+    user,
+    mergeInbox,
+    onPush: (item) => addNotification(item),
+  });
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);

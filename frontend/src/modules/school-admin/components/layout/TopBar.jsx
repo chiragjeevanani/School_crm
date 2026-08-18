@@ -9,7 +9,6 @@ import {
   Moon, 
   Menu, 
   CalendarDays, 
-  User, 
   Settings, 
   LogOut, 
   X,
@@ -17,10 +16,12 @@ import {
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
+import { UserAvatar } from '../ui/UserAvatar';
+import { schoolPortalApi } from '../../../../shared/api/client';
 
 export const TopBar = ({ onMenuClick, onSearchClick }) => {
-  const { user, logout, hasPlan } = useSchoolAdminAuth();
-  const { darkMode, toggleTheme } = useSchoolAdminTheme();
+  const { user, logout, hasPlan, applyUser } = useSchoolAdminAuth();
+  const { darkMode, setTheme } = useSchoolAdminTheme();
   const { notifications, unreadCount, markRead, markAllRead } = useSchoolAdminNotifications();
   const navigate = useNavigate();
 
@@ -31,6 +32,17 @@ export const TopBar = ({ onMenuClick, onSearchClick }) => {
   const handleLogout = () => {
     logout();
     navigate('/school-admin/login');
+  };
+
+  const handleToggleTheme = async () => {
+    const nextTheme = darkMode ? 'light' : 'dark';
+    setTheme(nextTheme);
+    try {
+      const result = await schoolPortalApi.updateTheme({ theme: nextTheme });
+      if (result?.user) applyUser(result.user);
+    } catch {
+      // UI already updated; keep local preference if save fails
+    }
   };
 
   return (
@@ -51,7 +63,9 @@ export const TopBar = ({ onMenuClick, onSearchClick }) => {
           >
             <Search className="w-3.5 h-3.5 shrink-0" />
             <span className="flex-1 text-left">Search / Ask anything...</span>
-            <span className="text-[9px] font-bold bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">⌘K</span>
+            <span className="text-[9px] font-bold bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">
+              Ctrl K
+            </span>
           </button>
         )}
       </div>
@@ -60,7 +74,7 @@ export const TopBar = ({ onMenuClick, onSearchClick }) => {
       <div className="flex items-center gap-4">
         {/* Academic Session */}
         {user && (
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-150/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-bold">
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-primary/10 border border-primary/20 text-primary rounded-xl text-xs font-bold">
             <CalendarDays className="w-3.5 h-3.5" />
             <span>Session: {user.academicSession}</span>
           </div>
@@ -68,8 +82,9 @@ export const TopBar = ({ onMenuClick, onSearchClick }) => {
 
         {/* Theme Toggle */}
         <button
-          onClick={toggleTheme}
+          onClick={handleToggleTheme}
           className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 transition-colors"
+          aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
@@ -147,7 +162,7 @@ export const TopBar = ({ onMenuClick, onSearchClick }) => {
               }}
               className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-xl transition-colors"
             >
-              <img src={user.photo} alt={user.name} className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-800" />
+              <UserAvatar src={user.photo} name={user.name} className="h-8 w-8 rounded-lg text-xs" />
               <span className="hidden lg:block text-xs font-bold text-slate-900 dark:text-white">{user.name}</span>
             </button>
 

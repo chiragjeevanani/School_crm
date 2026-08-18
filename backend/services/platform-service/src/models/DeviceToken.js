@@ -1,6 +1,16 @@
 import mongoose from 'mongoose';
 
-export const DEVICE_ROLES = ['principal', 'school-admin'];
+export const DEVICE_ROLES = [
+  'principal',
+  'school-admin',
+  'accountant',
+  'teacher',
+  'student',
+  'parent',
+  'hr',
+  'librarian',
+  'transport',
+];
 
 const deviceTokenSchema = new mongoose.Schema(
   {

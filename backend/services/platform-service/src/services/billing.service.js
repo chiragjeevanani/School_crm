@@ -10,6 +10,7 @@ import {
 import { billingRepository } from '../repositories/billing.repository.js';
 import { schoolRepository } from '../repositories/school.repository.js';
 import { subscriptionRepository } from '../repositories/subscription.repository.js';
+import { planEndDate } from '../utils/subscription.utils.js';
 
 function requireText(value, label) {
   const text = typeof value === 'string' ? value.trim() : '';
@@ -180,12 +181,28 @@ export class BillingService {
       throw new AppError('Only pending, overdue, or failed invoices can be marked as paid', 400);
     }
 
+    const paidAt = normalizeDate(payload?.paidAt, 'Paid date', new Date());
     const updated = await billingRepository.updateById(id, {
       status: 'Paid',
-      paidAt: normalizeDate(payload?.paidAt, 'Paid date', new Date()),
+      paidAt,
       paymentMethod: normalizePaymentMethod(payload?.paymentMethod || invoice.paymentMethod, true),
       paymentReference: optionalText(payload?.paymentReference) || invoice.paymentReference || '',
     });
+
+    if (invoice.school) {
+      const school = await schoolRepository.findById(invoice.school);
+      if (school && school.subscriptionPlan === invoice.planName) {
+        const planType = invoice.planType || school.subscription?.planType || 'Monthly';
+        school.subscription = {
+          planId: school.subscription?.planId || null,
+          planType,
+          startedAt: paidAt,
+          endsAt: planEndDate(paidAt, planType),
+          status: 'Active',
+        };
+        await school.save();
+      }
+    }
 
     return updated.toPublicJSON();
   }

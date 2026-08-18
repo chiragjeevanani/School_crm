@@ -20,6 +20,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { Badge, Button, Card } from '../../components/ui/Button';
+import { KpiIcon } from '../../components/dashboard/StatCard';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import { Pulse } from '../../components/ui/SkeletonLoader';
 import { useSuperAdminNotifications } from '../../context/SuperAdminNotificationContext';
@@ -334,23 +335,14 @@ export default function RevenueIndex() {
 }
 
 function Kpi({ icon: Icon, tone, label, value, hint }) {
-  const tones = {
-    indigo: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-500',
-    emerald: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500',
-    violet: 'bg-violet-500/10 border-violet-500/20 text-violet-500',
-    sky: 'bg-sky-500/10 border-sky-500/20 text-sky-500',
-  };
-
   return (
-    <Card className="flex items-center gap-4">
-      <div className={`p-3 rounded-lg border ${tones[tone]}`}>
-        <Icon size={20} />
-      </div>
-      <div>
+    <Card className="flex items-start justify-between gap-3">
+      <div className="min-w-0 space-y-2">
         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</h4>
-        <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
-        {hint && <p className="text-[11px] text-slate-400">{hint}</p>}
+        <p className="truncate text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">{value}</p>
+        {hint && <p className="text-xs text-slate-500">{hint}</p>}
       </div>
+      <KpiIcon icon={Icon} tone={tone} />
     </Card>
   );
 }

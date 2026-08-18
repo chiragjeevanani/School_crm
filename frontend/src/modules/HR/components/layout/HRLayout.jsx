@@ -5,10 +5,21 @@ import { TopBar } from './TopBar';
 import { Breadcrumb } from './Breadcrumb';
 import { CommandPalette } from './CommandPalette';
 import { useHRAuth } from '../../context/HRAuthContext';
+import { useHRNotifications } from '../../context/HRNotificationContext';
+import { usePlatformPush } from '../../../../shared/hooks/usePlatformPush';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export const HRLayout = () => {
   const { user, loading } = useHRAuth();
+  const { mergeInbox, addNotification } = useHRNotifications();
+
+  usePlatformPush({
+    enabled: Boolean(user),
+    role: 'hr',
+    user,
+    mergeInbox,
+    onPush: (item) => addNotification(item),
+  });
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);

@@ -90,6 +90,40 @@ export const NotificationProvider = ({ children }) => {
     localStorage.setItem('school_notifications', JSON.stringify([]));
   };
 
+  const addNotification = ({ title, message, type = 'announcement' }) => {
+    const next = [
+      {
+        id: Date.now().toString(),
+        type,
+        title,
+        message,
+        date: new Date().toISOString(),
+        read: false,
+      },
+      ...notifications,
+    ];
+    setNotifications(next);
+    localStorage.setItem('school_notifications', JSON.stringify(next));
+  };
+
+  const mergeInbox = (items) => {
+    const ids = new Set(notifications.map((item) => String(item.id)));
+    const incoming = (items || [])
+      .filter((item) => item?.id && !ids.has(String(item.id)))
+      .map((item) => ({
+        id: item.id,
+        type: 'announcement',
+        title: item.title,
+        message: item.message,
+        date: new Date().toISOString(),
+        read: false,
+      }));
+    if (!incoming.length) return;
+    const next = [...incoming, ...notifications];
+    setNotifications(next);
+    localStorage.setItem('school_notifications', JSON.stringify(next));
+  };
+
   const addMessage = (teacherId, text) => {
     const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const updatedDb = dbConversations.map(c => {
@@ -130,6 +164,8 @@ export const NotificationProvider = ({ children }) => {
     <NotificationContext.Provider value={{
       notifications,
       messages,
+      addNotification,
+      mergeInbox,
       markNotificationAsRead,
       markAllNotificationsAsRead,
       clearNotifications,

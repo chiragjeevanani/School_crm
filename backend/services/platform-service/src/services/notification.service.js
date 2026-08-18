@@ -42,7 +42,7 @@ function normalizeAudiences(value) {
   ];
 
   if (!audiences.length) {
-    throw new AppError('Select at least one recipient: Principal or School Admin', 400);
+    throw new AppError('Select at least one recipient', 400);
   }
 
   return audiences;
@@ -133,10 +133,19 @@ export class NotificationService {
     };
   }
 
+  async listForSchool(schoolId) {
+    const normalizedSchoolId = typeof schoolId === 'string' ? schoolId.trim() : '';
+    const items = await notificationRepository.list({ schoolId: normalizedSchoolId });
+    return {
+      firebaseConfigured: isFirebaseConfigured(),
+      items: items.map((item) => item.toPublicJSON()),
+    };
+  }
+
   async inbox({ role, schoolId }) {
     const normalizedRole = role === 'admin' ? 'school-admin' : role;
     if (!DEVICE_ROLES.includes(normalizedRole)) {
-      throw new AppError('Role must be principal or school-admin', 400);
+      throw new AppError(`Role must be one of: ${DEVICE_ROLES.join(', ')}`, 400);
     }
 
     const items = await notificationRepository.inbox({
@@ -150,7 +159,7 @@ export class NotificationService {
     const token = requireText(payload?.token, 'Device token');
     const role = payload?.role === 'admin' ? 'school-admin' : payload?.role;
     if (!DEVICE_ROLES.includes(role)) {
-      throw new AppError('Role must be principal or school-admin', 400);
+      throw new AppError(`Role must be one of: ${DEVICE_ROLES.join(', ')}`, 400);
     }
 
     await notificationRepository.upsertDevice({
@@ -163,11 +172,13 @@ export class NotificationService {
     return { registered: true };
   }
 
-  async send(payload, createdBy) {
+  async send(payload, createdBy, options = {}) {
     const title = requireText(payload?.title, 'Title');
     const body = requireText(payload?.body || payload?.message, 'Message');
     const audiences = normalizeAudiences(payload?.audiences || payload?.audience);
-    const schoolId = typeof payload?.schoolId === 'string' ? payload.schoolId.trim() : '';
+    const forcedSchoolId =
+      typeof options?.schoolId === 'string' ? options.schoolId.trim() : '';
+    const schoolId = forcedSchoolId || (typeof payload?.schoolId === 'string' ? payload.schoolId.trim() : '');
 
     let school = null;
     if (schoolId) {

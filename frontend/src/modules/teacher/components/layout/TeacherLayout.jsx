@@ -4,9 +4,20 @@ import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { TopBar } from './TopBar';
 import { useTeacherAuth } from '../../context/TeacherAuthContext';
+import { useTeacherNotifications } from '../../context/TeacherNotificationContext';
+import { usePlatformPush } from '../../../../shared/hooks/usePlatformPush';
 
 export const TeacherLayout = () => {
   const { user, loading } = useTeacherAuth();
+  const { mergeInbox, addNotification } = useTeacherNotifications();
+
+  usePlatformPush({
+    enabled: Boolean(user),
+    role: 'teacher',
+    user,
+    mergeInbox,
+    onPush: (item) => addNotification(item),
+  });
 
   if (loading) {
     return (

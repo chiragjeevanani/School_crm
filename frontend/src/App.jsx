@@ -38,6 +38,7 @@ import { SchoolAdminThemeProvider } from './modules/school-admin/context/SchoolA
 import { SchoolAdminNotificationProvider } from './modules/school-admin/context/SchoolAdminNotificationContext';
 import { SchoolAdminLayout } from './modules/school-admin/components/layout/SchoolAdminLayout';
 import { SchoolAdminLogin } from './modules/school-admin/pages/SchoolAdminLogin';
+import SchoolAdminResetPassword from './modules/school-admin/pages/SchoolAdminResetPassword';
 import { SchoolAdminRoutes } from './modules/school-admin/routes/SchoolAdminRoutes';
 
 import { PrincipalAuthProvider } from './modules/principal/context/PrincipalAuthContext';
@@ -135,6 +136,7 @@ function App() {
 
                                                                          {/* School Admin Routes */}
                                                                          <Route path="/school-admin/login" element={<SchoolAdminLogin />} />
+                                                                         <Route path="/school-admin/reset-password" element={<SchoolAdminResetPassword />} />
                                                                          <Route path="/school-admin/*" element={<SchoolAdminLayout />}>
                                                                            <Route path="*" element={<SchoolAdminRoutes />} />
                                                                          </Route>

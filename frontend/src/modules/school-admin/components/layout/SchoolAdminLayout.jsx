@@ -4,6 +4,8 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { Breadcrumb } from './Breadcrumb';
 import { CommandPalette } from './CommandPalette';
+import { SchoolAdminBrandingEffect } from './SchoolAdminBrandingEffect';
+import { SchoolAdminThemeScope } from './SchoolAdminThemeScope';
 import { useSchoolAdminAuth } from '../../context/SchoolAdminAuthContext';
 import { useSchoolAdminNotifications } from '../../context/SchoolAdminNotificationContext';
 import { usePlatformPush } from '../../../../shared/hooks/usePlatformPush';
@@ -46,7 +48,7 @@ export const SchoolAdminLayout = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="w-10 h-10 rounded-full border-t-2 border-indigo-650 animate-spin"></div>
+        <div className="w-10 h-10 rounded-full border-t-2 border-primary animate-spin"></div>
       </div>
     );
   }
@@ -61,7 +63,8 @@ export const SchoolAdminLayout = () => {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 transition-colors duration-200">
+    <SchoolAdminThemeScope className="min-h-screen flex bg-slate-50 text-slate-800 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-200">
+      <SchoolAdminBrandingEffect />
       {/* Desktop Navigation Sidebar */}
       <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
@@ -81,7 +84,7 @@ export const SchoolAdminLayout = () => {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative w-72 bg-slate-950 h-full flex flex-col z-10"
+              className="relative w-64 bg-slate-950 h-full flex flex-col z-10"
             >
               {/* Sidebar content locally embedded or toggle sidebar width values */}
               <Sidebar isCollapsed={false} setIsCollapsed={() => {}} />
@@ -91,7 +94,7 @@ export const SchoolAdminLayout = () => {
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen relative max-w-full overflow-x-hidden">
+      <div className={`flex-1 flex flex-col min-h-screen relative max-w-full overflow-x-hidden transition-[margin] duration-200 ${isCollapsed ? 'md:ml-[68px]' : 'md:ml-64'}`}>
         {/* Header/TopBar */}
         <TopBar 
           onMenuClick={() => setMobileMenuOpen(true)} 
@@ -107,7 +110,7 @@ export const SchoolAdminLayout = () => {
 
       {/* Global Command Palette */}
       <CommandPalette isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
-    </div>
+    </SchoolAdminThemeScope>
   );
 };
 export default SchoolAdminLayout;

@@ -5,11 +5,22 @@ import { TopBar } from './TopBar';
 import { Breadcrumb } from './Breadcrumb';
 import { CommandPalette } from './CommandPalette';
 import { useTransportAuth } from '../../context/TransportAuthContext';
+import { useTransportNotifications } from '../../context/TransportNotificationContext';
+import { usePlatformPush } from '../../../../shared/hooks/usePlatformPush';
 import { cn } from '../../utils/cn';
 
 export const TransportLayout = () => {
   const { user, loading } = useTransportAuth();
+  const { mergeInbox, addNotification } = useTransportNotifications();
   const location = useLocation();
+
+  usePlatformPush({
+    enabled: Boolean(user),
+    role: 'transport',
+    user,
+    mergeInbox,
+    onPush: (item) => addNotification(item.title, item.message, 'info'),
+  });
   
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);

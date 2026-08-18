@@ -7,7 +7,7 @@ import { cn } from '../lib/cn';
 // (HR/accountant/librarian/principal/school-admin/transport) Modals.
 // Supports every size key and the optional `footer`/`className` props
 // used by individual modules.
-export const Modal = ({ isOpen, onClose, title, children, footer, size = 'md', className }) => {
+export const Modal = ({ isOpen, onClose, title, children, footer, size = 'md', className, titleClassName }) => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -57,7 +57,7 @@ export const Modal = ({ isOpen, onClose, title, children, footer, size = 'md', c
             {/* Header */}
             {title && (
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight truncate">
+                <h3 className={cn("text-sm font-bold text-slate-900 dark:text-white leading-tight truncate", titleClassName)}>
                   {title}
                 </h3>
                 <button

@@ -81,6 +81,42 @@ export const ParentNotificationProvider = ({ children }) => {
     window.dispatchEvent(new Event('storage'));
   };
 
+  const addNotification = ({ title, message, type = 'announcement' }) => {
+    const next = [
+      {
+        id: Date.now().toString(),
+        type,
+        title,
+        message,
+        date: new Date().toISOString(),
+        read: false,
+      },
+      ...notifications,
+    ];
+    setNotifications(next);
+    localStorage.setItem('school_notifications', JSON.stringify(next));
+    window.dispatchEvent(new Event('storage'));
+  };
+
+  const mergeInbox = (items) => {
+    const ids = new Set(notifications.map((item) => String(item.id)));
+    const incoming = (items || [])
+      .filter((item) => item?.id && !ids.has(String(item.id)))
+      .map((item) => ({
+        id: item.id,
+        type: 'announcement',
+        title: item.title,
+        message: item.message,
+        date: new Date().toISOString(),
+        read: false,
+      }));
+    if (!incoming.length) return;
+    const next = [...incoming, ...notifications];
+    setNotifications(next);
+    localStorage.setItem('school_notifications', JSON.stringify(next));
+    window.dispatchEvent(new Event('storage'));
+  };
+
   const unreadNotifCount = notifications.filter(n => !n.read).length;
   const unreadMsgCount = messages.reduce((sum, m) => sum + (m.unread || 0), 0);
 
@@ -90,6 +126,8 @@ export const ParentNotificationProvider = ({ children }) => {
       messages,
       unreadNotifCount,
       unreadMsgCount,
+      addNotification,
+      mergeInbox,
       markNotificationAsRead,
       markAllNotificationsAsRead,
       clearNotifications,

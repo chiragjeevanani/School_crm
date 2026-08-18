@@ -1,16 +1,26 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { schoolAdminAuthApi, schoolPortalApi } from '../../../shared/api/client';
+import { useSchoolAdminTheme } from './SchoolAdminThemeContext';
 
 const SchoolAdminAuthContext = createContext();
 
 function persistUser(user) {
   localStorage.setItem('school-admin-user', JSON.stringify(user));
+  localStorage.setItem(
+    'school-admin-branding',
+    JSON.stringify({
+      logo: user?.brandingLogo || '',
+      favicon: user?.brandingFavicon || '',
+      schoolName: user?.schoolName || '',
+    })
+  );
   return user;
 }
 
 export const SchoolAdminAuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { setTheme, setAccentColor } = useSchoolAdminTheme();
 
   useEffect(() => {
     const token = localStorage.getItem('school_admin_token');
@@ -30,6 +40,8 @@ export const SchoolAdminAuthProvider = ({ children }) => {
       .then((result) => {
         if (result.user) {
           setUser(persistUser(result.user));
+          if (result.user.theme) setTheme(result.user.theme);
+          if (result.user.primaryColor) setAccentColor(result.user.primaryColor);
         }
       })
       .catch(() => {
@@ -51,6 +63,8 @@ export const SchoolAdminAuthProvider = ({ children }) => {
     }
     const next = persistUser(result.user);
     setUser(next);
+    if (next.theme) setTheme(next.theme);
+    if (next.primaryColor) setAccentColor(next.primaryColor);
     return next;
   };
 
@@ -58,6 +72,7 @@ export const SchoolAdminAuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('school-admin-user');
     localStorage.removeItem('school_admin_token');
+    localStorage.removeItem('school-admin-branding');
   };
 
   const updateProfile = (updatedFields) => {

@@ -13,9 +13,9 @@ export default {
         card: "var(--card-bg)",
         "card-foreground": "var(--text-color)",
         primary: {
-          DEFAULT: "#4F46E5", // Indigo 600
-          hover: "#4338CA",
-          light: "#EEF2F6",
+          DEFAULT: "rgb(var(--primary) / <alpha-value>)",
+          hover: "rgb(var(--primary-hover) / <alpha-value>)",
+          light: "rgb(var(--primary-light) / <alpha-value>)",
         },
         secondary: {
           DEFAULT: "#06B6D4", // Cyan 500

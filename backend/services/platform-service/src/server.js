@@ -6,6 +6,7 @@ import { seedSchools } from './seedSchools.js';
 import { seedLegalDocuments } from './seedLegal.js';
 import { seedInvoices } from './seedInvoices.js';
 import { seedSupportTickets } from './seedSupport.js';
+import { seedAcademicTeachers } from './seedAcademic.js';
 import { isFirebaseConfigured } from './config/firebase.js';
 
 async function start() {
@@ -16,6 +17,7 @@ async function start() {
   await seedLegalDocuments();
   const ticketCount = await seedSupportTickets();
   const invoices = await seedInvoices();
+  await seedAcademicTeachers();
 
   app.listen(env.port, () => {
     console.log(`Platform service running on http://localhost:${env.port}`);

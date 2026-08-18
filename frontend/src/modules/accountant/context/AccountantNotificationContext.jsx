@@ -25,10 +25,24 @@ export const AccountantNotificationProvider = ({ children }) => {
     ]);
   };
 
+  const mergeInbox = (items) => {
+    setNotifications((prev) => {
+      const ids = new Set(prev.map((item) => item.id));
+      const incoming = (items || [])
+        .filter((item) => item?.id && !ids.has(item.id))
+        .map((item) => ({
+          read: false,
+          time: item.time || 'Just now',
+          ...item,
+        }));
+      return incoming.length ? [...incoming, ...prev] : prev;
+    });
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <AccountantNotificationContext.Provider value={{ notifications, unreadCount, markAllAsRead, markAsRead, addNotification }}>
+    <AccountantNotificationContext.Provider value={{ notifications, unreadCount, markAllAsRead, markAsRead, addNotification, mergeInbox }}>
       {children}
     </AccountantNotificationContext.Provider>
   );

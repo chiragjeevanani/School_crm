@@ -5,11 +5,22 @@ import { TopBar } from './TopBar';
 import { Breadcrumb } from './Breadcrumb';
 import { CommandPalette } from './CommandPalette';
 import { useLibrarianAuth } from '../../context/LibrarianAuthContext';
+import { useLibrarianNotifications } from '../../context/LibrarianNotificationContext';
+import { usePlatformPush } from '../../../../shared/hooks/usePlatformPush';
 import { cn } from '../../utils/cn';
 
 export const LibrarianLayout = () => {
   const { user, loading } = useLibrarianAuth();
+  const { mergeInbox, addNotification } = useLibrarianNotifications();
   const location = useLocation();
+
+  usePlatformPush({
+    enabled: Boolean(user),
+    role: 'librarian',
+    user,
+    mergeInbox,
+    onPush: (item) => addNotification(item.title, item.message, 'info'),
+  });
   
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);

@@ -39,8 +39,21 @@ const schoolSchema = new mongoose.Schema(
       mobile: { type: String, required: true, trim: true },
       passwordHash: { type: String, default: '', select: false },
       hasLogin: { type: Boolean, default: false },
+      resetPasswordTokenHash: { type: String, default: '', select: false },
+      resetPasswordExpiresAt: { type: Date, default: null, select: false },
     },
     subscriptionPlan: { type: String, trim: true, default: '' },
+    subscription: {
+      planId: { type: mongoose.Schema.Types.ObjectId, ref: 'SubscriptionPlan', default: null },
+      planType: { type: String, trim: true, default: '' },
+      startedAt: { type: Date, default: null },
+      endsAt: { type: Date, default: null },
+      status: {
+        type: String,
+        enum: ['Pending Payment', 'Active', 'Expired'],
+        default: 'Pending Payment',
+      },
+    },
     status: { type: String, required: true, trim: true, default: 'Active' },
     stats: {
       studentsCount: { type: Number, default: 0 },
@@ -51,6 +64,29 @@ const schoolSchema = new mongoose.Schema(
       maxStorage: { type: Number, default: 100 },
     },
     createdBy: { type: String, default: null },
+    settings: {
+      theme: { type: String, enum: ['light', 'dark'], default: 'light' },
+      primaryColor: { type: String, default: '#4F46E5', trim: true },
+      portalBranding: {
+        logo: { type: String, default: '' },
+        favicon: { type: String, default: '' },
+      },
+      smtp: {
+        host: { type: String, default: '', trim: true },
+        port: { type: Number, default: 587 },
+        user: { type: String, default: '', trim: true },
+        pass: { type: String, default: '', select: false },
+        from: { type: String, default: '', trim: true },
+      },
+      emailTemplate: {
+        name: { type: String, default: 'Fee Receipt', trim: true },
+        body: {
+          type: String,
+          default:
+            'Dear {ParentName},\n\nWe have received a tuition fee payment of {Amount} on {Date}. Your receipt number is {ReceiptNo}.\n\nWarm regards,\nSchool Administration',
+        },
+      },
+    },
   },
   { timestamps: true }
 );

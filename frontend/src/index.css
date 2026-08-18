@@ -10,6 +10,9 @@
     --card-bg: #FFFFFF;
     --input-bg: #FFFFFF;
     --input-border: #CBD5E1;
+    --primary: 79 70 229;
+    --primary-hover: 67 56 202;
+    --primary-light: 238 242 255;
   }
 
   .dark {

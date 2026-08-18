@@ -27,6 +27,7 @@ export const LibrarianAuthProvider = ({ children }) => {
             name: identity.name,
             email: identity.email,
             role: identity.designation,
+            schoolId: SCHOOL.id,
             schoolName: SCHOOL.name,
             academicSession: SCHOOL.academicSession,
             photoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face'

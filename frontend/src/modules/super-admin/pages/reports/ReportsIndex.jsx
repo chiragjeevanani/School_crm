@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   Area,
   Bar,
@@ -23,6 +22,7 @@ import {
   Search,
 } from 'lucide-react';
 import { Badge, Button, Card, cn } from '../../components/ui/Button';
+import { StatCard } from '../../components/dashboard/StatCard';
 import { Pulse } from '../../components/ui/SkeletonLoader';
 import { Select } from '../../components/ui/Input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
@@ -656,25 +656,6 @@ export default function ReportsIndex() {
     { label: 'Notifications', value: stats.notificationsSent, hint: `${stats.notificationDevicesReached} devices reached`, icon: Bell, tone: 'sky', to: '/super-admin/notifications' },
   ];
 
-  const toneClass = {
-    indigo: {
-      card: 'bg-gradient-to-br from-indigo-50 via-white to-white dark:from-indigo-500/10 dark:via-slate-900/70 dark:to-slate-900/60',
-      icon: 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25',
-    },
-    emerald: {
-      card: 'bg-gradient-to-br from-emerald-50 via-white to-white dark:from-emerald-500/10 dark:via-slate-900/70 dark:to-slate-900/60',
-      icon: 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25',
-    },
-    violet: {
-      card: 'bg-gradient-to-br from-violet-50 via-white to-white dark:from-violet-500/10 dark:via-slate-900/70 dark:to-slate-900/60',
-      icon: 'bg-violet-600 text-white shadow-md shadow-violet-600/25',
-    },
-    sky: {
-      card: 'bg-gradient-to-br from-sky-50 via-white to-white dark:from-sky-500/10 dark:via-slate-900/70 dark:to-slate-900/60',
-      icon: 'bg-sky-600 text-white shadow-md shadow-sky-600/25',
-    },
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -716,38 +697,18 @@ export default function ReportsIndex() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((item) => {
-          const tone = toneClass[item.tone];
-          return (
-            <Link
-              key={item.label}
-              to={item.to}
-              className="group block min-w-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-            >
-              <Card className={cn('h-full overflow-hidden p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500/40', tone.card)}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{item.label}</p>
-                    {loading ? (
-                      <div className="space-y-1.5">
-                        <Pulse className="h-7 w-20" />
-                        <Pulse className="h-3 w-28" />
-                      </div>
-                    ) : (
-                      <>
-                        <p className="truncate text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{item.value}</p>
-                        <p className="text-xs text-slate-500">{item.hint}</p>
-                      </>
-                    )}
-                  </div>
-                  <div className={cn('shrink-0 rounded-xl p-2.5', tone.icon)}>
-                    <item.icon size={18} />
-                  </div>
-                </div>
-              </Card>
-            </Link>
-          );
-        })}
+        {kpis.map((item) => (
+          <StatCard
+            key={item.label}
+            title={item.label}
+            value={item.value}
+            hint={item.hint}
+            icon={item.icon}
+            tone={item.tone}
+            to={item.to}
+            loading={loading}
+          />
+        ))}
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>

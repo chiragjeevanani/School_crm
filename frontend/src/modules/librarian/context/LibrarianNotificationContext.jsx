@@ -60,10 +60,25 @@ export const LibrarianNotificationProvider = ({ children }) => {
     ]);
   };
 
+  const mergeInbox = (items) => {
+    setNotifications((prev) => {
+      const ids = new Set(prev.map((item) => item.id));
+      const incoming = (items || [])
+        .filter((item) => item?.id && !ids.has(item.id))
+        .map((item) => ({
+          read: false,
+          type: 'info',
+          time: item.time || 'Just now',
+          ...item,
+        }));
+      return incoming.length ? [...incoming, ...prev] : prev;
+    });
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <LibrarianNotificationContext.Provider value={{ notifications, unreadCount, markAllAsRead, markAsRead, addNotification }}>
+    <LibrarianNotificationContext.Provider value={{ notifications, unreadCount, markAllAsRead, markAsRead, addNotification, mergeInbox }}>
       {children}
     </LibrarianNotificationContext.Provider>
   );

@@ -139,10 +139,10 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Total Schools" value={formatCount(stats.totalSchools)} icon={Building} to="/super-admin/schools" />
-          <StatCard title="Platform Users" value={formatCount((stats.totalStudents || 0) + (stats.totalStaff || 0))} icon={Users} to="/super-admin/reports" />
-          <StatCard title="Collected" value={formatInr(stats.collectedAmount)} icon={IndianRupee} to="/super-admin/billing" />
-          <StatCard title="Est. Monthly Revenue" value={formatInr(stats.estimatedMonthlyRevenue)} icon={CreditCard} to="/super-admin/revenue" />
+          <StatCard title="Total Schools" value={formatCount(stats.totalSchools)} icon={Building} tone="indigo" to="/super-admin/schools" />
+          <StatCard title="Platform Users" value={formatCount((stats.totalStudents || 0) + (stats.totalStaff || 0))} icon={Users} tone="violet" to="/super-admin/reports" />
+          <StatCard title="Collected" value={formatInr(stats.collectedAmount)} icon={IndianRupee} tone="emerald" to="/super-admin/billing" />
+          <StatCard title="Est. Monthly Revenue" value={formatInr(stats.estimatedMonthlyRevenue)} icon={CreditCard} tone="sky" to="/super-admin/revenue" />
         </div>
       )}
 

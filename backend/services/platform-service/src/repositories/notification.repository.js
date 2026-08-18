@@ -6,8 +6,9 @@ export class NotificationRepository {
     return PlatformNotification.create(payload);
   }
 
-  list() {
-    return PlatformNotification.find().sort({ createdAt: -1 }).limit(100);
+  list({ schoolId = '' } = {}) {
+    const filter = schoolId ? { $or: [{ schoolId: '' }, { schoolId }] } : {};
+    return PlatformNotification.find(filter).sort({ createdAt: -1 }).limit(100);
   }
 
   inbox({ role, schoolIds = [] }) {

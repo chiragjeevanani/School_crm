@@ -23,6 +23,8 @@ export const StudentAuthProvider = ({ children }) => {
         id: identity.id,
         name: identity.name,
         photo: identity.photo,
+        schoolId: SCHOOL.id,
+        schoolName: SCHOOL.name,
         admissionNo: identity.admissionNo,
         class: identity.class,
         section: identity.section,

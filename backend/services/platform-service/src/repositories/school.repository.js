@@ -47,11 +47,22 @@ export class SchoolRepository {
   }
 
   findByIdWithPassword(id) {
-    return School.findById(id).select('+admin.passwordHash');
+    return School.findById(id).select(
+      '+admin.passwordHash +admin.resetPasswordTokenHash +admin.resetPasswordExpiresAt +settings.smtp.pass'
+    );
   }
 
   findByAdminEmail(email) {
-    return School.findOne({ 'admin.email': email }).select('+admin.passwordHash');
+    return School.findOne({ 'admin.email': email }).select(
+      '+admin.passwordHash +admin.resetPasswordTokenHash +admin.resetPasswordExpiresAt'
+    );
+  }
+
+  findByResetTokenHash(tokenHash) {
+    return School.findOne({
+      'admin.resetPasswordTokenHash': tokenHash,
+      'admin.resetPasswordExpiresAt': { $gt: new Date() },
+    }).select('+admin.passwordHash +admin.resetPasswordTokenHash +admin.resetPasswordExpiresAt');
   }
 
   updateStatus(id, status) {

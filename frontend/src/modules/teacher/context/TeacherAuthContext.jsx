@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { mockTeacher } from '../data/mockData';
+import { SCHOOL } from '../../../shared/data/school';
 
 const TeacherAuthContext = createContext();
 
@@ -23,6 +24,9 @@ export const TeacherAuthProvider = ({ children }) => {
     if (employeeId && password) {
       const userData = {
         ...mockTeacher,
+        schoolId: SCHOOL.id,
+        schoolName: SCHOOL.name,
+        academicSession: SCHOOL.academicSession,
         token: 'mock-jwt-teacher-token-' + Date.now(),
       };
       setUser(userData);

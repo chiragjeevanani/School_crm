@@ -4,9 +4,20 @@ import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { TopBar } from './TopBar';
 import { useStudentAuth } from '../../context/StudentAuthContext';
+import { useStudentNotifications } from '../../context/NotificationContext';
+import { usePlatformPush } from '../../../../shared/hooks/usePlatformPush';
 
 export const StudentLayout = () => {
   const { user, loading } = useStudentAuth();
+  const { mergeInbox, addNotification } = useStudentNotifications();
+
+  usePlatformPush({
+    enabled: Boolean(user),
+    role: 'student',
+    user,
+    mergeInbox,
+    onPush: (item) => addNotification(item),
+  });
 
   if (loading) {
     return (

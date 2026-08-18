@@ -72,6 +72,31 @@ export const TeacherNotificationProvider = ({ children }) => {
     localStorage.setItem('teacher_notifications', JSON.stringify([]));
   };
 
+  const addNotification = ({ title, message, type = 'announcement' }) => {
+    const next = [
+      { id: Date.now().toString(), title, message, type, time: 'Just now', read: false },
+      ...notifications,
+    ];
+    setNotifications(next);
+    localStorage.setItem('teacher_notifications', JSON.stringify(next));
+  };
+
+  const mergeInbox = (items) => {
+    const ids = new Set(notifications.map((item) => item.id));
+    const incoming = (items || [])
+      .filter((item) => item?.id && !ids.has(item.id))
+      .map((item) => ({
+        type: 'announcement',
+        read: false,
+        time: item.time || 'Just now',
+        ...item,
+      }));
+    if (!incoming.length) return;
+    const next = [...incoming, ...notifications];
+    setNotifications(next);
+    localStorage.setItem('teacher_notifications', JSON.stringify(next));
+  };
+
   const addMessage = (contactId, text) => {
     const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     
@@ -147,6 +172,8 @@ export const TeacherNotificationProvider = ({ children }) => {
       messages,
       unreadNotifCount,
       unreadMsgCount,
+      addNotification,
+      mergeInbox,
       markNotificationAsRead,
       markAllNotificationsAsRead,
       clearNotifications,
