@@ -20,7 +20,7 @@ const marksData = [
 ];
 
 export const TeacherPerformance = () => {
-  const [selectedClass, setSelectedClass] = useState(mockClasses[0].id);
+  const [selectedClass, setSelectedClass] = useState(mockClasses[0]?.id || '');
   const [search, setSearch] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [sortBy, setSortBy] = useState('attendance');

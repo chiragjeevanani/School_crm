@@ -11,15 +11,15 @@ import { BookMarked, CheckCircle, Circle, Upload, Link2, FileText, Video, Plus, 
 export const TeacherAcademics = () => {
   const toast = useToast();
   const [tab, setTab] = useState('syllabus');
-  const [syllabus, setSyllabus] = useState(mockSyllabus['Mathematics-9A']);
+  const [syllabus, setSyllabus] = useState(mockSyllabus?.['Mathematics-9A'] || []);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadForm, setUploadForm] = useState({ title: '', subject: 'Mathematics', class: 'cls-9a', type: 'PDF', link: '' });
 
-  const completedCount = syllabus.filter(ch => ch.completed).length;
-  const progressPct = Math.round((completedCount / syllabus.length) * 100);
+  const completedCount = (syllabus || []).filter(ch => ch.completed).length;
+  const progressPct = (syllabus && syllabus.length > 0) ? Math.round((completedCount / syllabus.length) * 100) : 0;
 
   const toggleChapter = (id) => {
-    setSyllabus(prev => prev.map(ch =>
+    setSyllabus(prev => (prev || []).map(ch =>
       ch.id === id
         ? { ...ch, completed: !ch.completed, completionDate: !ch.completed ? new Date().toISOString().split('T')[0] : null }
         : ch
@@ -71,7 +71,7 @@ export const TeacherAcademics = () => {
           <Card>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mathematics — Class 9A</h3>
-              <Badge variant="primary">{completedCount}/{syllabus.length} Chapters</Badge>
+              <Badge variant="primary">{completedCount}/{syllabus?.length || 0} Chapters</Badge>
             </div>
             <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-1">
               <div
@@ -83,37 +83,43 @@ export const TeacherAcademics = () => {
           </Card>
 
           <div className="space-y-3">
-            {syllabus.map(ch => (
-              <Card key={ch.id}>
-                <div className="flex items-start gap-4">
-                  <button
-                    onClick={() => toggleChapter(ch.id)}
-                    className={`shrink-0 mt-0.5 p-0.5 rounded-full transition-all ${ch.completed ? 'text-emerald-500' : 'text-slate-300 dark:text-slate-600 hover:text-primary'}`}
-                  >
-                    {ch.completed
-                      ? <CheckCircle className="w-5 h-5" />
-                      : <Circle className="w-5 h-5" />
-                    }
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className={`text-xs font-bold ${ch.completed ? 'text-slate-400 line-through' : 'text-foreground'}`}>
-                        {ch.chapter}
-                      </h4>
-                      {ch.completed && <Badge variant="success">Done</Badge>}
-                    </div>
-                    <div className="flex flex-wrap gap-1 mb-1.5">
-                      {ch.topics.map(t => (
-                        <span key={t} className="text-[9px] font-medium px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-full">{t}</span>
-                      ))}
-                    </div>
-                    {ch.completionDate && (
-                      <p className="text-[10px] text-slate-400">Completed: {ch.completionDate}</p>
-                    )}
-                  </div>
-                </div>
+            {(syllabus || []).length === 0 ? (
+              <Card>
+                <p className="text-xs text-slate-400 text-center py-6">No syllabus chapters found</p>
               </Card>
-            ))}
+            ) : (
+              syllabus.map(ch => (
+                <Card key={ch.id}>
+                  <div className="flex items-start gap-4">
+                    <button
+                      onClick={() => toggleChapter(ch.id)}
+                      className={`shrink-0 mt-0.5 p-0.5 rounded-full transition-all ${ch.completed ? 'text-emerald-500' : 'text-slate-300 dark:text-slate-600 hover:text-primary'}`}
+                    >
+                      {ch.completed
+                        ? <CheckCircle className="w-5 h-5" />
+                        : <Circle className="w-5 h-5" />
+                      }
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className={`text-xs font-bold ${ch.completed ? 'text-slate-400 line-through' : 'text-foreground'}`}>
+                          {ch.chapter}
+                        </h4>
+                        {ch.completed && <Badge variant="success">Done</Badge>}
+                      </div>
+                      <div className="flex flex-wrap gap-1 mb-1.5">
+                        {ch.topics.map(t => (
+                          <span key={t} className="text-[9px] font-medium px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-full">{t}</span>
+                        ))}
+                      </div>
+                      {ch.completionDate && (
+                        <p className="text-[10px] text-slate-400">Completed: {ch.completionDate}</p>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -121,7 +127,12 @@ export const TeacherAcademics = () => {
       {/* Study Material Tab */}
       {tab === 'material' && (
         <div className="space-y-3">
-          {mockStudyMaterial.map(mat => {
+          {(mockStudyMaterial || []).length === 0 ? (
+            <Card>
+              <p className="text-xs text-slate-400 text-center py-6">No study materials available</p>
+            </Card>
+          ) : (
+            mockStudyMaterial.map(mat => {
             const Icon = matTypeIcon[mat.type] || FileText;
             return (
               <Card key={mat.id}>
@@ -153,7 +164,8 @@ export const TeacherAcademics = () => {
                 </div>
               </Card>
             );
-          })}
+            })
+          )}
         </div>
       )}
 

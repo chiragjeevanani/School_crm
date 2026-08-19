@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Invoice } from '../models/Invoice.js';
 
 export class BillingRepository {
@@ -102,10 +103,12 @@ export class BillingRepository {
   }
 
   findById(id) {
+    if (!mongoose.isValidObjectId(id)) return null;
     return Invoice.findById(id);
   }
 
   findOpenForSchoolPlan(schoolId, planName) {
+    if (!mongoose.isValidObjectId(schoolId)) return null;
     return Invoice.findOne({
       school: schoolId,
       planName,
@@ -114,6 +117,7 @@ export class BillingRepository {
   }
 
   findLatestForSchool(schoolId, planName) {
+    if (!mongoose.isValidObjectId(schoolId)) return null;
     const query = { school: schoolId };
     if (planName) {
       query.planName = planName;

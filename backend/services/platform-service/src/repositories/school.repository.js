@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { School } from '../models/School.js';
 
 export class SchoolRepository {
@@ -43,11 +44,19 @@ export class SchoolRepository {
   }
 
   findById(id) {
-    return School.findById(id);
+    if (!id) return null;
+    if (mongoose.isValidObjectId(id)) {
+      return School.findById(id);
+    }
+    return School.findOne({ $or: [{ schoolId: id }, { code: id }] });
   }
 
   findByIdWithPassword(id) {
-    return School.findById(id).select(
+    if (!id) return null;
+    const query = mongoose.isValidObjectId(id)
+      ? { _id: id }
+      : { $or: [{ schoolId: id }, { code: id }] };
+    return School.findOne(query).select(
       '+admin.passwordHash +admin.resetPasswordTokenHash +admin.resetPasswordExpiresAt +settings.smtp.pass'
     );
   }
@@ -70,7 +79,11 @@ export class SchoolRepository {
   }
 
   updateById(id, payload) {
-    return School.findByIdAndUpdate(id, payload, { new: true, runValidators: true });
+    if (!id) return null;
+    const query = mongoose.isValidObjectId(id)
+      ? { _id: id }
+      : { $or: [{ schoolId: id }, { code: id }] };
+    return School.findOneAndUpdate(query, payload, { new: true, runValidators: true });
   }
 
   deleteById(id) {

@@ -10,7 +10,7 @@ import { mockClasses, mockStudents } from '../data/mockData';
 import { Users, Phone, Calendar, BarChart2, BookOpen, ChevronRight, User } from 'lucide-react';
 
 export const TeacherClasses = () => {
-  const [selectedClass, setSelectedClass] = useState(mockClasses[0].id);
+  const [selectedClass, setSelectedClass] = useState(mockClasses[0]?.id || '');
   const [search, setSearch] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
 

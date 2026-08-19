@@ -797,17 +797,20 @@ export class SchoolService {
 
     const planType =
       school.subscription?.planType || plan?.planType || invoice?.planType || 'Monthly';
-    const startedAt =
+    const startedAtRaw =
       school.subscription?.startedAt ||
       invoice?.paidAt ||
       invoice?.issuedAt ||
-      school.updatedAt;
-    const endsAt =
+      school.updatedAt ||
+      new Date();
+    const startedAt = startedAtRaw instanceof Date ? startedAtRaw : new Date(startedAtRaw);
+    const endsAtRaw =
       school.subscription?.endsAt || planEndDate(startedAt, planType);
+    const endsAt = endsAtRaw instanceof Date ? endsAtRaw : new Date(endsAtRaw);
     const billingStatus = invoice?.status || 'Pending';
     const status = resolveSubscriptionStatus(endsAt, billingStatus);
 
-    const msRemaining = endsAt ? endsAt.getTime() - Date.now() : 0;
+    const msRemaining = endsAt && !isNaN(endsAt.getTime()) ? endsAt.getTime() - Date.now() : 0;
     const daysRemaining = Math.max(0, Math.ceil(msRemaining / 86400000));
 
     return {
@@ -817,8 +820,8 @@ export class SchoolService {
         planType,
         price: plan?.price ?? invoice?.amount ?? 0,
         features: plan?.features || [],
-        startedAt: startedAt?.toISOString() || null,
-        endsAt: endsAt?.toISOString() || null,
+        startedAt: startedAt && !isNaN(startedAt.getTime()) ? startedAt.toISOString() : null,
+        endsAt: endsAt && !isNaN(endsAt.getTime()) ? endsAt.toISOString() : null,
         daysRemaining,
         status,
         billing: invoice
@@ -827,9 +830,9 @@ export class SchoolService {
               invoiceNumber: invoice.invoiceNumber,
               amount: invoice.amount,
               status: invoice.status,
-              issuedAt: invoice.issuedAt?.toISOString() || null,
-              dueAt: invoice.dueAt?.toISOString() || null,
-              paidAt: invoice.paidAt?.toISOString() || null,
+              issuedAt: invoice.issuedAt ? new Date(invoice.issuedAt).toISOString() : null,
+              dueAt: invoice.dueAt ? new Date(invoice.dueAt).toISOString() : null,
+              paidAt: invoice.paidAt ? new Date(invoice.paidAt).toISOString() : null,
               paymentMethod: invoice.paymentMethod || '',
             }
           : null,

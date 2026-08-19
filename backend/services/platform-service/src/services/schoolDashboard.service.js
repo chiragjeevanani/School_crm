@@ -1,3 +1,5 @@
+import mongoose from 'mongoose';
+import { School } from '../models/School.js';
 import { Student } from '../models/Student.js';
 import { Teacher } from '../models/Teacher.js';
 import { SchoolUser } from '../models/SchoolUser.js';
@@ -21,10 +23,29 @@ export const schoolDashboardService = {
   async getDashboardSummary(schoolId) {
     if (!schoolId) throw new Error('School ID is required');
 
+    let targetId = schoolId;
+    let stringId = String(schoolId);
+    if (mongoose.isValidObjectId(schoolId)) {
+      const schoolDoc = await School.findById(schoolId).lean();
+      if (schoolDoc) {
+        targetId = schoolDoc._id;
+        stringId = schoolDoc.schoolId || schoolDoc.code || String(schoolDoc._id);
+      }
+    } else {
+      const schoolDoc = await School.findOne({ $or: [{ schoolId }, { code: schoolId }] }).lean();
+      if (schoolDoc) {
+        targetId = schoolDoc._id;
+        stringId = schoolDoc.schoolId || schoolDoc.code || String(schoolDoc._id);
+      }
+    }
+
     const todayStr = new Date().toISOString().split('T')[0];
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const targetObjId = mongoose.isValidObjectId(targetId) ? targetId : new mongoose.Types.ObjectId();
+    const schoolQuery = { schoolId: targetObjId };
 
     // 1. Core Counts
     const [
@@ -41,22 +62,22 @@ export const schoolDashboardService = {
       activeTransportStudents,
       totalExams,
     ] = await Promise.all([
-      Student.countDocuments({ schoolId, status: 'ACTIVE' }),
-      Teacher.countDocuments({ schoolId, status: 'ACTIVE' }),
-      SchoolUser.countDocuments({ schoolId, status: 'ACTIVE' }),
-      SchoolClass.countDocuments({ schoolId, status: 'ACTIVE' }),
-      Section.countDocuments({ schoolId, status: 'ACTIVE' }),
-      LibraryBook.countDocuments({ schoolId }),
-      LibraryIssue.countDocuments({ schoolId, status: 'ISSUED' }),
-      HostelBed.countDocuments({ schoolId }),
-      HostelBed.countDocuments({ schoolId, status: 'OCCUPIED' }),
-      Vehicle.countDocuments({ schoolId, status: 'ACTIVE' }),
-      StudentTransportAssignment.countDocuments({ schoolId, status: 'ACTIVE' }),
-      Exam.countDocuments({ schoolId, status: { $in: ['ACTIVE', 'SCHEDULED', 'IN_PROGRESS'] } }),
+      Student.countDocuments({ ...schoolQuery, status: 'ACTIVE' }),
+      Teacher.countDocuments({ ...schoolQuery, status: 'ACTIVE' }),
+      SchoolUser.countDocuments({ ...schoolQuery, status: 'ACTIVE' }),
+      SchoolClass.countDocuments({ ...schoolQuery, status: 'ACTIVE' }),
+      Section.countDocuments({ ...schoolQuery, status: 'ACTIVE' }),
+      LibraryBook.countDocuments(schoolQuery),
+      LibraryIssue.countDocuments({ ...schoolQuery, status: 'ISSUED' }),
+      HostelBed.countDocuments(schoolQuery),
+      HostelBed.countDocuments({ ...schoolQuery, status: 'OCCUPIED' }),
+      Vehicle.countDocuments({ ...schoolQuery, status: 'ACTIVE' }),
+      StudentTransportAssignment.countDocuments({ ...schoolQuery, status: 'ACTIVE' }),
+      Exam.countDocuments({ ...schoolQuery, status: { $in: ['ACTIVE', 'SCHEDULED', 'IN_PROGRESS'] } }),
     ]);
 
     // 2. Attendance Metrics (Staff Attendance from DB)
-    const todayStaffAttendance = await StaffAttendance.findOne({ schoolId, date: todayStr }).lean();
+    const todayStaffAttendance = await StaffAttendance.findOne({ ...schoolQuery, date: todayStr }).lean();
     let staffPresentCount = 0;
     let staffTotalCount = totalTeachers + totalStaff;
     if (todayStaffAttendance?.records?.length) {
@@ -67,9 +88,9 @@ export const schoolDashboardService = {
 
     // 3. Financial Metrics (Fee collection today & month, pending invoices)
     const [todayPayments, monthPayments, feeInvoices] = await Promise.all([
-      FeePayment.find({ schoolId, createdAt: { $gte: startOfToday } }).lean(),
-      FeePayment.find({ schoolId, createdAt: { $gte: startOfMonth } }).lean(),
-      FeeInvoice.find({ schoolId, status: { $in: ['PENDING', 'PARTIAL', 'OVERDUE'] } }).select('balanceAmount totalAmount paidAmount').lean(),
+      FeePayment.find({ ...schoolQuery, createdAt: { $gte: startOfToday } }).lean(),
+      FeePayment.find({ ...schoolQuery, createdAt: { $gte: startOfMonth } }).lean(),
+      FeeInvoice.find({ ...schoolQuery, status: { $in: ['PENDING', 'PARTIAL', 'OVERDUE'] } }).select('balanceAmount totalAmount paidAmount').lean(),
     ]);
 
     const collectedToday = todayPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -78,8 +99,8 @@ export const schoolDashboardService = {
 
     // 4. Gender Ratio & Distribution (Real data only)
     const [maleStudents, femaleStudents] = await Promise.all([
-      Student.countDocuments({ schoolId, gender: { $regex: /^m/i } }),
-      Student.countDocuments({ schoolId, gender: { $regex: /^f/i } }),
+      Student.countDocuments({ ...schoolQuery, gender: { $regex: /^m/i } }),
+      Student.countDocuments({ ...schoolQuery, gender: { $regex: /^f/i } }),
     ]);
 
     const genderDistribution = (totalStudents > 0) ? [
@@ -88,10 +109,10 @@ export const schoolDashboardService = {
     ] : [];
 
     // 5. Class-wise student strength (Real DB data only)
-    const classes = await SchoolClass.find({ schoolId, status: 'ACTIVE' }).sort({ numericOrder: 1, name: 1 }).limit(8).lean();
+    const classes = await SchoolClass.find({ ...schoolQuery, status: 'ACTIVE' }).sort({ numericOrder: 1, name: 1 }).limit(8).lean();
     const classStrength = await Promise.all(
       classes.map(async (c) => {
-        const count = await Student.countDocuments({ schoolId, classId: c._id, status: 'ACTIVE' });
+        const count = await Student.countDocuments({ ...schoolQuery, classId: c._id, status: 'ACTIVE' });
         return {
           class: c.name || `Class ${c.grade}`,
           strength: count,
@@ -109,7 +130,7 @@ export const schoolDashboardService = {
       const mName = months[(currentMonthIdx - i + 12) % 12];
       
       const count = await Student.countDocuments({
-        schoolId,
+        ...schoolQuery,
         createdAt: { $gte: targetMonthDate, $lt: nextMonthDate },
       });
 

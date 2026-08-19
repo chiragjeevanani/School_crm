@@ -28,5 +28,6 @@ export const mockEvents = [];
 export const mockMessages = [];
 export const mockNotifications = [];
 export const mockLeaves = [];
-export const mockSyllabus = [];
+export const mockSyllabus = {};
+export const mockStudyMaterial = [];
 export const mockDownloads = [];
