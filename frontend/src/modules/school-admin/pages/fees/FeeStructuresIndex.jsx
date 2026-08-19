@@ -6,24 +6,44 @@ import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
 import { academicPortalApi, feePortalApi } from '../../../../shared/api/client';
-import { Layers, ListChecks, Loader2, Pencil, Plus, Settings, Trash2 } from 'lucide-react';
+import {
+  AlertCircle,
+  BookOpen,
+  Calendar,
+  ChevronRight,
+  Filter,
+  GraduationCap,
+  Layers,
+  ListChecks,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Settings,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
 
 const inputClass =
-  'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white';
+  'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-xs font-semibold outline-none focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white';
 
-export const FeeStructuresIndex = () => {
+export const FeeStructuresIndex = ({ hideHeader = false }) => {
   const navigate = useNavigate();
   const { showToast, ToastComponent } = useToast();
   const [loading, setLoading] = useState(true);
   const [structures, setStructures] = useState([]);
   const [years, setYears] = useState([]);
-  const [classes, setClasses] = useState([]);
   const [selectedYear, setSelectedYear] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingStructure, setEditingStructure] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  // Dynamic Year-Specific Classes State
+  const [yearClasses, setYearClasses] = useState([]);
+  const [loadingYearClasses, setLoadingYearClasses] = useState(false);
 
   const [form, setForm] = useState({
     academicYearId: '',
@@ -33,16 +53,13 @@ export const FeeStructuresIndex = () => {
     status: 'ACTIVE',
   });
 
-  // Load reference Academic Years and Classes
+  // Load reference Academic Years
   useEffect(() => {
-    Promise.all([
-      academicPortalApi.years({ limit: 100 }),
-      academicPortalApi.classes({ limit: 100 }),
-    ])
-      .then(([yRes, cRes]) => {
+    academicPortalApi
+      .years({ limit: 100 })
+      .then((yRes) => {
         const yearList = yRes.data || [];
         setYears(yearList);
-        setClasses((cRes.data || []).filter((c) => c.status === 'ACTIVE'));
       })
       .catch(() => {});
   }, []);
@@ -66,6 +83,31 @@ export const FeeStructuresIndex = () => {
     loadStructures();
   }, [loadStructures]);
 
+  // Fetch classes specifically mapped to the chosen Academic Year
+  const fetchClassesForYear = useCallback(async (yearId) => {
+    if (!yearId) {
+      setYearClasses([]);
+      return [];
+    }
+    setLoadingYearClasses(true);
+    try {
+      const res = await academicPortalApi.yearClasses(yearId);
+      const list = res.data || [];
+      const normalized = list.map((item) => ({
+        id: item.classId || item.id,
+        name: item.name || 'Class',
+        code: item.code || '',
+      }));
+      setYearClasses(normalized);
+      return normalized;
+    } catch {
+      setYearClasses([]);
+      return [];
+    } finally {
+      setLoadingYearClasses(false);
+    }
+  }, []);
+
   const statusCounts = useMemo(() => {
     return {
       ALL: structures.length,
@@ -78,26 +120,46 @@ export const FeeStructuresIndex = () => {
   const filteredStructures = useMemo(() => {
     return structures.filter((s) => {
       if (statusFilter !== 'ALL' && s.status !== statusFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesName = (s.name || '').toLowerCase().includes(q);
+        const matchesClass = (s.class?.name || '').toLowerCase().includes(q);
+        const matchesYear = (s.academicYear?.name || '').toLowerCase().includes(q);
+        if (!matchesName && !matchesClass && !matchesYear) return false;
+      }
       return true;
     });
-  }, [structures, statusFilter]);
+  }, [structures, statusFilter, searchQuery]);
+
+  const handleYearChange = async (academicYearId) => {
+    const yrObj = years.find((y) => y.id === academicYearId);
+    setForm((prev) => ({ ...prev, academicYearId, classId: '' }));
+
+    const classesForThisYear = await fetchClassesForYear(academicYearId);
+    const firstCls = classesForThisYear?.[0];
+    const autoName = firstCls && yrObj ? `${firstCls.name} - ${yrObj.name} Fee Structure` : '';
+
+    setForm((prev) => ({
+      ...prev,
+      academicYearId,
+      classId: firstCls?.id || '',
+      name: autoName || prev.name,
+    }));
+  };
 
   const handleClassChange = (classId) => {
-    const clsObj = classes.find((c) => c.id === classId);
+    const clsObj = yearClasses.find((c) => c.id === classId);
     const yrObj = years.find((y) => y.id === (form.academicYearId || selectedYear));
     const autoName = clsObj && yrObj ? `${clsObj.name} - ${yrObj.name} Fee Structure` : form.name;
     setForm((prev) => ({ ...prev, classId, name: autoName }));
   };
 
-  const handleYearChange = (academicYearId) => {
-    const clsObj = classes.find((c) => c.id === form.classId);
-    const yrObj = years.find((y) => y.id === academicYearId);
-    const autoName = clsObj && yrObj ? `${clsObj.name} - ${yrObj.name} Fee Structure` : form.name;
-    setForm((prev) => ({ ...prev, academicYearId, name: autoName }));
-  };
-
   const handleCreateOrUpdate = async (e) => {
     e.preventDefault();
+    if (!form.classId) {
+      showToast('Please select a target class for this academic year', 'error');
+      return;
+    }
     setSaving(true);
     try {
       if (editingStructure) {
@@ -112,7 +174,7 @@ export const FeeStructuresIndex = () => {
           ...form,
           academicYearId: form.academicYearId || selectedYear,
         });
-        showToast('Fee structure created! Now add fee line items.', 'success');
+        showToast('Fee structure created! Now configure fee line items.', 'success');
         navigate(`/school-admin/fees/structures/${res.data.id}`);
       }
       setModalOpen(false);
@@ -125,16 +187,23 @@ export const FeeStructuresIndex = () => {
     }
   };
 
-  const handleEdit = (structure) => {
+  const handleEdit = async (structure) => {
     setEditingStructure(structure);
+    const yearId = structure.academicYear?.id || structure.academicYearId || '';
+    const classId = structure.class?.id || structure.classId || '';
+
     setForm({
-      academicYearId: structure.academicYear?.id || '',
-      classId: structure.class?.id || '',
+      academicYearId: yearId,
+      classId,
       name: structure.name || '',
       description: structure.description || '',
       status: structure.status || 'ACTIVE',
     });
     setModalOpen(true);
+
+    if (yearId) {
+      await fetchClassesForYear(yearId);
+    }
   };
 
   const confirmDelete = async () => {
@@ -150,339 +219,404 @@ export const FeeStructuresIndex = () => {
     }
   };
 
-  const openCreateModal = () => {
-    const yrObj = years.find((y) => y.id === selectedYear);
-    const firstClass = classes[0];
-    const defaultName = firstClass && yrObj ? `${firstClass.name} - ${yrObj.name} Fee Structure` : '';
+  const openCreateModal = async () => {
+    const defaultYearId = selectedYear || years.find((y) => y.isCurrent)?.id || years[0]?.id || '';
+    const yrObj = years.find((y) => y.id === defaultYearId);
+
     setEditingStructure(null);
     setForm({
-      academicYearId: selectedYear || '',
-      classId: firstClass?.id || '',
-      name: defaultName,
+      academicYearId: defaultYearId,
+      classId: '',
+      name: '',
       description: '',
       status: 'ACTIVE',
     });
     setModalOpen(true);
+
+    if (defaultYearId) {
+      const classesForThisYear = await fetchClassesForYear(defaultYearId);
+      const firstClass = classesForThisYear?.[0];
+      const defaultName = firstClass && yrObj ? `${firstClass.name} - ${yrObj.name} Fee Structure` : '';
+      setForm((prev) => ({
+        ...prev,
+        academicYearId: defaultYearId,
+        classId: firstClass?.id || '',
+        name: defaultName,
+      }));
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Class Fee Structures"
-        subtitle="Manage dynamic fee line items and charge schedules configured per Class and Academic Year."
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/school-admin/fees/heads')}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-            >
-              <ListChecks className="h-3.5 w-3.5" /> Manage Fee Heads Master
-            </button>
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-white shadow-sm"
-            >
-              <Plus className="h-3.5 w-3.5" /> Create Fee Structure
-            </button>
-          </div>
-        }
-      />
-
-      {/* Filters */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 select-none">Academic Year:</span>
-            <div className="relative">
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 pl-3.5 pr-9 text-xs font-semibold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white appearance-none cursor-pointer"
+    <div className="space-y-5">
+      {!hideHeader && (
+        <PageHeader
+          title="Class Fee Structures"
+          subtitle="Manage dynamic fee line items and charge schedules configured per Class and Academic Year."
+          actions={
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-primary/90"
               >
-                <option value="">All Academic Years</option>
+                <Plus className="h-3.5 w-3.5" /> Create Fee Structure
+              </button>
+            </div>
+          }
+        />
+      )}
+
+      {/* Toolbar & Filters */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        {/* Left Side: Search + Academic Year */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative min-w-[200px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search structure or class..."
+              className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50/80 pl-8 pr-3 text-xs font-semibold outline-none focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-bold text-slate-400">Year:</span>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="h-9 rounded-xl border border-slate-200 bg-slate-50/80 px-2.5 text-xs font-bold text-slate-800 outline-none focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white cursor-pointer"
+            >
+              <option value="">All Academic Years</option>
+              {years.map((y) => (
+                <option key={y.id} value={y.id}>
+                  {y.name} {y.isCurrent ? '(Current)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Right Side: Status Filter Pills + Create Button */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center rounded-xl bg-slate-100 p-1 dark:bg-slate-950">
+            {[
+              { id: 'ALL', label: 'All', count: statusCounts.ALL },
+              { id: 'ACTIVE', label: 'Active', count: statusCounts.ACTIVE },
+              { id: 'DRAFT', label: 'Draft', count: statusCounts.DRAFT },
+              { id: 'INACTIVE', label: 'Inactive', count: statusCounts.INACTIVE },
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setStatusFilter(item.id)}
+                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+                  statusFilter === item.id
+                    ? 'bg-white text-primary shadow-sm dark:bg-slate-900 dark:text-white'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                }`}
+              >
+                {item.label}{' '}
+                <span className="text-[10px] opacity-75 font-semibold">({item.count})</span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-primary/90"
+          >
+            <Plus className="h-3.5 w-3.5" /> Create Structure
+          </button>
+        </div>
+      </div>
+
+      {/* Main Table */}
+      {loading ? (
+        <div className="flex h-60 flex-col items-center justify-center gap-2 text-slate-400 rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <p className="text-xs font-semibold">Loading class fee structures...</p>
+        </div>
+      ) : filteredStructures.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <Layers className="h-10 w-10 text-slate-300 dark:text-slate-700" />
+          <h4 className="mt-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+            No Fee Structures Found
+          </h4>
+          <p className="mt-1 text-xs text-slate-400 max-w-sm">
+            Create fee structures for classes (e.g. Class 10 - 2026-27) and attach tuition, exam, and other line items.
+          </p>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-primary/90"
+          >
+            <Plus className="h-3.5 w-3.5" /> Create First Fee Structure
+          </button>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-100 bg-slate-50/70 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 font-bold">Structure Name</th>
+                  <th className="px-3 py-3 font-bold">Target Class</th>
+                  <th className="px-3 py-3 font-bold">Academic Session</th>
+                  <th className="px-3 py-3 text-center font-bold">Configured Fees</th>
+                  <th className="px-3 py-3 text-center font-bold">Status</th>
+                  <th className="px-4 py-3 text-right font-bold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredStructures.map((st) => (
+                  <tr
+                    key={st.id}
+                    className="group transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                  >
+                    {/* Structure Name */}
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold">
+                          <Layers className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/school-admin/fees/structures/${st.id}`)}
+                            className="font-bold text-slate-900 hover:text-primary transition dark:text-white"
+                          >
+                            {st.name}
+                          </button>
+                          {st.description && (
+                            <span className="block text-[11px] text-slate-400 line-clamp-1">
+                              {st.description}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Class */}
+                    <td className="px-3 py-3.5">
+                      <div className="flex items-center gap-1.5">
+                        <GraduationCap className="h-3.5 w-3.5 text-slate-400" />
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {st.class?.name || 'All Classes'}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Academic Session */}
+                    <td className="px-3 py-3.5">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                        <span className="font-semibold text-slate-600 dark:text-slate-300">
+                          {st.academicYear?.name || '—'}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Line Items Count */}
+                    <td className="px-3 py-3.5 text-center">
+                      <span className="inline-flex items-center gap-1 rounded-xl bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300">
+                        {st.itemsCount || 0} Line Items
+                      </span>
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-3 py-3.5 text-center">
+                      <Badge
+                        variant={
+                          st.status === 'ACTIVE'
+                            ? 'success'
+                            : st.status === 'DRAFT'
+                            ? 'warning'
+                            : 'default'
+                        }
+                      >
+                        {st.status}
+                      </Badge>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-3.5 text-right">
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/school-admin/fees/structures/${st.id}`)}
+                          className="inline-flex items-center gap-1 rounded-xl bg-primary/10 px-2.5 py-1.5 text-xs font-bold text-primary transition hover:bg-primary hover:text-white"
+                          title="Configure Fee Line Items"
+                        >
+                          <Settings className="h-3.5 w-3.5" />
+                          <span>Setup Fees</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(st)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-primary hover:text-primary dark:border-slate-800 dark:text-slate-300"
+                          title="Edit Structure"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(st)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:border-rose-300 hover:text-rose-600 dark:border-slate-800"
+                          title="Delete Structure"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE / EDIT MODAL */}
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingStructure ? 'Edit Fee Structure' : 'Create Class Fee Structure'}
+        size="lg"
+      >
+        <form onSubmit={handleCreateOrUpdate} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Academic Session */}
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">
+                Academic Session *
+              </label>
+              <select
+                value={form.academicYearId || selectedYear}
+                onChange={(e) => handleYearChange(e.target.value)}
+                required
+                disabled={Boolean(editingStructure)}
+                className={inputClass}
+              >
+                <option value="">-- Select Academic Year --</option>
                 {years.map((y) => (
                   <option key={y.id} value={y.id}>
                     {y.name} {y.isCurrent ? '(Current)' : ''}
                   </option>
                 ))}
               </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 select-none">Status:</span>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { id: 'ALL', label: 'All Statuses', count: statusCounts.ALL },
-                { id: 'ACTIVE', label: 'Active', count: statusCounts.ACTIVE },
-                { id: 'DRAFT', label: 'Draft', count: statusCounts.DRAFT },
-                { id: 'INACTIVE', label: 'Inactive', count: statusCounts.INACTIVE },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setStatusFilter(item.id)}
-                  className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all duration-200 ${
-                    statusFilter === item.id
-                      ? 'bg-primary text-white shadow-sm shadow-primary/20'
-                      : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-850'
-                  }`}
-                >
-                  {item.label}{' '}
-                  <span className={`ml-1 text-[10px] ${statusFilter === item.id ? 'opacity-80' : 'text-slate-400 dark:text-slate-500'}`}>
-                    ({item.count})
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="w-full text-xs">
-            <thead className="border-b border-slate-100 bg-slate-50/70 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
-              <tr>
-                {['#', 'Structure Name', 'Class', 'Academic Year', 'Configured Line Items', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-center font-bold text-slate-500 dark:text-slate-400">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({ length: 4 }).map((_, index) => (
-                <tr key={index} className="border-b border-slate-50 dark:border-slate-850 animate-pulse">
-                  <td className="px-4 py-4 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-6 mx-auto" /></td>
-                  <td className="px-4 py-4 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-36 mx-auto" /></td>
-                  <td className="px-4 py-4 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-16 mx-auto" /></td>
-                  <td className="px-4 py-4 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-20 mx-auto" /></td>
-                  <td className="px-4 py-4 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-16 mx-auto" /></td>
-                  <td className="px-4 py-4 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-14 mx-auto" /></td>
-                  <td className="px-4 py-4"><div className="h-8 bg-slate-100 dark:bg-slate-800 rounded-lg w-24 mx-auto" /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : filteredStructures.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-900">
-          <Layers className="h-10 w-10 text-slate-400" />
-          <p className="mt-3 text-sm font-bold text-slate-700 dark:text-slate-200">No fee structures configured</p>
-          <p className="mt-1 text-xs text-slate-400">
-            Create fee structures for classes (e.g. Class 10 - 2026-27) and attach tuition, exam, and other fee components.
-          </p>
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="mt-4 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm"
-          >
-            + Create Class Fee Structure
-          </button>
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="w-full text-xs">
-            <thead className="border-b border-slate-100 bg-slate-50/70 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
-              <tr>
-                {['#', 'Structure Name', 'Class', 'Academic Year', 'Configured Line Items', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-center font-bold text-slate-500 dark:text-slate-400">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStructures.map((st, index) => (
-                <tr key={st.id} className="border-b border-slate-50 dark:border-slate-850 hover:bg-slate-50/50 dark:hover:bg-slate-850/50">
-                  <td className="px-4 py-3.5 text-center font-semibold text-slate-500">{index + 1}</td>
-                  <td className="px-4 py-3.5 text-center font-bold text-slate-800 dark:text-white">
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/school-admin/fees/structures/${st.id}`)}
-                      className="hover:text-primary transition-colors text-left"
-                    >
-                      {st.name}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3.5 text-center font-semibold text-slate-700 dark:text-slate-300">
-                    {st.class?.name || '—'}
-                  </td>
-                  <td className="px-4 py-3.5 text-center text-slate-600 dark:text-slate-400">
-                    {st.academicYear?.name || '—'}
-                  </td>
-                  <td className="px-4 py-3.5 text-center">
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
-                      {st.itemsCount || 0} Fees
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5 text-center">
-                    <Badge variant={st.status === 'ACTIVE' ? 'success' : st.status === 'DRAFT' ? 'warning' : 'default'}>
-                      {st.status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/school-admin/fees/structures/${st.id}`)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-primary hover:bg-primary/5 dark:border-slate-700"
-                        title="Configure Line Items"
-                      >
-                        <Settings className="h-3.5 w-3.5" /> Setup Items
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(st)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-primary hover:text-primary dark:border-slate-700"
-                        title="Edit Structure Details"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(st)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-rose-500 hover:border-rose-300 hover:bg-rose-50 dark:border-slate-700 dark:hover:bg-rose-950/20"
-                        title="Delete Structure"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Create / Edit Modal */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setEditingStructure(null);
-        }}
-        title={editingStructure ? 'Edit Fee Structure' : 'Create Class Fee Structure'}
-      >
-        <form onSubmit={handleCreateOrUpdate} className="space-y-4">
-          {!editingStructure && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-1 block text-xs font-bold text-slate-500">Academic Year *</label>
+            {/* Target Class (Filtered dynamically by chosen academic year) */}
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">
+                Target Class *
+              </label>
+              {loadingYearClasses ? (
+                <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-xs text-slate-400">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Loading classes for this session...
+                </div>
+              ) : (
                 <select
-                  className={inputClass}
-                  value={form.academicYearId || selectedYear}
-                  onChange={(e) => handleYearChange(e.target.value)}
-                  required
-                >
-                  {years.map((y) => (
-                    <option key={y.id} value={y.id}>
-                      {y.name} {y.isCurrent ? '(Current)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-bold text-slate-500">Class Standard *</label>
-                <select
-                  className={inputClass}
                   value={form.classId}
                   onChange={(e) => handleClassChange(e.target.value)}
                   required
+                  disabled={Boolean(editingStructure) || yearClasses.length === 0}
+                  className={inputClass}
                 >
-                  <option value="" disabled>
-                    Select Class
+                  <option value="">
+                    {yearClasses.length === 0
+                      ? '-- No classes mapped to this session --'
+                      : '-- Select Target Class --'}
                   </option>
-                  {classes.map((c) => (
+                  {yearClasses.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {c.name} {c.code ? `(${c.code})` : ''}
                     </option>
                   ))}
                 </select>
-              </div>
+              )}
+              {form.academicYearId && yearClasses.length === 0 && !loadingYearClasses && (
+                <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-rose-500">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  No classes mapped to this session. Please add classes in Academics first.
+                </p>
+              )}
             </div>
-          )}
+          </div>
 
           <div>
-            <label className="mb-1 block text-xs font-bold text-slate-500">Structure Title *</label>
+            <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">
+              Structure Title / Name *
+            </label>
             <input
-              className={inputClass}
+              type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="e.g. Class 10 - 2026-27 Regular Fee Structure"
+              placeholder="e.g. Class 10 - Annual Fee Structure 2026-27"
               required
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-bold text-slate-500">Description</label>
-            <input
-              className={inputClass}
+            <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">
+              Description / Notes (Optional)
+            </label>
+            <textarea
+              rows={2}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Optional notes or eligibility terms"
+              placeholder="e.g. Standard comprehensive fee schedule for secondary school."
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-xs font-semibold outline-none focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white"
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-bold text-slate-500">Status</label>
-            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-950">
-              {['ACTIVE', 'DRAFT', 'INACTIVE'].map((st) => (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => setForm({ ...form, status: st })}
-                  className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                    form.status === st
-                      ? st === 'ACTIVE'
-                        ? 'bg-emerald-500 text-white'
-                        : st === 'DRAFT'
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-slate-700 text-white'
-                      : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-900'
-                  }`}
-                >
-                  {st}
-                </button>
-              ))}
-            </div>
+            <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">
+              Status
+            </label>
+            <select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              className={inputClass}
+            >
+              <option value="ACTIVE">Active (Ready to attach items & invoice)</option>
+              <option value="DRAFT">Draft (Under configuration)</option>
+              <option value="INACTIVE">Inactive (Archived)</option>
+            </select>
           </div>
 
-          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="rounded-xl px-4 py-2 text-xs font-semibold"
+              className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={saving}
-              className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm disabled:opacity-60"
+              disabled={saving || yearClasses.length === 0}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-primary/90 disabled:opacity-50"
             >
-              {saving ? 'Saving...' : editingStructure ? 'Update Structure' : 'Proceed to Add Fee Items'}
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              <span>{editingStructure ? 'Save Changes' : 'Create & Configure Items'}</span>
             </button>
           </div>
         </form>
       </Modal>
 
+      {/* CONFIRM DELETE DIALOG */}
       <ConfirmDialog
         isOpen={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={confirmDelete}
         title="Delete Fee Structure"
-        message={`Delete "${deleteTarget?.name}" and all attached fee line items?`}
-        confirmText="Delete Structure"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? All attached line items and configurations will be removed.`}
+        confirmLabel="Delete Structure"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
         variant="danger"
       />
 

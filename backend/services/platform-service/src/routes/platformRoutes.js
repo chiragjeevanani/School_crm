@@ -177,6 +177,100 @@ import {
   saveDailyAttendance,
   updateSingleStatus,
 } from '../controllers/staffAttendance.controller.js';
+import {
+  createBook,
+  deleteBook,
+  getBook,
+  getEligibleBorrowers,
+  getLibraryStats,
+  issueBook,
+  listBooks,
+  listIssues,
+  returnBook,
+  updateBook,
+} from '../controllers/library.controller.js';
+import {
+  addExamSubject,
+  calculateResults,
+  createExam,
+  createScheduleEntry,
+  deleteExam,
+  deleteExamSubject,
+  deleteScheduleEntry,
+  getExam,
+  getExamStats,
+  getStudentReportCard,
+  listExams,
+  listExamSubjects,
+  listMarksSheet,
+  listResults,
+  listSchedule,
+  saveMarks,
+  seedExamSubjects,
+  updateExam,
+  updateExamSubject,
+  updateScheduleEntry,
+} from '../controllers/exam.controller.js';
+import {
+  allocateStudent,
+  checkoutStudent,
+  createComplaint,
+  createHostel,
+  createOuting,
+  createRoom,
+  deleteHostel,
+  deleteRoom,
+  getBedVisualizer,
+  getEligibleHostelEntities,
+  getHostel,
+  getHostelAttendance,
+  getHostelDashboard,
+  getRoom,
+  listAllocations,
+  listBeds,
+  listComplaints,
+  listHostels,
+  listOutings,
+  listRooms,
+  saveHostelAttendance,
+  seedDemoHostelData,
+  transferStudent,
+  updateComplaint,
+  updateHostel,
+  updateOutingStatus,
+  updateRoom,
+} from '../controllers/hostel.controller.js';
+import {
+  assignTransportStudent,
+  createMaintenance,
+  createRoute,
+  createStop,
+  createTransportIncident,
+  createVehicle,
+  deleteRoute,
+  deleteStop,
+  deleteVehicle,
+  discontinueTransportAssignment,
+  getEligibleTransportEntities,
+  getRoute,
+  getTransportAttendance,
+  getTransportDashboard,
+  getVehicle,
+  listMaintenance,
+  listRoutes,
+  listStops,
+  listTransportAssignments,
+  listTransportIncidents,
+  listVehicles,
+  saveTransportAttendance,
+  seedDemoTransportData,
+  updateRoute,
+  updateStop,
+  updateTransportIncident,
+  updateVehicle,
+} from '../controllers/transport.controller.js';
+import { getSchoolAdminDashboardSummary } from '../controllers/schoolDashboard.controller.js';
+import { getSchoolReportsSummary, getCategoryReportData } from '../controllers/schoolReports.controller.js';
 import { requireSuperAdmin } from '../middleware/requireSuperAdmin.js';
 import { requireSchoolAdmin } from '../middleware/requireSchoolAdmin.js';
 import { assertSchoolAccess } from '../middleware/assertSchoolAccess.js';
@@ -197,6 +291,9 @@ router.get('/school-auth/branding', schoolBranding);
 router.post('/school-auth/login', schoolAdminLogin);
 router.post('/school-auth/forgot-password', schoolAdminForgotPassword);
 router.post('/school-auth/reset-password', schoolAdminResetPassword);
+router.get('/school-portal/dashboard/summary', requireSchoolAdmin, getSchoolAdminDashboardSummary);
+router.get('/school-portal/reports/summary', requireSchoolAdmin, getSchoolReportsSummary);
+router.get('/school-portal/reports/data', requireSchoolAdmin, getCategoryReportData);
 router.get('/school-portal/me', requireSchoolAdmin, schoolPortalMe);
 router.get('/school-portal/plans', requireSchoolAdmin, schoolPortalPlans);
 router.post('/school-portal/select-plan', requireSchoolAdmin, schoolSelectPlan);
@@ -314,6 +411,118 @@ router.post('/school-portal/attendance/staff', requireSchoolAdmin, saveDailyAtte
 router.patch('/school-portal/attendance/staff/:employeeRefId', requireSchoolAdmin, updateSingleStatus);
 router.post('/school-portal/attendance/staff/mark-all', requireSchoolAdmin, markAllStatus);
 router.get('/school-portal/attendance/staff/monthly', requireSchoolAdmin, getMonthlySummary);
+
+// Library Management Endpoints
+router.get('/school-portal/library/stats', requireSchoolAdmin, getLibraryStats);
+router.get('/school-portal/library/borrowers', requireSchoolAdmin, getEligibleBorrowers);
+router.get('/school-portal/library/books', requireSchoolAdmin, listBooks);
+router.post('/school-portal/library/books', requireSchoolAdmin, createBook);
+router.get('/school-portal/library/books/:id', requireSchoolAdmin, getBook);
+router.patch('/school-portal/library/books/:id', requireSchoolAdmin, updateBook);
+router.delete('/school-portal/library/books/:id', requireSchoolAdmin, deleteBook);
+router.get('/school-portal/library/issues', requireSchoolAdmin, listIssues);
+router.post('/school-portal/library/issues', requireSchoolAdmin, issueBook);
+router.post('/school-portal/library/issues/:id/return', requireSchoolAdmin, returnBook);
+
+// Examination & Terms Endpoints
+router.get('/school-portal/exams/stats', requireSchoolAdmin, getExamStats);
+router.get('/school-portal/exams', requireSchoolAdmin, listExams);
+router.post('/school-portal/exams', requireSchoolAdmin, createExam);
+router.get('/school-portal/exams/:id', requireSchoolAdmin, getExam);
+router.patch('/school-portal/exams/:id', requireSchoolAdmin, updateExam);
+router.delete('/school-portal/exams/:id', requireSchoolAdmin, deleteExam);
+
+// Exam Subjects
+router.get('/school-portal/exams/:examId/subjects', requireSchoolAdmin, listExamSubjects);
+router.post('/school-portal/exams/:examId/subjects/seed', requireSchoolAdmin, seedExamSubjects);
+router.post('/school-portal/exams/:examId/subjects', requireSchoolAdmin, addExamSubject);
+router.patch('/school-portal/exams/:examId/subjects/:id', requireSchoolAdmin, updateExamSubject);
+router.delete('/school-portal/exams/:examId/subjects/:id', requireSchoolAdmin, deleteExamSubject);
+
+// Exam Schedule (Timetable)
+router.get('/school-portal/exams/:examId/schedule', requireSchoolAdmin, listSchedule);
+router.post('/school-portal/exams/:examId/schedule', requireSchoolAdmin, createScheduleEntry);
+router.patch('/school-portal/exams/:examId/schedule/:id', requireSchoolAdmin, updateScheduleEntry);
+router.delete('/school-portal/exams/:examId/schedule/:id', requireSchoolAdmin, deleteScheduleEntry);
+
+// Marks Entry & Result Calculation
+router.get('/school-portal/exams/:examId/marks', requireSchoolAdmin, listMarksSheet);
+router.post('/school-portal/exams/:examId/marks', requireSchoolAdmin, saveMarks);
+router.post('/school-portal/exams/:examId/results/calculate', requireSchoolAdmin, calculateResults);
+router.get('/school-portal/exams/:examId/results', requireSchoolAdmin, listResults);
+router.get('/school-portal/exams/:examId/results/:studentId', requireSchoolAdmin, getStudentReportCard);
+
+// Hostel Management Endpoints
+router.get('/school-portal/hostel/dashboard', requireSchoolAdmin, getHostelDashboard);
+router.post('/school-portal/hostel/seed-demo', requireSchoolAdmin, seedDemoHostelData);
+router.get('/school-portal/hostel/eligible-entities', requireSchoolAdmin, getEligibleHostelEntities);
+
+router.get('/school-portal/hostel/hostels', requireSchoolAdmin, listHostels);
+router.post('/school-portal/hostel/hostels', requireSchoolAdmin, createHostel);
+router.get('/school-portal/hostel/hostels/:id', requireSchoolAdmin, getHostel);
+router.patch('/school-portal/hostel/hostels/:id', requireSchoolAdmin, updateHostel);
+router.delete('/school-portal/hostel/hostels/:id', requireSchoolAdmin, deleteHostel);
+
+router.get('/school-portal/hostel/rooms', requireSchoolAdmin, listRooms);
+router.post('/school-portal/hostel/rooms', requireSchoolAdmin, createRoom);
+router.get('/school-portal/hostel/rooms/:id', requireSchoolAdmin, getRoom);
+router.patch('/school-portal/hostel/rooms/:id', requireSchoolAdmin, updateRoom);
+router.delete('/school-portal/hostel/rooms/:id', requireSchoolAdmin, deleteRoom);
+
+router.get('/school-portal/hostel/beds', requireSchoolAdmin, listBeds);
+router.get('/school-portal/hostel/beds/visualizer', requireSchoolAdmin, getBedVisualizer);
+
+router.get('/school-portal/hostel/allocations', requireSchoolAdmin, listAllocations);
+router.post('/school-portal/hostel/allocations', requireSchoolAdmin, allocateStudent);
+router.post('/school-portal/hostel/allocations/:id/transfer', requireSchoolAdmin, transferStudent);
+router.post('/school-portal/hostel/allocations/:id/checkout', requireSchoolAdmin, checkoutStudent);
+
+router.get('/school-portal/hostel/attendance/:hostelId', requireSchoolAdmin, getHostelAttendance);
+router.post('/school-portal/hostel/attendance/:hostelId', requireSchoolAdmin, saveHostelAttendance);
+
+router.get('/school-portal/hostel/outings', requireSchoolAdmin, listOutings);
+router.post('/school-portal/hostel/outings', requireSchoolAdmin, createOuting);
+router.patch('/school-portal/hostel/outings/:id/status', requireSchoolAdmin, updateOutingStatus);
+
+router.get('/school-portal/hostel/complaints', requireSchoolAdmin, listComplaints);
+router.post('/school-portal/hostel/complaints', requireSchoolAdmin, createComplaint);
+router.patch('/school-portal/hostel/complaints/:id', requireSchoolAdmin, updateComplaint);
+
+// Transport Management Endpoints
+router.get('/school-portal/transport/dashboard', requireSchoolAdmin, getTransportDashboard);
+router.post('/school-portal/transport/seed-demo', requireSchoolAdmin, seedDemoTransportData);
+router.get('/school-portal/transport/eligible-entities', requireSchoolAdmin, getEligibleTransportEntities);
+
+router.get('/school-portal/transport/vehicles', requireSchoolAdmin, listVehicles);
+router.post('/school-portal/transport/vehicles', requireSchoolAdmin, createVehicle);
+router.get('/school-portal/transport/vehicles/:id', requireSchoolAdmin, getVehicle);
+router.patch('/school-portal/transport/vehicles/:id', requireSchoolAdmin, updateVehicle);
+router.delete('/school-portal/transport/vehicles/:id', requireSchoolAdmin, deleteVehicle);
+
+router.get('/school-portal/transport/routes', requireSchoolAdmin, listRoutes);
+router.post('/school-portal/transport/routes', requireSchoolAdmin, createRoute);
+router.get('/school-portal/transport/routes/:id', requireSchoolAdmin, getRoute);
+router.patch('/school-portal/transport/routes/:id', requireSchoolAdmin, updateRoute);
+router.delete('/school-portal/transport/routes/:id', requireSchoolAdmin, deleteRoute);
+
+router.get('/school-portal/transport/routes/:routeId/stops', requireSchoolAdmin, listStops);
+router.post('/school-portal/transport/routes/:routeId/stops', requireSchoolAdmin, createStop);
+router.patch('/school-portal/transport/stops/:id', requireSchoolAdmin, updateStop);
+router.delete('/school-portal/transport/stops/:id', requireSchoolAdmin, deleteStop);
+
+router.get('/school-portal/transport/assignments', requireSchoolAdmin, listTransportAssignments);
+router.post('/school-portal/transport/assignments', requireSchoolAdmin, assignTransportStudent);
+router.post('/school-portal/transport/assignments/:id/discontinue', requireSchoolAdmin, discontinueTransportAssignment);
+
+router.get('/school-portal/transport/attendance/:routeId', requireSchoolAdmin, getTransportAttendance);
+router.post('/school-portal/transport/attendance/:routeId', requireSchoolAdmin, saveTransportAttendance);
+
+router.get('/school-portal/transport/maintenance', requireSchoolAdmin, listMaintenance);
+router.post('/school-portal/transport/maintenance', requireSchoolAdmin, createMaintenance);
+
+router.get('/school-portal/transport/incidents', requireSchoolAdmin, listTransportIncidents);
+router.post('/school-portal/transport/incidents', requireSchoolAdmin, createTransportIncident);
+router.patch('/school-portal/transport/incidents/:id', requireSchoolAdmin, updateTransportIncident);
 
 router.get('/subscriptions', requireSuperAdmin, listPlans);
 router.post('/subscriptions', requireSuperAdmin, createPlan);

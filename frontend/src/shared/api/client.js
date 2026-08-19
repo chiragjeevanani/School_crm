@@ -125,6 +125,10 @@ function studentRequestConfig(payload) {
 }
 
 export const schoolPortalApi = {
+  dashboardSummary: () => schoolAdminClient.get('/platform/school-portal/dashboard/summary').then((res) => res.data),
+  reportsSummary: () => schoolAdminClient.get('/platform/school-portal/reports/summary').then((res) => res.data),
+  reportData: (category, params) =>
+    schoolAdminClient.get('/platform/school-portal/reports/data', { params: { category, ...params } }).then((res) => res.data),
   me: () => schoolAdminClient.get('/platform/school-portal/me').then((res) => res.data),
   plans: () => schoolAdminClient.get('/platform/school-portal/plans').then((res) => res.data),
   selectPlan: (planId) =>
@@ -367,3 +371,142 @@ export const platformReportApi = {
   invoices: (params) => apiClient.get('/platform/reports/invoices', { params }).then((res) => res.data),
   notifications: (params) => apiClient.get('/platform/reports/notifications', { params }).then((res) => res.data),
 };
+
+export const libraryPortalApi = {
+  stats: () => schoolAdminClient.get('/platform/school-portal/library/stats').then((r) => r.data),
+  borrowers: (params) => schoolAdminClient.get('/platform/school-portal/library/borrowers', { params }).then((r) => r.data),
+  books: (params) => schoolAdminClient.get('/platform/school-portal/library/books', { params }).then((r) => r.data),
+  getBook: (id) => schoolAdminClient.get(`/platform/school-portal/library/books/${id}`).then((r) => r.data),
+  createBook: (payload) => schoolAdminClient.post('/platform/school-portal/library/books', payload).then((r) => r.data),
+  updateBook: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/library/books/${id}`, payload).then((r) => r.data),
+  deleteBook: (id) => schoolAdminClient.delete(`/platform/school-portal/library/books/${id}`).then((r) => r.data),
+  issues: (params) => schoolAdminClient.get('/platform/school-portal/library/issues', { params }).then((r) => r.data),
+  issueBook: (payload) => schoolAdminClient.post('/platform/school-portal/library/issues', payload).then((r) => r.data),
+  returnBook: (id, payload) => schoolAdminClient.post(`/platform/school-portal/library/issues/${id}/return`, payload).then((r) => r.data),
+};
+
+export const examPortalApi = {
+  // Exams
+  stats: () => schoolAdminClient.get('/platform/school-portal/exams/stats').then((r) => r.data),
+  exams: (params) => schoolAdminClient.get('/platform/school-portal/exams', { params }).then((r) => r.data),
+  getExam: (id) => schoolAdminClient.get(`/platform/school-portal/exams/${id}`).then((r) => r.data),
+  createExam: (payload) => schoolAdminClient.post('/platform/school-portal/exams', payload).then((r) => r.data),
+  updateExam: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/exams/${id}`, payload).then((r) => r.data),
+  deleteExam: (id) => schoolAdminClient.delete(`/platform/school-portal/exams/${id}`).then((r) => r.data),
+
+  // Exam Subjects
+  subjects: (examId, params) => schoolAdminClient.get(`/platform/school-portal/exams/${examId}/subjects`, { params }).then((r) => r.data),
+  seedSubjects: (examId) => schoolAdminClient.post(`/platform/school-portal/exams/${examId}/subjects/seed`).then((r) => r.data),
+  addSubject: (examId, payload) => schoolAdminClient.post(`/platform/school-portal/exams/${examId}/subjects`, payload).then((r) => r.data),
+  updateSubject: (examId, id, payload) => schoolAdminClient.patch(`/platform/school-portal/exams/${examId}/subjects/${id}`, payload).then((r) => r.data),
+  deleteSubject: (examId, id) => schoolAdminClient.delete(`/platform/school-portal/exams/${examId}/subjects/${id}`).then((r) => r.data),
+
+  // Exam Schedule
+  schedule: (examId, params) => schoolAdminClient.get(`/platform/school-portal/exams/${examId}/schedule`, { params }).then((r) => r.data),
+  createScheduleEntry: (examId, payload) => schoolAdminClient.post(`/platform/school-portal/exams/${examId}/schedule`, payload).then((r) => r.data),
+  updateScheduleEntry: (examId, id, payload) => schoolAdminClient.patch(`/platform/school-portal/exams/${examId}/schedule/${id}`, payload).then((r) => r.data),
+  deleteScheduleEntry: (examId, id) => schoolAdminClient.delete(`/platform/school-portal/exams/${examId}/schedule/${id}`).then((r) => r.data),
+
+  // Marks Entry
+  marksSheet: (examId, params) => schoolAdminClient.get(`/platform/school-portal/exams/${examId}/marks`, { params }).then((r) => r.data),
+  saveMarks: (examId, payload) => schoolAdminClient.post(`/platform/school-portal/exams/${examId}/marks`, payload).then((r) => r.data),
+
+  // Results & Report Cards
+  calculateResults: (examId, payload) => schoolAdminClient.post(`/platform/school-portal/exams/${examId}/results/calculate`, payload).then((r) => r.data),
+  results: (examId, params) => schoolAdminClient.get(`/platform/school-portal/exams/${examId}/results`, { params }).then((r) => r.data),
+  reportCard: (examId, studentId) => schoolAdminClient.get(`/platform/school-portal/exams/${examId}/results/${studentId}`).then((r) => r.data),
+};
+
+export const hostelPortalApi = {
+  // Dashboard & Helpers
+  dashboard: () => schoolAdminClient.get('/platform/school-portal/hostel/dashboard').then((r) => r.data),
+  seedDemo: () => schoolAdminClient.post('/platform/school-portal/hostel/seed-demo').then((r) => r.data),
+  eligibleEntities: () => schoolAdminClient.get('/platform/school-portal/hostel/eligible-entities').then((r) => r.data),
+
+  // Hostels
+  hostels: (params) => schoolAdminClient.get('/platform/school-portal/hostel/hostels', { params }).then((r) => r.data),
+  getHostel: (id) => schoolAdminClient.get(`/platform/school-portal/hostel/hostels/${id}`).then((r) => r.data),
+  createHostel: (payload) => schoolAdminClient.post('/platform/school-portal/hostel/hostels', payload).then((r) => r.data),
+  updateHostel: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/hostel/hostels/${id}`, payload).then((r) => r.data),
+  deleteHostel: (id) => schoolAdminClient.delete(`/platform/school-portal/hostel/hostels/${id}`).then((r) => r.data),
+
+  // Rooms
+  rooms: (params) => schoolAdminClient.get('/platform/school-portal/hostel/rooms', { params }).then((r) => r.data),
+  getRoom: (id) => schoolAdminClient.get(`/platform/school-portal/hostel/rooms/${id}`).then((r) => r.data),
+  createRoom: (payload) => schoolAdminClient.post('/platform/school-portal/hostel/rooms', payload).then((r) => r.data),
+  updateRoom: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/hostel/rooms/${id}`, payload).then((r) => r.data),
+  deleteRoom: (id) => schoolAdminClient.delete(`/platform/school-portal/hostel/rooms/${id}`).then((r) => r.data),
+
+  // Beds & Visualizer
+  beds: (params) => schoolAdminClient.get('/platform/school-portal/hostel/beds', { params }).then((r) => r.data),
+  bedVisualizer: (params) => schoolAdminClient.get('/platform/school-portal/hostel/beds/visualizer', { params }).then((r) => r.data),
+
+  // Allocations & Vacate
+  allocations: (params) => schoolAdminClient.get('/platform/school-portal/hostel/allocations', { params }).then((r) => r.data),
+  allocateStudent: (payload) => schoolAdminClient.post('/platform/school-portal/hostel/allocations', payload).then((r) => r.data),
+  transferStudent: (id, payload) => schoolAdminClient.post(`/platform/school-portal/hostel/allocations/${id}/transfer`, payload).then((r) => r.data),
+  checkoutStudent: (id, payload) => schoolAdminClient.post(`/platform/school-portal/hostel/allocations/${id}/checkout`, payload).then((r) => r.data),
+
+  // Attendance
+  getAttendance: (hostelId, params) => schoolAdminClient.get(`/platform/school-portal/hostel/attendance/${hostelId}`, { params }).then((r) => r.data),
+  saveAttendance: (hostelId, payload) => schoolAdminClient.post(`/platform/school-portal/hostel/attendance/${hostelId}`, payload).then((r) => r.data),
+
+  // Outings
+  outings: (params) => schoolAdminClient.get('/platform/school-portal/hostel/outings', { params }).then((r) => r.data),
+  createOuting: (payload) => schoolAdminClient.post('/platform/school-portal/hostel/outings', payload).then((r) => r.data),
+  updateOutingStatus: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/hostel/outings/${id}/status`, payload).then((r) => r.data),
+
+  // Complaints
+  complaints: (params) => schoolAdminClient.get('/platform/school-portal/hostel/complaints', { params }).then((r) => r.data),
+  createComplaint: (payload) => schoolAdminClient.post('/platform/school-portal/hostel/complaints', payload).then((r) => r.data),
+  updateComplaint: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/hostel/complaints/${id}`, payload).then((r) => r.data),
+};
+
+export const transportPortalApi = {
+  // Dashboard & Helpers
+  dashboard: () => schoolAdminClient.get('/platform/school-portal/transport/dashboard').then((r) => r.data),
+  seedDemo: () => schoolAdminClient.post('/platform/school-portal/transport/seed-demo').then((r) => r.data),
+  eligibleEntities: () => schoolAdminClient.get('/platform/school-portal/transport/eligible-entities').then((r) => r.data),
+
+  // Vehicles
+  vehicles: (params) => schoolAdminClient.get('/platform/school-portal/transport/vehicles', { params }).then((r) => r.data),
+  getVehicle: (id) => schoolAdminClient.get(`/platform/school-portal/transport/vehicles/${id}`).then((r) => r.data),
+  createVehicle: (payload) => schoolAdminClient.post('/platform/school-portal/transport/vehicles', payload).then((r) => r.data),
+  updateVehicle: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/transport/vehicles/${id}`, payload).then((r) => r.data),
+  deleteVehicle: (id) => schoolAdminClient.delete(`/platform/school-portal/transport/vehicles/${id}`).then((r) => r.data),
+
+  // Routes
+  routes: (params) => schoolAdminClient.get('/platform/school-portal/transport/routes', { params }).then((r) => r.data),
+  getRoute: (id) => schoolAdminClient.get(`/platform/school-portal/transport/routes/${id}`).then((r) => r.data),
+  createRoute: (payload) => schoolAdminClient.post('/platform/school-portal/transport/routes', payload).then((r) => r.data),
+  updateRoute: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/transport/routes/${id}`, payload).then((r) => r.data),
+  deleteRoute: (id) => schoolAdminClient.delete(`/platform/school-portal/transport/routes/${id}`).then((r) => r.data),
+
+  // Route Stops
+  stops: (routeId) => schoolAdminClient.get(`/platform/school-portal/transport/routes/${routeId}/stops`).then((r) => r.data),
+  createStop: (routeId, payload) => schoolAdminClient.post(`/platform/school-portal/transport/routes/${routeId}/stops`, payload).then((r) => r.data),
+  updateStop: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/transport/stops/${id}`, payload).then((r) => r.data),
+  deleteStop: (id) => schoolAdminClient.delete(`/platform/school-portal/transport/stops/${id}`).then((r) => r.data),
+
+  // Student Assignments
+  assignments: (params) => schoolAdminClient.get('/platform/school-portal/transport/assignments', { params }).then((r) => r.data),
+  assignStudent: (payload) => schoolAdminClient.post('/platform/school-portal/transport/assignments', payload).then((r) => r.data),
+  discontinueAssignment: (id, payload) => schoolAdminClient.post(`/platform/school-portal/transport/assignments/${id}/discontinue`, payload).then((r) => r.data),
+
+  // Attendance
+  getAttendance: (routeId, params) => schoolAdminClient.get(`/platform/school-portal/transport/attendance/${routeId}`, { params }).then((r) => r.data),
+  saveAttendance: (routeId, payload) => schoolAdminClient.post(`/platform/school-portal/transport/attendance/${routeId}`, payload).then((r) => r.data),
+
+  // Maintenance
+  maintenance: (params) => schoolAdminClient.get('/platform/school-portal/transport/maintenance', { params }).then((r) => r.data),
+  createMaintenance: (payload) => schoolAdminClient.post('/platform/school-portal/transport/maintenance', payload).then((r) => r.data),
+
+  // Incidents
+  incidents: (params) => schoolAdminClient.get('/platform/school-portal/transport/incidents', { params }).then((r) => r.data),
+  createIncident: (payload) => schoolAdminClient.post('/platform/school-portal/transport/incidents', payload).then((r) => r.data),
+  updateIncident: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/transport/incidents/${id}`, payload).then((r) => r.data),
+};
+
+
+
+

@@ -52,7 +52,6 @@ export const NAVIGATION_ITEMS = [
   // PEOPLE
   { name: 'Student Management', path: '/school-admin/students', icon: Users, category: 'People' },
   { name: 'Teacher Management', path: '/school-admin/teachers', icon: UserCheck, category: 'People' },
-  { name: 'Admissions', path: '/school-admin/admissions', icon: FileInput, category: 'People' },
   { name: 'User Management', path: '/school-admin/users', icon: UserCog, category: 'People' },
   
   // FINANCE
@@ -68,10 +67,8 @@ export const NAVIGATION_ITEMS = [
   
   // SYSTEM
   { name: 'Roles & Permissions', path: '/school-admin/roles', icon: Shield, category: 'System' },
-  { name: 'Communication', path: '/school-admin/communication', icon: Megaphone, category: 'System' },
   { name: 'Notifications', path: '/school-admin/notifications', icon: Bell, category: 'System' },
   { name: 'Reports Hub', path: '/school-admin/reports', icon: BarChart3, category: 'System' },
-  { name: 'Audit Logs', path: '/school-admin/audit', icon: History, category: 'System' },
   { name: 'Help & Support', path: '/school-admin/support', icon: LifeBuoy, category: 'System' },
   { name: 'Settings', path: '/school-admin/settings', icon: Settings, category: 'System' }
 ];
