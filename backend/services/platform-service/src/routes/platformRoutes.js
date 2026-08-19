@@ -155,10 +155,28 @@ import {
   deleteUser,
   getUser,
   listUsers,
+  seedUsers,
   sendUserCredentials,
   updateUser,
   updateUserStatus,
 } from '../controllers/user.controller.js';
+import {
+  createPayroll,
+  deletePayroll,
+  getEligibleEmployees,
+  getPayroll,
+  listPayrolls,
+  releaseAllPayrolls,
+  updatePayrollStatus,
+} from '../controllers/payroll.controller.js';
+import {
+  getAttendanceReport,
+  getDailyAttendance,
+  getMonthlySummary,
+  markAllStatus,
+  saveDailyAttendance,
+  updateSingleStatus,
+} from '../controllers/staffAttendance.controller.js';
 import { requireSuperAdmin } from '../middleware/requireSuperAdmin.js';
 import { requireSchoolAdmin } from '../middleware/requireSchoolAdmin.js';
 import { assertSchoolAccess } from '../middleware/assertSchoolAccess.js';
@@ -241,6 +259,7 @@ router.delete('/school-portal/students/:id', requireSchoolAdmin, deleteStudent);
 // School User Management Routes (Teachers, Librarians, HR, Accountants, Transport)
 router.get('/school-portal/users', requireSchoolAdmin, listUsers);
 router.post('/school-portal/users', requireSchoolAdmin, uploadSchoolUserFiles, convertSchoolUserImages, createUser);
+router.post('/school-portal/users/seed', requireSchoolAdmin, seedUsers);
 router.get('/school-portal/users/:id', requireSchoolAdmin, getUser);
 router.patch('/school-portal/users/:id', requireSchoolAdmin, uploadSchoolUserFiles, convertSchoolUserImages, updateUser);
 router.patch('/school-portal/users/:id/status', requireSchoolAdmin, updateUserStatus);
@@ -278,6 +297,24 @@ router.post('/school-portal/fees/invoices/:invoiceId/pay', requireSchoolAdmin, p
 
 router.get('/school-portal/fees/payments', requireSchoolAdmin, listFeePayments);
 router.get('/school-portal/fees/payments/:id', requireSchoolAdmin, getFeePayment);
+
+// Payroll & HR Endpoints
+router.get('/school-portal/payroll/employees', requireSchoolAdmin, getEligibleEmployees);
+router.get('/school-portal/payroll', requireSchoolAdmin, listPayrolls);
+router.post('/school-portal/payroll', requireSchoolAdmin, createPayroll);
+router.post('/school-portal/payroll/release', requireSchoolAdmin, releaseAllPayrolls);
+router.get('/school-portal/payroll/:id', requireSchoolAdmin, getPayroll);
+router.patch('/school-portal/payroll/:id/status', requireSchoolAdmin, updatePayrollStatus);
+router.delete('/school-portal/payroll/:id', requireSchoolAdmin, deletePayroll);
+
+// Staff Attendance Endpoints
+router.get('/school-portal/attendance/staff', requireSchoolAdmin, getDailyAttendance);
+router.get('/school-portal/attendance/staff/report', requireSchoolAdmin, getAttendanceReport);
+router.post('/school-portal/attendance/staff', requireSchoolAdmin, saveDailyAttendance);
+router.patch('/school-portal/attendance/staff/:employeeRefId', requireSchoolAdmin, updateSingleStatus);
+router.post('/school-portal/attendance/staff/mark-all', requireSchoolAdmin, markAllStatus);
+router.get('/school-portal/attendance/staff/monthly', requireSchoolAdmin, getMonthlySummary);
+
 router.get('/subscriptions', requireSuperAdmin, listPlans);
 router.post('/subscriptions', requireSuperAdmin, createPlan);
 router.put('/subscriptions/:id', requireSuperAdmin, updatePlan);

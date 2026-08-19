@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   CreditCard,
   Eye,
+  EyeOff,
   FileText,
   Key,
   Loader2,
@@ -108,6 +109,9 @@ export const UserDetail = () => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
@@ -159,7 +163,11 @@ export const UserDetail = () => {
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (!newPassword || newPassword.length < 6) {
-      showToast('Password must be at least 6 characters long', 'error');
+      showToast('New password must be at least 6 characters long', 'error');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('New password and confirm password do not match', 'error');
       return;
     }
     setChangingPassword(true);
@@ -168,6 +176,7 @@ export const UserDetail = () => {
       showToast(res.message || 'Password changed successfully', 'success');
       setPasswordModalOpen(false);
       setNewPassword('');
+      setConfirmPassword('');
     } catch (error) {
       showToast(apiMessage(error, 'Failed to change password'), 'error');
     } finally {
@@ -342,12 +351,16 @@ export const UserDetail = () => {
         {/* 3. Banking & Salary Information */}
         <DetailCard title="Bank Account & Payroll Details" icon={CreditCard}>
           <div className="grid grid-cols-2 gap-4">
+            <Field
+              label="Basic Monthly Salary"
+              value={user.basicSalary ? `₹${Number(user.basicSalary).toLocaleString('en-IN')} / month` : '₹0'}
+            />
+            <Field label="Account Type" value={user.bankDetails?.accountType || 'SALARY'} />
             <Field label="Account Holder Name" value={user.bankDetails?.accountName} />
             <Field label="Account Number" value={user.bankDetails?.accountNumber} isMono />
             <Field label="IFSC Code" value={user.bankDetails?.ifscCode} isMono />
             <Field label="Bank Name" value={user.bankDetails?.bankName} />
             <Field label="Branch Name" value={user.bankDetails?.branchName} />
-            <Field label="Account Type" value={user.bankDetails?.accountType} />
           </div>
         </DetailCard>
 
@@ -424,24 +437,68 @@ export const UserDetail = () => {
         isOpen={passwordModalOpen}
         onClose={() => setPasswordModalOpen(false)}
         title={`Change Password for ${user.name}`}
+        size="md"
       >
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
             <label className="mb-1 block text-xs font-bold text-slate-600 dark:text-slate-300">
               New Password *
             </label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Minimum 6 characters"
-              required
-              minLength={6}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-            />
-            <p className="mt-1 text-[11px] text-slate-400">
-              This will update the user's login password immediately.
-            </p>
+            <div className="relative">
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Minimum 6 characters"
+                required
+                minLength={6}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 pr-10 text-xs font-semibold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                tabIndex={-1}
+                aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+              >
+                {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-slate-500" />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-bold text-slate-600 dark:text-slate-300">
+              Confirm Password *
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+                required
+                minLength={6}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 pr-10 text-xs font-semibold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                tabIndex={-1}
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-slate-500" />}
+              </button>
+            </div>
+            {confirmPassword && newPassword !== confirmPassword ? (
+              <p className="mt-1 text-[11px] font-semibold text-rose-500">
+                Passwords do not match
+              </p>
+            ) : (
+              <p className="mt-1 text-[11px] text-slate-400">
+                This will update the user's login password immediately.
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
@@ -454,9 +511,10 @@ export const UserDetail = () => {
             </button>
             <button
               type="submit"
-              disabled={changingPassword}
-              className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm disabled:opacity-60"
+              disabled={changingPassword || (confirmPassword && newPassword !== confirmPassword)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-primary/90 disabled:opacity-60"
             >
+              {changingPassword ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
               {changingPassword ? 'Updating...' : 'Update Password'}
             </button>
           </div>

@@ -41,6 +41,7 @@ const schoolUserSchema = new mongoose.Schema(
     joiningDate: { type: Date, default: null },
     department: { type: String, default: '', trim: true },
     designation: { type: String, default: '', trim: true },
+    basicSalary: { type: Number, default: 0, min: 0 },
     bankDetails: {
       type: bankDetailsSchema,
       default: () => ({}),
@@ -79,6 +80,7 @@ schoolUserSchema.methods.toPublicJSON = function toPublicJSON() {
     joiningDate: this.joiningDate,
     department: this.department,
     designation: this.designation,
+    basicSalary: this.basicSalary || 0,
     bankDetails: this.bankDetails || {
       accountName: '',
       accountNumber: '',

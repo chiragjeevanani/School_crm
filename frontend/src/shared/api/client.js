@@ -174,6 +174,33 @@ export const schoolUserApi = {
   sendCredentials: (id) =>
     schoolAdminClient.post(`/platform/school-portal/users/${id}/send-credentials`).then((res) => res.data),
   delete: (id) => schoolAdminClient.delete(`/platform/school-portal/users/${id}`).then((res) => res.data),
+  seed: () => schoolAdminClient.post('/platform/school-portal/users/seed').then((res) => res.data),
+};
+
+export const payrollPortalApi = {
+  list: (params) => schoolAdminClient.get('/platform/school-portal/payroll', { params }).then((r) => r.data),
+  employees: () => schoolAdminClient.get('/platform/school-portal/payroll/employees').then((r) => r.data),
+  get: (id) => schoolAdminClient.get(`/platform/school-portal/payroll/${id}`).then((r) => r.data),
+  create: (payload) => schoolAdminClient.post('/platform/school-portal/payroll', payload).then((r) => r.data),
+  updateStatus: (id, status, payload = {}) =>
+    schoolAdminClient.patch(`/platform/school-portal/payroll/${id}/status`, { status, ...payload }).then((r) => r.data),
+  releaseAll: (month) => schoolAdminClient.post('/platform/school-portal/payroll/release', { month }).then((r) => r.data),
+  delete: (id) => schoolAdminClient.delete(`/platform/school-portal/payroll/${id}`).then((r) => r.data),
+};
+
+export const staffAttendanceApi = {
+  getDaily: (date, params = {}) =>
+    schoolAdminClient.get('/platform/school-portal/attendance/staff', { params: { date, ...params } }).then((r) => r.data),
+  getReport: (params = {}) =>
+    schoolAdminClient.get('/platform/school-portal/attendance/staff/report', { params }).then((r) => r.data),
+  saveDaily: (payload) =>
+    schoolAdminClient.post('/platform/school-portal/attendance/staff', payload).then((r) => r.data),
+  updateSingle: (employeeRefId, payload) =>
+    schoolAdminClient.patch(`/platform/school-portal/attendance/staff/${employeeRefId}`, payload).then((r) => r.data),
+  markAll: (payload) =>
+    schoolAdminClient.post('/platform/school-portal/attendance/staff/mark-all', payload).then((r) => r.data),
+  getMonthly: (params = {}) =>
+    schoolAdminClient.get('/platform/school-portal/attendance/staff/monthly', { params }).then((r) => r.data),
 };
 
 export const academicPortalApi = {

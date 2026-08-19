@@ -110,6 +110,7 @@ class UserService {
       joiningDate: parseDate(payload.joiningDate) || new Date(),
       department: optionalText(payload.department),
       designation: optionalText(payload.designation) || role,
+      basicSalary: Number(payload.basicSalary) || 0,
       bankDetails,
       documents: docs,
       photo: files.photo || '',
@@ -169,6 +170,7 @@ class UserService {
     if (payload.joiningDate !== undefined) updates.joiningDate = parseDate(payload.joiningDate);
     if (payload.department !== undefined) updates.department = optionalText(payload.department);
     if (payload.designation !== undefined) updates.designation = optionalText(payload.designation);
+    if (payload.basicSalary !== undefined) updates.basicSalary = Number(payload.basicSalary) || 0;
 
     // Bank Details
     if (

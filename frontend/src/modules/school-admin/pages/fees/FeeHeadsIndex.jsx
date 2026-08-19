@@ -71,7 +71,6 @@ export const FeeHeadsIndex = () => {
   const [saving, setSaving] = useState(false);
   const [editingHead, setEditingHead] = useState(null);
   const [importing, setImporting] = useState(false);
-  const [seeding, setSeeding] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const importRef = useRef();
 
@@ -114,19 +113,6 @@ export const FeeHeadsIndex = () => {
       return true;
     });
   }, [feeHeads, statusFilter, categoryFilter]);
-
-  const handleSeedDefaults = async () => {
-    setSeeding(true);
-    try {
-      const res = await feePortalApi.seedDefaultHeads();
-      showToast(res.message || 'Default fee heads seeded successfully', 'success');
-      loadFeeHeads();
-    } catch (error) {
-      showToast(error.message || 'Failed to seed default fee heads', 'error');
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   const handleImport = (e) => {
     const file = e.target.files[0];
@@ -217,16 +203,6 @@ export const FeeHeadsIndex = () => {
         subtitle="Dynamic school-wide list of chargeable fee heads (Tuition, Exam, Transport, Activity, etc.)."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            {feeHeads.length === 0 && (
-              <button
-                type="button"
-                onClick={handleSeedDefaults}
-                disabled={seeding}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-300"
-              >
-                {seeding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Seed Defaults
-              </button>
-            )}
             <button
               type="button"
               onClick={() => downloadFile(FEE_HEAD_CSV_SAMPLE, 'fee_heads_sample.csv', 'text/csv')}
@@ -354,17 +330,10 @@ export const FeeHeadsIndex = () => {
           <div className="mt-4 flex gap-2">
             <button
               type="button"
-              onClick={handleSeedDefaults}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300"
-            >
-              <Sparkles className="h-3.5 w-3.5" /> Seed Default Fee Heads
-            </button>
-            <button
-              type="button"
               onClick={openCreateModal}
               className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm"
             >
-              + Create Custom Head
+              + Create Fee Head
             </button>
           </div>
         </div>
