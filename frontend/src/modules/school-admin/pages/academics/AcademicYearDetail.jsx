@@ -3,11 +3,12 @@ import { Link, useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
 import { academicPortalApi } from '../../../../shared/api/client';
 import { AcademicBreadcrumb, CountCards, EmptyState } from './components/AcademicUi';
 import { apiMessage, formatDate, YEAR_STATUS_VARIANT } from './utils';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 
 export const AcademicYearDetail = () => {
   const { yearId } = useParams();
@@ -22,6 +23,8 @@ export const AcademicYearDetail = () => {
   const [saving, setSaving] = useState(false);
   const [sectionForm, setSectionForm] = useState({ name: '', capacity: 40, roomNumber: '', classTeacherId: '' });
   const [teachers, setTeachers] = useState([]);
+  const [removeClassTarget, setRemoveClassTarget] = useState(null);
+  const [deleteSectionTarget, setDeleteSectionTarget] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -68,6 +71,32 @@ export const AcademicYearDetail = () => {
     }
   };
 
+  const handleRemoveClass = async () => {
+    if (!removeClassTarget) return;
+    try {
+      await academicPortalApi.removeClassFromYear(yearId, removeClassTarget.classId);
+      showToast('Class removed from academic year', 'success');
+      loadData();
+    } catch (error) {
+      showToast(apiMessage(error, 'Unable to remove class mapping'), 'error');
+    } finally {
+      setRemoveClassTarget(null);
+    }
+  };
+
+  const handleDeleteSection = async () => {
+    if (!deleteSectionTarget) return;
+    try {
+      await academicPortalApi.deleteSection(deleteSectionTarget.id);
+      showToast('Section deleted successfully', 'success');
+      loadData();
+    } catch (error) {
+      showToast(apiMessage(error, 'Unable to delete section'), 'error');
+    } finally {
+      setDeleteSectionTarget(null);
+    }
+  };
+
   const handleCreateSection = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -99,41 +128,54 @@ export const AcademicYearDetail = () => {
     );
   }
 
-  if (!year) return null;
+  if (!year) {
+    return (
+      <EmptyState
+        title="Academic Year Not Found"
+        description="The requested academic session does not exist or has been removed."
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <AcademicBreadcrumb items={[{ label: 'Academic Years', to: '/school-admin/academics/years' }, { label: year.name }]} />
+      <AcademicBreadcrumb items={[{ label: 'Academic Years', href: '/school-admin/academics/years' }, { label: year.name }]} />
       <PageHeader
         title={year.name}
-        subtitle={`${formatDate(year.startDate)} — ${formatDate(year.endDate)}`}
-        action={
-          <div className="flex items-center gap-2">
-            <Badge variant={YEAR_STATUS_VARIANT[year.status] || 'default'}>{year.status}</Badge>
-            {year.isCurrent && <Badge variant="success">Current</Badge>}
-          </div>
+        subtitle={`${formatDate(year.startDate)} - ${formatDate(year.endDate)} · Code: ${year.code || '—'}`}
+        badge={
+          <Badge variant={YEAR_STATUS_VARIANT[year.status] || 'default'}>
+            {year.isCurrent ? 'Current Session' : year.status}
+          </Badge>
+        }
+        actions={
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-white shadow-sm"
+          >
+            <Plus className="h-4 w-4" /> Add Class
+          </button>
         }
       />
 
       <CountCards
         items={[
-          { label: 'Classes', value: year.counts?.classes },
-          { label: 'Sections', value: year.counts?.sections },
-          { label: 'Students', value: year.counts?.students },
-          { label: 'Subject Assignments', value: year.counts?.subjectAssignments },
+          { label: 'Classes Mapped', value: yearClasses.length, highlight: true },
+          {
+            label: 'Total Sections',
+            value: yearClasses.reduce((acc, c) => acc + (c.counts?.sections || 0), 0),
+          },
+          {
+            label: 'Enrolled Students',
+            value: yearClasses.reduce((acc, c) => acc + (c.counts?.students || 0), 0),
+          },
+          {
+            label: 'Subject Mappings',
+            value: yearClasses.reduce((acc, c) => acc + (c.counts?.subjectAssignments || 0), 0),
+          },
         ]}
       />
-
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-slate-800 dark:text-white">Classes in {year.name}</h3>
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white"
-        >
-          <Plus className="h-3.5 w-3.5" /> Add Class
-        </button>
-      </div>
 
       {yearClasses.length === 0 ? (
         <EmptyState
@@ -155,18 +197,28 @@ export const AcademicYearDetail = () => {
                     {item.counts?.subjectAssignments ?? 0} subject assignments
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSectionModal({ classId: item.classId, className: item.class?.name })
-                  }
-                  className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-slate-700"
-                >
-                  + Add Section
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSectionModal({ classId: item.classId, className: item.class?.name })
+                    }
+                    className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-slate-700"
+                  >
+                    + Add Section
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRemoveClassTarget(item)}
+                    className="rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-50 hover:border-rose-300 dark:border-slate-700 dark:hover:bg-rose-950/20"
+                    title="Remove class mapping from this year"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
 
-              <ClassSections yearId={yearId} classId={item.classId} onChanged={loadData} />
+              <ClassSections yearId={yearId} classId={item.classId} onChanged={loadData} onDeleteSection={(sec) => setDeleteSectionTarget(sec)} />
             </div>
           ))}
         </div>
@@ -199,12 +251,12 @@ export const AcademicYearDetail = () => {
               .
             </p>
           )}
-          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
             <button type="button" onClick={() => setModalOpen(false)} className="rounded-xl px-4 py-2 text-xs font-semibold">
               Cancel
             </button>
-            <button type="submit" disabled={saving || !selectedClassId} className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white disabled:opacity-60">
-              {saving ? 'Saving...' : 'Add Class'}
+            <button type="submit" disabled={saving || !selectedClassId} className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm disabled:opacity-60">
+              {saving ? 'Adding...' : 'Add Class'}
             </button>
           </div>
         </form>
@@ -213,61 +265,76 @@ export const AcademicYearDetail = () => {
       <Modal
         isOpen={Boolean(sectionModal)}
         onClose={() => setSectionModal(null)}
-        title={`Create Section — ${sectionModal?.className || ''}`}
+        title={`Add Section (${sectionModal?.className || ''})`}
       >
         <form onSubmit={handleCreateSection} className="space-y-4">
           <div>
             <label className="mb-1 block text-xs font-bold text-slate-500">Section Name *</label>
-            <input
+            <select
               className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm dark:border-slate-800 dark:bg-slate-950"
               value={sectionForm.name}
               onChange={(e) => setSectionForm({ ...sectionForm, name: e.target.value })}
-              placeholder="A"
               required
-            />
+            >
+              <option value="" disabled>Select Section</option>
+              {['Section A', 'Section B', 'Section C', 'Section D', 'Section E', 'Section F'].map((sec) => (
+                <option key={sec} value={sec}>
+                  {sec}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-bold text-slate-500">Capacity *</label>
+              <label className="mb-1 block text-xs font-bold text-slate-500">Capacity</label>
               <input
                 type="number"
                 min="1"
                 className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm dark:border-slate-800 dark:bg-slate-950"
                 value={sectionForm.capacity}
                 onChange={(e) => setSectionForm({ ...sectionForm, capacity: e.target.value })}
-                required
               />
             </div>
             <div>
               <label className="mb-1 block text-xs font-bold text-slate-500">Room Number</label>
               <input
+                type="text"
                 className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm dark:border-slate-800 dark:bg-slate-950"
                 value={sectionForm.roomNumber}
                 onChange={(e) => setSectionForm({ ...sectionForm, roomNumber: e.target.value })}
+                placeholder="e.g. 204"
               />
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-bold text-slate-500">Class Teacher</label>
+            <label className="mb-1 block text-xs font-bold text-slate-500">Class Teacher (Optional)</label>
             <select
               className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm dark:border-slate-800 dark:bg-slate-950"
               value={sectionForm.classTeacherId}
               onChange={(e) => setSectionForm({ ...sectionForm, classTeacherId: e.target.value })}
             >
-              <option value="">Select teacher</option>
-              {teachers.map((teacher) => (
-                <option key={teacher.id} value={teacher.id}>
-                  {teacher.name}
+              <option value="">Unassigned</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({t.department})
                 </option>
               ))}
             </select>
           </div>
-          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-            <button type="button" onClick={() => setSectionModal(null)} className="rounded-xl px-4 py-2 text-xs font-semibold">
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setSectionModal(null)}
+              className="rounded-xl px-4 py-2 text-xs font-semibold"
+            >
               Cancel
             </button>
-            <button type="submit" disabled={saving} className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white disabled:opacity-60">
-              {saving ? 'Saving...' : 'Create Section'}
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm disabled:opacity-60"
+            >
+              {saving ? 'Creating...' : 'Create Section'}
             </button>
           </div>
         </form>
@@ -278,7 +345,7 @@ export const AcademicYearDetail = () => {
   );
 };
 
-function ClassSections({ yearId, classId, onChanged }) {
+function ClassSections({ yearId, classId, onChanged, onDeleteSection }) {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -323,12 +390,22 @@ function ClassSections({ yearId, classId, onChanged }) {
               <td className="px-2 py-2">{section.counts?.subjects ?? 0}</td>
               <td className="px-2 py-2">{section.status}</td>
               <td className="px-2 py-2">
-                <Link
-                  to={`/school-admin/academics/years/${yearId}/sections/${section.id}`}
-                  className="font-bold text-primary hover:underline"
-                >
-                  Open
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link
+                    to={`/school-admin/academics/years/${yearId}/sections/${section.id}`}
+                    className="font-bold text-primary hover:underline"
+                  >
+                    Open
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteSection && onDeleteSection(section)}
+                    className="text-rose-500 hover:text-rose-700 transition-colors p-0.5 rounded"
+                    title="Delete section"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

@@ -61,21 +61,43 @@ export const AttendanceManagement = () => {
   const studentColumns = [
     { header: 'Roll No', key: 'rollNo', render: (val) => <span className="font-bold">{val}</span> },
     { header: 'Student Name', key: 'name' },
-    { header: 'Class Status', key: 'status', render: (val, row) => (
-      <button
-        onClick={() => toggleStudentStatus(row.id, val)}
-        className={`px-3 py-1 text-xs font-bold rounded-lg border shadow-sm transition-all select-none ${
-          val === 'Present' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-          val === 'Absent' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-          'bg-amber-50 text-amber-700 border-amber-200'
-        }`}
-      >
-        {val}
-      </button>
-    )},
-    { header: 'Toggle Option', key: 'action', render: (_, row) => (
-      <span className="text-[10px] text-slate-400 font-semibold select-none">Click status button to change</span>
-    )}
+    {
+      header: 'Class Status',
+      key: 'status',
+      render: (val, row) => (
+        <button
+          onClick={() => toggleStudentStatus(row.id, val)}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-extrabold shadow-sm transition-all select-none ${
+            val === 'Present'
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:border-emerald-700/50 dark:bg-emerald-950/50 dark:text-emerald-400'
+              : val === 'Absent'
+              ? 'border-rose-500/30 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 dark:border-rose-700/50 dark:bg-rose-950/50 dark:text-rose-400'
+              : 'border-amber-500/30 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 dark:border-amber-700/50 dark:bg-amber-950/50 dark:text-amber-400'
+          }`}
+          title="Click to toggle status (Present -> Absent -> Late)"
+        >
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              val === 'Present'
+                ? 'bg-emerald-500'
+                : val === 'Absent'
+                ? 'bg-rose-500'
+                : 'bg-amber-500'
+            }`}
+          />
+          {val}
+        </button>
+      ),
+    },
+    {
+      header: 'Toggle Option',
+      key: 'action',
+      render: () => (
+        <span className="text-[10px] font-semibold text-slate-400 select-none">
+          Click status pill to toggle
+        </span>
+      ),
+    },
   ];
 
   const leaveColumns = [
@@ -159,13 +181,13 @@ export const AttendanceManagement = () => {
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
         {activeTab === 'student' && (
           <div className="space-y-4">
-            <div className="flex gap-4 p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 rounded-2xl">
+            <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-500">Class:</span>
                 <select
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
-                  className="text-xs font-bold border rounded-lg p-1.5 dark:bg-slate-900 focus:outline-none"
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-primary dark:border-slate-800 dark:bg-slate-900 dark:text-white"
                 >
                   <option value="10">Class 10</option>
                   <option value="9">Class 9</option>
@@ -177,7 +199,7 @@ export const AttendanceManagement = () => {
                 <select
                   value={selectedSection}
                   onChange={(e) => setSelectedSection(e.target.value)}
-                  className="text-xs font-bold border rounded-lg p-1.5 dark:bg-slate-900 focus:outline-none"
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-primary dark:border-slate-800 dark:bg-slate-900 dark:text-white"
                 >
                   <option value="A">Section A</option>
                   <option value="B">Section B</option>

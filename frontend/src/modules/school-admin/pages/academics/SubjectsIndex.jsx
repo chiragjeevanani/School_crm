@@ -54,7 +54,10 @@ export const SubjectsIndex = () => {
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
   const [years, setYears] = useState([]);
+  const [selectedYear, setSelectedYear] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
   const [subjectMappings, setSubjectMappings] = useState({});
+  const [subjectClassIdsLookup, setSubjectClassIdsLookup] = useState({});
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -83,8 +86,10 @@ export const SubjectsIndex = () => {
       academicPortalApi.years({ limit: 100 }),
     ])
       .then(([classesRes, yearsRes]) => {
-        setClasses((classesRes.data || []).filter((c) => c.status === 'ACTIVE'));
-        setYears(yearsRes.data || []);
+        const activeClasses = (classesRes.data || []).filter((c) => c.status === 'ACTIVE');
+        const yearList = yearsRes.data || [];
+        setClasses(activeClasses);
+        setYears(yearList);
       })
       .catch(() => {});
   }, []);
@@ -120,13 +125,13 @@ export const SubjectsIndex = () => {
       }
 
       const classMap = new Map(activeClasses.map(c => [c.id, c]));
-      const activeYear = activeYears.find((y) => y.isCurrent || y.status === 'ACTIVE');
 
       // Fetch all sections
       const sectionsRes = await academicPortalApi.sections({ limit: 1000 });
-      const currentSections = (sectionsRes.data || []).filter(
-        (s) => s.academicYearId === activeYear?.id && s.status === 'ACTIVE'
-      );
+      const currentSections = (sectionsRes.data || []).filter((s) => {
+        if (selectedYear && s.academicYearId !== selectedYear) return false;
+        return s.status === 'ACTIVE';
+      });
 
       // Fetch subjects mapped for each active section in parallel
       const mappingsRes = await Promise.all(
@@ -140,23 +145,28 @@ export const SubjectsIndex = () => {
         })
       );
 
-      const subjectClassesLookup = {};
+      const subjectClassNamesLookup = {};
+      const subjectIdsToClassIds = {};
+
       mappingsRes.forEach(m => {
         const clsObj = classMap.get(m.classId);
         if (clsObj) {
           m.subjectIds.forEach(sid => {
-            if (!subjectClassesLookup[sid]) subjectClassesLookup[sid] = new Set();
-            subjectClassesLookup[sid].add(clsObj.name);
+            if (!subjectClassNamesLookup[sid]) subjectClassNamesLookup[sid] = new Set();
+            if (!subjectIdsToClassIds[sid]) subjectIdsToClassIds[sid] = new Set();
+            subjectClassNamesLookup[sid].add(clsObj.name);
+            subjectIdsToClassIds[sid].add(m.classId);
           });
         }
       });
 
       // Convert sets to arrays
       const lookup = {};
-      Object.keys(subjectClassesLookup).forEach(sid => {
-        lookup[sid] = Array.from(subjectClassesLookup[sid]);
+      Object.keys(subjectClassNamesLookup).forEach(sid => {
+        lookup[sid] = Array.from(subjectClassNamesLookup[sid]);
       });
       setSubjectMappings(lookup);
+      setSubjectClassIdsLookup(subjectIdsToClassIds);
 
       // Load subjects
       const result = await academicPortalApi.subjects({ limit: 100 });
@@ -166,19 +176,39 @@ export const SubjectsIndex = () => {
     } finally {
       setLoading(false);
     }
-  }, [classes, years, showToast]);
+  }, [classes, years, selectedYear, showToast]);
 
   useEffect(() => {
     loadSubjects();
   }, [loadSubjects]);
 
-  // Filter subjects by status locally
+  // Filter subjects by status and class locally
+  const statusCounts = useMemo(() => {
+    const classFiltered = subjects.filter((s) => {
+      if (selectedClass) {
+        const classIdsSet = subjectClassIdsLookup[s.id];
+        if (!classIdsSet || !classIdsSet.has(selectedClass)) return false;
+      }
+      return true;
+    });
+
+    return {
+      ALL: classFiltered.length,
+      ACTIVE: classFiltered.filter((s) => s.status === 'ACTIVE').length,
+      INACTIVE: classFiltered.filter((s) => s.status === 'INACTIVE').length,
+    };
+  }, [subjects, selectedClass, subjectClassIdsLookup]);
+
   const filteredSubjects = useMemo(() => {
     return subjects.filter((s) => {
-      if (statusFilter === 'ALL') return true;
-      return s.status === statusFilter;
+      if (statusFilter !== 'ALL' && s.status !== statusFilter) return false;
+      if (selectedClass) {
+        const classIdsSet = subjectClassIdsLookup[s.id];
+        if (!classIdsSet || !classIdsSet.has(selectedClass)) return false;
+      }
+      return true;
     });
-  }, [subjects, statusFilter]);
+  }, [subjects, statusFilter, selectedClass, subjectClassIdsLookup]);
 
   const handleImport = (e) => {
     const file = e.target.files[0];
@@ -324,27 +354,86 @@ export const SubjectsIndex = () => {
 
       {/* Filters */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex items-center gap-2 max-w-xs">
-          <span className="text-xs font-bold text-slate-500 shrink-0">Status:</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-10 w-40 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="ACTIVE">Active Only</option>
-            <option value="INACTIVE">Inactive Only</option>
-          </select>
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-500 shrink-0 select-none">Academic Year:</span>
+            <div className="relative">
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 pl-3.5 pr-9 text-xs font-semibold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white appearance-none cursor-pointer"
+              >
+                <option value="">All Academic Years</option>
+                {years.map((y) => (
+                  <option key={y.id} value={y.id}>
+                    {y.name} {y.isCurrent ? '(Current)' : ''}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-500 shrink-0 select-none">Class:</span>
+            <div className="relative">
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 pl-3.5 pr-9 text-xs font-semibold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white appearance-none cursor-pointer"
+              >
+                <option value="">All Classes (Global Master)</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-500 shrink-0 select-none">Status:</span>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { id: 'ALL', label: 'All Statuses', count: statusCounts.ALL },
+                { id: 'ACTIVE', label: 'Active', count: statusCounts.ACTIVE },
+                { id: 'INACTIVE', label: 'Inactive', count: statusCounts.INACTIVE },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setStatusFilter(item.id)}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all duration-200 ${
+                    statusFilter === item.id
+                      ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                      : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-850'
+                  }`}
+                >
+                  {item.label} <span className={`ml-1 text-[10px] ${statusFilter === item.id ? 'opacity-80' : 'text-slate-400 dark:text-slate-500'}`}>({item.count})</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
       {loading ? (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <table className="w-full text-xs">
-            <thead className="border-b border-slate-100 bg-slate-50/70 dark:border-slate-800">
+            <thead className="border-b border-slate-100 bg-slate-50/70 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
               <tr>
                 {['#', 'Subject', 'Code', 'Type', 'Assigned Classes', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-center font-bold text-slate-500">
+                  <th key={h} className="px-4 py-3 text-center font-bold text-slate-500 dark:text-slate-400">
                     {h}
                   </th>
                 ))}
@@ -370,10 +459,10 @@ export const SubjectsIndex = () => {
       ) : (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <table className="w-full text-xs">
-            <thead className="border-b border-slate-100 bg-slate-50/70 dark:border-slate-800">
+            <thead className="border-b border-slate-100 bg-slate-50/70 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
               <tr>
                 {['#', 'Subject', 'Code', 'Type', 'Assigned Classes', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-center font-bold text-slate-500">
+                  <th key={h} className="px-4 py-3 text-center font-bold text-slate-500 dark:text-slate-400">
                     {h}
                   </th>
                 ))}
@@ -459,71 +548,74 @@ export const SubjectsIndex = () => {
           </div>
 
           {!editingSubject && (
-            <div className="relative" ref={dropdownRef}>
+            <div ref={dropdownRef}>
               <label className="mb-1.5 block text-xs font-bold text-slate-500">Assign to Class Standards (Optional)</label>
               
-              {/* Custom tags dropdown trigger */}
-              <div
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="min-h-[44px] py-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm flex flex-wrap gap-1.5 items-center cursor-pointer outline-none dark:border-slate-800 dark:bg-slate-950"
-              >
-                {form.classIds.length === 0 ? (
-                  <span className="text-slate-400 select-none">Select Classes (Optional)</span>
-                ) : (
-                  form.classIds.map((classId) => {
-                    const clsObj = classes.find((c) => c.id === classId);
-                    if (!clsObj) return null;
-                    return (
-                      <span
-                        key={classId}
-                        className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-lg border border-primary/20"
-                      >
-                        {clsObj.name}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const newIds = form.classIds.filter((id) => id !== classId);
-                            setForm({ ...form, classIds: newIds });
-                          }}
-                          className="hover:bg-primary/20 rounded p-0.5 text-primary transition-colors"
+              {/* Custom tags dropdown trigger & popup */}
+              <div className="relative">
+                <div
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="min-h-[44px] py-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm flex flex-wrap gap-1.5 items-center cursor-pointer outline-none dark:border-slate-800 dark:bg-slate-950"
+                >
+                  {form.classIds.length === 0 ? (
+                    <span className="text-slate-400 select-none">Select Classes (Optional)</span>
+                  ) : (
+                    form.classIds.map((classId) => {
+                      const clsObj = classes.find((c) => c.id === classId);
+                      if (!clsObj) return null;
+                      return (
+                        <span
+                          key={classId}
+                          className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-lg border border-primary/20"
                         >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    );
-                  })
+                          {clsObj.name}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newIds = form.classIds.filter((id) => id !== classId);
+                              setForm({ ...form, classIds: newIds });
+                            }}
+                            className="hover:bg-primary/20 rounded p-0.5 text-primary transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      );
+                    })
+                  )}
+                  <span className="ml-auto text-slate-400 text-[10px] select-none">▼</span>
+                </div>
+
+                {dropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1 w-full z-50 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-950 max-h-48 overflow-y-auto">
+                    <div className="space-y-1">
+                      {classes.map((c) => {
+                        const isChecked = form.classIds.includes(c.id);
+                        return (
+                          <button
+                            type="button"
+                            key={c.id}
+                            onClick={() => {
+                              const newIds = isChecked
+                                ? form.classIds.filter((id) => id !== c.id)
+                                : [...form.classIds, c.id];
+                              setForm({ ...form, classIds: newIds });
+                            }}
+                            className={`flex items-center justify-between w-full px-3 py-2 text-left text-xs font-semibold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer select-none text-slate-800 dark:text-slate-200 ${
+                              isChecked ? 'bg-primary/5 text-primary font-bold' : ''
+                            }`}
+                          >
+                            <span>{c.name}</span>
+                            {isChecked && <span className="text-primary font-extrabold text-sm">✓</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
-                <span className="ml-auto text-slate-400 text-[10px] select-none">▼</span>
               </div>
 
-              {dropdownOpen && (
-                <div className="absolute left-0 bottom-full mb-1.5 w-full z-50 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-800 dark:bg-slate-950 max-h-44 overflow-y-auto">
-                  <div className="space-y-1">
-                    {classes.map((c) => {
-                      const isChecked = form.classIds.includes(c.id);
-                      return (
-                        <button
-                          type="button"
-                          key={c.id}
-                          onClick={() => {
-                            const newIds = isChecked
-                              ? form.classIds.filter((id) => id !== c.id)
-                              : [...form.classIds, c.id];
-                            setForm({ ...form, classIds: newIds });
-                          }}
-                          className={`flex items-center justify-between w-full px-3 py-2 text-left text-xs font-semibold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer select-none text-slate-800 dark:text-slate-200 ${
-                            isChecked ? 'bg-primary/5 text-primary font-bold' : ''
-                          }`}
-                        >
-                          <span>{c.name}</span>
-                          {isChecked && <span className="text-primary font-extrabold text-sm">✓</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
               <p className="mt-1 text-[10px] text-slate-400">The subject will be mapped to all active sections of the checked classes for the current academic session.</p>
             </div>
           )}

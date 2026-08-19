@@ -160,6 +160,22 @@ export const schoolPortalApi = {
   deleteStudent: (id) => schoolAdminClient.delete(`/platform/school-portal/students/${id}`).then((res) => res.data),
 };
 
+export const schoolUserApi = {
+  list: (params) => schoolAdminClient.get('/platform/school-portal/users', { params }).then((res) => res.data),
+  get: (id) => schoolAdminClient.get(`/platform/school-portal/users/${id}`).then((res) => res.data),
+  create: (payload) =>
+    schoolAdminClient.post('/platform/school-portal/users', payload, studentRequestConfig(payload)).then((res) => res.data),
+  update: (id, payload) =>
+    schoolAdminClient.patch(`/platform/school-portal/users/${id}`, payload, studentRequestConfig(payload)).then((res) => res.data),
+  updateStatus: (id, status) =>
+    schoolAdminClient.patch(`/platform/school-portal/users/${id}/status`, { status }).then((res) => res.data),
+  changePassword: (id, password) =>
+    schoolAdminClient.patch(`/platform/school-portal/users/${id}/password`, { password }).then((res) => res.data),
+  sendCredentials: (id) =>
+    schoolAdminClient.post(`/platform/school-portal/users/${id}/send-credentials`).then((res) => res.data),
+  delete: (id) => schoolAdminClient.delete(`/platform/school-portal/users/${id}`).then((res) => res.data),
+};
+
 export const academicPortalApi = {
   years: (params) => schoolAdminClient.get('/platform/school-portal/academic/years', { params }).then((r) => r.data),
   getYear: (id) => schoolAdminClient.get(`/platform/school-portal/academic/years/${id}`).then((r) => r.data),
@@ -191,6 +207,10 @@ export const academicPortalApi = {
   createSubject: (payload) => schoolAdminClient.post('/platform/school-portal/academic/subjects', payload).then((r) => r.data),
   updateSubject: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/academic/subjects/${id}`, payload).then((r) => r.data),
   deleteSubject: (id) => schoolAdminClient.delete(`/platform/school-portal/academic/subjects/${id}`).then((r) => r.data),
+  allSectionSubjects: (params) =>
+    schoolAdminClient.get('/platform/school-portal/academic/section-subjects', { params }).then((r) => r.data),
+  createSectionSubject: (payload) =>
+    schoolAdminClient.post('/platform/school-portal/academic/section-subjects', payload).then((r) => r.data),
   sectionSubjects: (sectionId) =>
     schoolAdminClient.get(`/platform/school-portal/academic/sections/${sectionId}/subjects`).then((r) => r.data),
   addSectionSubject: (sectionId, payload) =>
@@ -208,6 +228,42 @@ export const academicPortalApi = {
   updateTeacherStatus: (id, status) =>
     schoolAdminClient.patch(`/platform/school-portal/academic/teachers/${id}/status`, { status }).then((r) => r.data),
   deleteTeacher: (id) => schoolAdminClient.delete(`/platform/school-portal/academic/teachers/${id}`).then((r) => r.data),
+};
+
+export const feePortalApi = {
+  // Fee Heads
+  heads: (params) => schoolAdminClient.get('/platform/school-portal/fees/heads', { params }).then((r) => r.data),
+  getHead: (id) => schoolAdminClient.get(`/platform/school-portal/fees/heads/${id}`).then((r) => r.data),
+  createHead: (payload) => schoolAdminClient.post('/platform/school-portal/fees/heads', payload).then((r) => r.data),
+  updateHead: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/fees/heads/${id}`, payload).then((r) => r.data),
+  deleteHead: (id) => schoolAdminClient.delete(`/platform/school-portal/fees/heads/${id}`).then((r) => r.data),
+  seedDefaultHeads: () => schoolAdminClient.post('/platform/school-portal/fees/heads/seed').then((r) => r.data),
+
+  // Fee Structures
+  structures: (params) => schoolAdminClient.get('/platform/school-portal/fees/structures', { params }).then((r) => r.data),
+  getStructure: (id) => schoolAdminClient.get(`/platform/school-portal/fees/structures/${id}`).then((r) => r.data),
+  createStructure: (payload) => schoolAdminClient.post('/platform/school-portal/fees/structures', payload).then((r) => r.data),
+  updateStructure: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/fees/structures/${id}`, payload).then((r) => r.data),
+  deleteStructure: (id) => schoolAdminClient.delete(`/platform/school-portal/fees/structures/${id}`).then((r) => r.data),
+
+  // Fee Structure Items
+  structureItems: (structureId) => schoolAdminClient.get(`/platform/school-portal/fees/structures/${structureId}/items`).then((r) => r.data),
+  addStructureItem: (structureId, payload) => schoolAdminClient.post(`/platform/school-portal/fees/structures/${structureId}/items`, payload).then((r) => r.data),
+  updateStructureItem: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/fees/items/${id}`, payload).then((r) => r.data),
+  deleteStructureItem: (id) => schoolAdminClient.delete(`/platform/school-portal/fees/items/${id}`).then((r) => r.data),
+
+  // Student Fee Assignments
+  studentAssignments: (studentId) => schoolAdminClient.get(`/platform/school-portal/fees/students/${studentId}/assignments`).then((r) => r.data),
+  autoAssignStudentFees: (studentId, payload) => schoolAdminClient.post(`/platform/school-portal/fees/students/${studentId}/auto-assign`, payload).then((r) => r.data),
+  updateStudentAssignment: (id, payload) => schoolAdminClient.patch(`/platform/school-portal/fees/assignments/${id}`, payload).then((r) => r.data),
+
+  // Invoices & Payments
+  invoices: (params) => schoolAdminClient.get('/platform/school-portal/fees/invoices', { params }).then((r) => r.data),
+  getInvoice: (id) => schoolAdminClient.get(`/platform/school-portal/fees/invoices/${id}`).then((r) => r.data),
+  generateInvoice: (payload) => schoolAdminClient.post('/platform/school-portal/fees/invoices/generate', payload).then((r) => r.data),
+  payInvoice: (invoiceId, payload) => schoolAdminClient.post(`/platform/school-portal/fees/invoices/${invoiceId}/pay`, payload).then((r) => r.data),
+  payments: (params) => schoolAdminClient.get('/platform/school-portal/fees/payments', { params }).then((r) => r.data),
+  getPayment: (id) => schoolAdminClient.get(`/platform/school-portal/fees/payments/${id}`).then((r) => r.data),
 };
 
 export const platformLegalApi = {

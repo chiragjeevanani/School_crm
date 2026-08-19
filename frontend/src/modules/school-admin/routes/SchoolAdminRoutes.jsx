@@ -4,6 +4,7 @@ import { Dashboard } from '../pages/Dashboard';
 import { SchoolConfig } from '../pages/school-config/SchoolConfig';
 import { RolesAndPermissions } from '../pages/roles/RolesAndPermissions';
 import { UserManagement } from '../pages/users/UserManagement';
+import UserDetail from '../pages/users/UserDetail';
 import { AdmissionManagement } from '../pages/admissions/AdmissionManagement';
 import { AcademicManagement } from '../pages/academics/AcademicManagement';
 import AcademicIndex from '../pages/academics/AcademicIndex';
@@ -17,6 +18,9 @@ import { ClassTeachers } from '../pages/academics/ClassTeachers';
 import { AttendanceManagement } from '../pages/attendance/AttendanceManagement';
 import { ExamManagement } from '../pages/exams/ExamManagement';
 import { FeeManagement } from '../pages/fees/FeeManagement';
+import { FeeHeadsIndex } from '../pages/fees/FeeHeadsIndex';
+import { FeeStructuresIndex } from '../pages/fees/FeeStructuresIndex';
+import { FeeStructureDetail } from '../pages/fees/FeeStructureDetail';
 import { StudentManagement } from '../pages/students/StudentManagement';
 import StudentDetail from '../pages/students/StudentDetail';
 import { TeacherManagement } from '../pages/teachers/TeacherManagement';
@@ -44,6 +48,7 @@ export const SchoolAdminRoutes = () => {
       <Route path="school-config" element={<SchoolConfig />} />
       <Route path="roles" element={<RolesAndPermissions />} />
       <Route path="users" element={<UserManagement />} />
+      <Route path="users/:userId" element={<UserDetail />} />
       <Route path="admissions" element={<AdmissionManagement />} />
       <Route path="academics" element={<AcademicIndex />} />
       <Route path="academics/years" element={<AcademicYearsIndex />} />
@@ -57,6 +62,9 @@ export const SchoolAdminRoutes = () => {
       <Route path="attendance" element={<AttendanceManagement />} />
       <Route path="exams" element={<ExamManagement />} />
       <Route path="fees" element={<FeeManagement />} />
+      <Route path="fees/heads" element={<FeeHeadsIndex />} />
+      <Route path="fees/structures" element={<FeeStructuresIndex />} />
+      <Route path="fees/structures/:id" element={<FeeStructureDetail />} />
       <Route path="students" element={<StudentManagement />} />
       <Route path="students/:studentId" element={<StudentDetail />} />
       <Route path="teachers" element={<TeacherManagement />} />

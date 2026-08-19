@@ -96,7 +96,9 @@ import {
   getTeacher,
   listAcademicYears,
   listClasses,
+  listAllSectionSubjects,
   listSectionSubjects,
+  createSectionSubjectDirect,
   listSections,
   listSubjects,
   listTeachers,
@@ -121,11 +123,48 @@ import {
   updateStudent,
   updateStudentStatus,
 } from '../controllers/student.controller.js';
+import {
+  addStructureItem,
+  autoAssignStudentFees,
+  createFeeHead,
+  createFeeStructure,
+  deleteFeeHead,
+  deleteFeeStructure,
+  deleteStructureItem,
+  generateFeeInvoice,
+  getFeeHead,
+  getFeeInvoice,
+  getFeePayment,
+  getFeeStructure,
+  listFeeHeads,
+  listFeeInvoices,
+  listFeePayments,
+  listFeeStructures,
+  listStructureItems,
+  listStudentAssignments,
+  payFeeInvoice,
+  seedDefaultFeeHeads,
+  updateFeeHead,
+  updateFeeStructure,
+  updateStructureItem,
+  updateStudentAssignment,
+} from '../controllers/fee.controller.js';
+import {
+  changeUserPassword,
+  createUser,
+  deleteUser,
+  getUser,
+  listUsers,
+  sendUserCredentials,
+  updateUser,
+  updateUserStatus,
+} from '../controllers/user.controller.js';
 import { requireSuperAdmin } from '../middleware/requireSuperAdmin.js';
 import { requireSchoolAdmin } from '../middleware/requireSchoolAdmin.js';
 import { assertSchoolAccess } from '../middleware/assertSchoolAccess.js';
 import { uploadStudentFiles, convertStudentImages } from '../middleware/uploadStudentPhoto.js';
 import { convertTeacherImages, uploadTeacherFiles } from '../middleware/uploadTeacherPhoto.js';
+import { convertSchoolUserImages, uploadSchoolUserFiles } from '../middleware/uploadSchoolUser.js';
 
 const router = Router();
 
@@ -180,6 +219,8 @@ router.get('/school-portal/academic/subjects', requireSchoolAdmin, listSubjects)
 router.post('/school-portal/academic/subjects', requireSchoolAdmin, createSubject);
 router.patch('/school-portal/academic/subjects/:id', requireSchoolAdmin, updateSubject);
 router.delete('/school-portal/academic/subjects/:id', requireSchoolAdmin, deleteSubject);
+router.get('/school-portal/academic/section-subjects', requireSchoolAdmin, listAllSectionSubjects);
+router.post('/school-portal/academic/section-subjects', requireSchoolAdmin, createSectionSubjectDirect);
 router.get('/school-portal/academic/sections/:sectionId/subjects', requireSchoolAdmin, listSectionSubjects);
 router.post('/school-portal/academic/sections/:sectionId/subjects', requireSchoolAdmin, addSectionSubject);
 router.patch('/school-portal/academic/section-subjects/:id', requireSchoolAdmin, updateSectionSubject);
@@ -196,6 +237,47 @@ router.get('/school-portal/students/:id', requireSchoolAdmin, getStudent);
 router.patch('/school-portal/students/:id', requireSchoolAdmin, uploadStudentFiles, convertStudentImages, updateStudent);
 router.patch('/school-portal/students/:id/status', requireSchoolAdmin, updateStudentStatus);
 router.delete('/school-portal/students/:id', requireSchoolAdmin, deleteStudent);
+
+// School User Management Routes (Teachers, Librarians, HR, Accountants, Transport)
+router.get('/school-portal/users', requireSchoolAdmin, listUsers);
+router.post('/school-portal/users', requireSchoolAdmin, uploadSchoolUserFiles, convertSchoolUserImages, createUser);
+router.get('/school-portal/users/:id', requireSchoolAdmin, getUser);
+router.patch('/school-portal/users/:id', requireSchoolAdmin, uploadSchoolUserFiles, convertSchoolUserImages, updateUser);
+router.patch('/school-portal/users/:id/status', requireSchoolAdmin, updateUserStatus);
+router.patch('/school-portal/users/:id/password', requireSchoolAdmin, changeUserPassword);
+router.post('/school-portal/users/:id/send-credentials', requireSchoolAdmin, sendUserCredentials);
+router.delete('/school-portal/users/:id', requireSchoolAdmin, deleteUser);
+
+// Fee Management Routes
+router.get('/school-portal/fees/heads', requireSchoolAdmin, listFeeHeads);
+router.post('/school-portal/fees/heads', requireSchoolAdmin, createFeeHead);
+router.post('/school-portal/fees/heads/seed', requireSchoolAdmin, seedDefaultFeeHeads);
+router.get('/school-portal/fees/heads/:id', requireSchoolAdmin, getFeeHead);
+router.patch('/school-portal/fees/heads/:id', requireSchoolAdmin, updateFeeHead);
+router.delete('/school-portal/fees/heads/:id', requireSchoolAdmin, deleteFeeHead);
+
+router.get('/school-portal/fees/structures', requireSchoolAdmin, listFeeStructures);
+router.post('/school-portal/fees/structures', requireSchoolAdmin, createFeeStructure);
+router.get('/school-portal/fees/structures/:id', requireSchoolAdmin, getFeeStructure);
+router.patch('/school-portal/fees/structures/:id', requireSchoolAdmin, updateFeeStructure);
+router.delete('/school-portal/fees/structures/:id', requireSchoolAdmin, deleteFeeStructure);
+
+router.get('/school-portal/fees/structures/:structureId/items', requireSchoolAdmin, listStructureItems);
+router.post('/school-portal/fees/structures/:structureId/items', requireSchoolAdmin, addStructureItem);
+router.patch('/school-portal/fees/items/:id', requireSchoolAdmin, updateStructureItem);
+router.delete('/school-portal/fees/items/:id', requireSchoolAdmin, deleteStructureItem);
+
+router.get('/school-portal/fees/students/:studentId/assignments', requireSchoolAdmin, listStudentAssignments);
+router.post('/school-portal/fees/students/:studentId/auto-assign', requireSchoolAdmin, autoAssignStudentFees);
+router.patch('/school-portal/fees/assignments/:id', requireSchoolAdmin, updateStudentAssignment);
+
+router.get('/school-portal/fees/invoices', requireSchoolAdmin, listFeeInvoices);
+router.post('/school-portal/fees/invoices/generate', requireSchoolAdmin, generateFeeInvoice);
+router.get('/school-portal/fees/invoices/:id', requireSchoolAdmin, getFeeInvoice);
+router.post('/school-portal/fees/invoices/:invoiceId/pay', requireSchoolAdmin, payFeeInvoice);
+
+router.get('/school-portal/fees/payments', requireSchoolAdmin, listFeePayments);
+router.get('/school-portal/fees/payments/:id', requireSchoolAdmin, getFeePayment);
 router.get('/subscriptions', requireSuperAdmin, listPlans);
 router.post('/subscriptions', requireSuperAdmin, createPlan);
 router.put('/subscriptions/:id', requireSuperAdmin, updatePlan);

@@ -835,6 +835,54 @@ export class AcademicService {
     return subject.toPublicJSON();
   }
 
+  async listAllSectionSubjects(schoolId, filters = {}) {
+    if (filters.academicYearId) await assertYear(schoolId, filters.academicYearId);
+    if (filters.classId) await assertClass(schoolId, filters.classId);
+    if (filters.sectionId) await assertSection(schoolId, filters.sectionId);
+
+    const items = await academicRepository.listAllSectionSubjects(schoolId, filters);
+    const data = await Promise.all(
+      items.map(async (item) => {
+        const [subject, teacher, section, schoolClass, academicYear] = await Promise.all([
+          academicRepository.findSubjectById(schoolId, item.subjectId),
+          item.teacherId ? academicRepository.findTeacherById(schoolId, item.teacherId) : null,
+          academicRepository.findSectionById(schoolId, item.sectionId),
+          academicRepository.findClassById(schoolId, item.classId),
+          academicRepository.findYearById(schoolId, item.academicYearId),
+        ]);
+        return {
+          ...item.toPublicJSON(),
+          subject: subject ? subject.toPublicJSON() : null,
+          teacher: teacher ? teacher.toPublicJSON() : null,
+          section: section
+            ? {
+                id: section._id.toString(),
+                name: section.name,
+                classId: section.classId.toString(),
+                academicYearId: section.academicYearId.toString(),
+              }
+            : null,
+          class: schoolClass
+            ? {
+                id: schoolClass._id.toString(),
+                name: schoolClass.name,
+                code: schoolClass.code,
+              }
+            : null,
+          academicYear: academicYear
+            ? {
+                id: academicYear._id.toString(),
+                name: academicYear.name,
+                code: academicYear.code,
+                isCurrent: academicYear.isCurrent,
+              }
+            : null,
+        };
+      })
+    );
+    return data;
+  }
+
   async listSectionSubjects(schoolId, sectionId) {
     const section = await assertSection(schoolId, sectionId);
     const items = await academicRepository.listSectionSubjects(schoolId, sectionId);
@@ -858,6 +906,11 @@ export class AcademicService {
       })
     );
     return data;
+  }
+
+  async createSectionSubjectDirect(schoolId, payload) {
+    if (!payload.sectionId) throw new AppError('Section is required', 400);
+    return this.addSectionSubject(schoolId, payload.sectionId, payload);
   }
 
   async addSectionSubject(schoolId, sectionId, payload) {

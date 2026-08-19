@@ -28,7 +28,7 @@ export const ClassTeachers = () => {
   const [teachers, setTeachers] = useState([]);
 
   // Selections
-  const [selectedYear, setSelectedYear] = useState('');
+  const [selectedYear, setSelectedYear] = useState('ALL');
 
   const loadReferenceData = useCallback(async () => {
     setLoading(true);
@@ -44,9 +44,6 @@ export const ClassTeachers = () => {
       setClasses((classRes.data || []).filter((c) => c.status === 'ACTIVE'));
       setSections((sectionRes.data || []).filter((s) => s.status === 'ACTIVE'));
       setTeachers((teacherRes.data || []).filter((t) => t.status === 'ACTIVE'));
-
-      const activeYear = yearRes.data?.find((y) => y.isCurrent || y.status === 'ACTIVE');
-      if (activeYear) setSelectedYear(activeYear.id);
     } catch (error) {
       showToast(apiMessage(error, 'Failed to load mentorship configuration data'), 'error');
     } finally {
@@ -92,9 +89,13 @@ export const ClassTeachers = () => {
     return new Map(teachers.map((t) => [t.id, t]));
   }, [teachers]);
 
-  // Filter sections by selected academic year
+  const yearMap = useMemo(() => {
+    return new Map(years.map((y) => [y.id, y]));
+  }, [years]);
+
+  // Filter sections by selected academic year (Overall by default)
   const activeSections = useMemo(() => {
-    if (!selectedYear) return [];
+    if (!selectedYear || selectedYear === 'ALL') return sections;
     return sections.filter((s) => s.academicYearId === selectedYear);
   }, [selectedYear, sections]);
 
@@ -147,69 +148,76 @@ export const ClassTeachers = () => {
       {/* Filter panel */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="max-w-xs">
-          <label className="mb-1 block text-xs font-bold text-slate-500">Academic Year *</label>
+          <label className="mb-1 block text-xs font-bold text-slate-500">Academic Year (Filter)</label>
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
             className={selectClass}
           >
-            <option value="">Select Year</option>
+            <option value="ALL">All Academic Years (Overall)</option>
             {years.map((y) => (
               <option key={y.id} value={y.id}>
-                {y.name}
+                {y.name} {y.isCurrent ? '(Current)' : ''}
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {selectedYear ? (
-        activeSections.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-16 text-center dark:border-slate-800">
-            <UserCheck className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-700" />
-            <h3 className="mt-4 text-sm font-bold text-slate-700 dark:text-slate-300">No Sections Found</h3>
-            <p className="mt-1 text-xs text-slate-500">Please setup academic classes and sections first.</p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {classes
-              .filter((c) => groupedSectionsByClass[c.id]?.length > 0)
-              .map((classObj) => {
-                const classSections = groupedSectionsByClass[classObj.id] || [];
-                return (
-                  <div key={classObj.id} className="space-y-4">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
-                      {classObj.name} Standard
-                    </h3>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {classSections.map((sec) => {
-                        const assignedTeacher = sec.classTeacherId ? teacherMap.get(sec.classTeacherId) : null;
-                        return (
-                          <div
-                            key={sec.id}
-                            className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-                          >
-                            <div>
-                              <div className="flex items-center justify-between">
+      {activeSections.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-16 text-center dark:border-slate-800">
+          <UserCheck className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-700" />
+          <h3 className="mt-4 text-sm font-bold text-slate-700 dark:text-slate-300">No Sections Found</h3>
+          <p className="mt-1 text-xs text-slate-500">Please setup academic classes and sections first.</p>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {classes
+            .filter((c) => groupedSectionsByClass[c.id]?.length > 0)
+            .map((classObj) => {
+              const classSections = groupedSectionsByClass[classObj.id] || [];
+              return (
+                <div key={classObj.id} className="space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
+                    {classObj.name} Standard
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {classSections.map((sec) => {
+                      const assignedTeacher = sec.classTeacherId ? teacherMap.get(sec.classTeacherId) : null;
+                      const sessionName = yearMap.get(sec.academicYearId)?.name;
+                      return (
+                        <div
+                          key={sec.id}
+                          className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                        >
+                          <div>
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
                                 <h4 className="text-lg font-extrabold text-slate-900 dark:text-white">
                                   {classObj.name} - {sec.name}
                                 </h4>
-                                {assignedTeacher ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:bg-emerald-950/30">
-                                    <CheckCircle2 className="h-3 w-3" /> Assigned
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:bg-amber-950/30">
-                                    <AlertCircle className="h-3 w-3" /> Vacant
+                                {sessionName && (
+                                  <span className="text-[10px] font-bold text-slate-400">
+                                    Session: {sessionName}
                                   </span>
                                 )}
                               </div>
-
-                              <div className="mt-4 space-y-1 text-xs text-slate-500">
-                                <p>Room Number: <span className="font-bold text-slate-700 dark:text-slate-300">{sec.roomNumber || '—'}</span></p>
-                                <p>Capacity Limit: <span className="font-bold text-slate-700 dark:text-slate-300">{sec.capacity || '—'} Students</span></p>
-                              </div>
+                              {assignedTeacher ? (
+                                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:bg-emerald-950/30">
+                                  <CheckCircle2 className="h-3 w-3" /> Assigned
+                                </span>
+                              ) : (
+                                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:bg-amber-950/30">
+                                  <AlertCircle className="h-3 w-3" /> Vacant
+                                </span>
+                              )}
                             </div>
+
+                            <div className="mt-4 space-y-1 text-xs text-slate-500">
+                              <p>Room Number: <span className="font-bold text-slate-700 dark:text-slate-300">{sec.roomNumber || '—'}</span></p>
+                              <p>Capacity Limit: <span className="font-bold text-slate-700 dark:text-slate-300">{sec.capacity || '—'} Students</span></p>
+                            </div>
+                          </div>
 
                             <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
                               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -252,14 +260,7 @@ export const ClassTeachers = () => {
                 );
               })}
           </div>
-        )
-      ) : (
-        <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center dark:border-slate-800 dark:bg-slate-900">
-          <Info className="mx-auto h-8 w-8 text-slate-400 dark:text-slate-600" />
-          <h3 className="mt-4 text-sm font-bold text-slate-800 dark:text-slate-200">Select Academic Year</h3>
-          <p className="mt-1 text-xs text-slate-500">Please choose an Academic Year above to assign mentorship roles.</p>
-        </div>
-      )}
+        )}
 
       <ToastComponent />
     </div>

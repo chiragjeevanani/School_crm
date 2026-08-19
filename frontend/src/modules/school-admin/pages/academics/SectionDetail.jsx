@@ -177,10 +177,10 @@ export const SectionDetail = () => {
           ) : (
             <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-100 bg-slate-50/70 dark:border-slate-800">
+                <thead className="border-b border-slate-100 bg-slate-50/70 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
                   <tr>
-                    {['Subject', 'Teacher', 'Max Marks', 'Passing Marks', 'Type', 'Optional', 'Status', 'Actions'].map((h) => (
-                      <th key={h} className="px-4 py-3 font-bold text-slate-500">
+                    {['Subject', 'Teacher', 'Type', 'Status', 'Actions'].map((h) => (
+                      <th key={h} className="px-4 py-3 font-bold text-slate-500 dark:text-slate-400">
                         {h}
                       </th>
                     ))}
@@ -191,10 +191,7 @@ export const SectionDetail = () => {
                     <tr key={item.id} className="border-b border-slate-50 dark:border-slate-850">
                       <td className="px-4 py-3 font-bold">{item.subject?.name}</td>
                       <td className="px-4 py-3">{item.teacher?.name || '—'}</td>
-                      <td className="px-4 py-3">{item.maxMarks}</td>
-                      <td className="px-4 py-3">{item.passingMarks}</td>
-                      <td className="px-4 py-3">{item.subject?.subjectType}</td>
-                      <td className="px-4 py-3">{item.isOptional ? 'Yes' : 'No'}</td>
+                      <td className="px-4 py-3">{item.subject?.subjectType || 'THEORY'}</td>
                       <td className="px-4 py-3">{item.status}</td>
                       <td className="px-4 py-3">
                         <button
@@ -263,36 +260,6 @@ export const SectionDetail = () => {
               ))}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-xs font-bold text-slate-500">Maximum Marks *</label>
-              <input
-                type="number"
-                className={inputClass}
-                value={form.maxMarks}
-                onChange={(e) => setForm({ ...form, maxMarks: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-bold text-slate-500">Passing Marks *</label>
-              <input
-                type="number"
-                className={inputClass}
-                value={form.passingMarks}
-                onChange={(e) => setForm({ ...form, passingMarks: e.target.value })}
-                required
-              />
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-            <input
-              type="checkbox"
-              checked={form.isOptional}
-              onChange={(e) => setForm({ ...form, isOptional: e.target.checked })}
-            />
-            Optional subject
-          </label>
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
             <button type="button" onClick={() => setModalOpen(false)} className="rounded-xl px-4 py-2 text-xs font-semibold">
               Cancel

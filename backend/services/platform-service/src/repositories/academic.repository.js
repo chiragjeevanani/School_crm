@@ -187,6 +187,25 @@ export class AcademicRepository {
   }
 
   // Section Subjects
+  listAllSectionSubjects(schoolId, filters = {}) {
+    const query = { schoolId: toObjectId(schoolId) };
+    if (filters.academicYearId) query.academicYearId = toObjectId(filters.academicYearId);
+    if (filters.classId) query.classId = toObjectId(filters.classId);
+    if (filters.sectionId) query.sectionId = toObjectId(filters.sectionId);
+    if (filters.subjectId) query.subjectId = toObjectId(filters.subjectId);
+    if (filters.teacherId) {
+      if (filters.teacherId === 'unassigned' || filters.teacherId === 'null') {
+        query.teacherId = null;
+      } else {
+        query.teacherId = toObjectId(filters.teacherId);
+      }
+    }
+    if (filters.status && filters.status !== 'ALL') {
+      query.status = filters.status;
+    }
+    return SectionSubject.find(query).sort({ createdAt: -1 });
+  }
+
   listSectionSubjects(schoolId, sectionId) {
     return SectionSubject.find({
       schoolId: toObjectId(schoolId),

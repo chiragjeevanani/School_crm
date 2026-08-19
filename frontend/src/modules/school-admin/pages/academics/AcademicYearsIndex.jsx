@@ -168,6 +168,9 @@ const BulkCreateModal = ({ open, onClose, onSaved }) => {
 
   if (!open) return null;
 
+  const modalInputClass =
+    'w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-800 outline-none transition focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-900';
+
   return (
     <Modal isOpen={open} onClose={onClose} title="Create Academic Years" size="xl">
       <div className="space-y-4">
@@ -176,80 +179,80 @@ const BulkCreateModal = ({ open, onClose, onSaved }) => {
           <button
             type="button"
             onClick={addRow}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            <Plus className="h-3.5 w-3.5" /> Add Row
+            <Plus className="h-3.5 w-3.5 text-primary" /> Add Row
           </button>
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            <FileUp className="h-3.5 w-3.5" /> Import CSV
+            <FileUp className="h-3.5 w-3.5 text-indigo-500" /> Import CSV
           </button>
           <button
             type="button"
             onClick={downloadSampleCSV}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            <Download className="h-3.5 w-3.5" /> Sample CSV
+            <Download className="h-3.5 w-3.5 text-emerald-500" /> Sample CSV
           </button>
           <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleImport} />
         </div>
 
-        {/* Rows */}
-        <div className="max-h-[50vh] overflow-y-auto rounded-xl border border-slate-200">
-          <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-slate-50 text-slate-500">
+        {/* Rows Table */}
+        <div className="max-h-[55vh] overflow-x-auto overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <table className="w-full text-left text-xs">
+            <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-100/90 text-[11px] font-extrabold uppercase tracking-wider text-slate-600 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/90 dark:text-slate-300">
               <tr>
-                <th className="px-3 py-2 text-left font-semibold">#</th>
-                <th className="px-3 py-2 text-left font-semibold">Name *</th>
-                <th className="px-3 py-2 text-left font-semibold">Code</th>
-                <th className="px-3 py-2 text-left font-semibold">Start Date *</th>
-                <th className="px-3 py-2 text-left font-semibold">End Date *</th>
-                <th className="px-3 py-2 text-left font-semibold">Status</th>
-                <th className="px-3 py-2" />
+                <th className="px-3 py-3 w-10">#</th>
+                <th className="px-3 py-3 min-w-[140px]">Name *</th>
+                <th className="px-3 py-3 min-w-[120px]">Code</th>
+                <th className="px-3 py-3 min-w-[140px]">Start Date *</th>
+                <th className="px-3 py-3 min-w-[140px]">End Date *</th>
+                <th className="px-3 py-3 min-w-[110px]">Status</th>
+                <th className="px-3 py-3 w-10" />
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {rows.map((row, i) => (
-                <tr key={i} className="border-t border-slate-100">
-                  <td className="px-3 py-2 text-slate-400">{i + 1}</td>
-                  <td className="px-3 py-2">
+                <tr key={i} className="transition hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                  <td className="px-3 py-2.5 font-bold text-slate-400">{i + 1}</td>
+                  <td className="px-3 py-2.5">
                     <input
-                      className={inputClass}
-                      placeholder="2026-27"
+                      className={modalInputClass}
+                      placeholder="e.g. 2026-27"
                       value={row.name}
                       onChange={(e) => updateRow(i, 'name', e.target.value)}
                     />
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <input
-                      className={inputClass}
-                      placeholder="2026-27"
+                      className={modalInputClass}
+                      placeholder="e.g. 2026-27"
                       value={row.code}
                       onChange={(e) => updateRow(i, 'code', e.target.value)}
                     />
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <input
                       type="date"
-                      className={inputClass}
+                      className={modalInputClass}
                       value={row.startDate}
                       onChange={(e) => updateRow(i, 'startDate', e.target.value)}
                     />
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <input
                       type="date"
-                      className={inputClass}
+                      className={modalInputClass}
                       value={row.endDate}
                       onChange={(e) => updateRow(i, 'endDate', e.target.value)}
                     />
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <select
-                      className={inputClass}
+                      className={modalInputClass}
                       value={row.status}
                       onChange={(e) => updateRow(i, 'status', e.target.value)}
                     >
@@ -257,14 +260,15 @@ const BulkCreateModal = ({ open, onClose, onSaved }) => {
                       <option value="ACTIVE">ACTIVE</option>
                     </select>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     {rows.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeRow(i)}
-                        className="rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-500"
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-950/40"
+                        title="Remove Row"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     )}
                   </td>
@@ -274,18 +278,22 @@ const BulkCreateModal = ({ open, onClose, onSaved }) => {
           </table>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-slate-100 pt-3">
-          <button type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-xs font-semibold">
+        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
             Cancel
           </button>
           <button
             type="button"
             disabled={saving}
             onClick={handleSave}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-primary/90 disabled:opacity-60"
           >
-            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Save All
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {saving ? 'Saving...' : 'Save Academic Years'}
           </button>
         </div>
       </div>

@@ -11,12 +11,16 @@ export const studentUploadsDir = path.join(uploadsRoot, 'students');
 export const studentDocumentsDir = path.join(studentUploadsDir, 'documents');
 export const teacherUploadsDir = path.join(uploadsRoot, 'teachers');
 export const teacherDocumentsDir = path.join(teacherUploadsDir, 'documents');
+export const userUploadsDir = path.join(uploadsRoot, 'users');
+export const userDocumentsDir = path.join(userUploadsDir, 'documents');
 
 export function ensureUploadDirs() {
   fs.mkdirSync(studentUploadsDir, { recursive: true });
   fs.mkdirSync(studentDocumentsDir, { recursive: true });
   fs.mkdirSync(teacherUploadsDir, { recursive: true });
   fs.mkdirSync(teacherDocumentsDir, { recursive: true });
+  fs.mkdirSync(userUploadsDir, { recursive: true });
+  fs.mkdirSync(userDocumentsDir, { recursive: true });
 }
 
 export function toStudentPhotoPublicPath(filename) {
@@ -33,6 +37,14 @@ export function toTeacherPhotoPublicPath(filename) {
 
 export function toTeacherDocumentPublicPath(filename) {
   return `/uploads/teachers/documents/${filename}`;
+}
+
+export function toUserPhotoPublicPath(filename) {
+  return `/uploads/users/${filename}`;
+}
+
+export function toUserDocumentPublicPath(filename) {
+  return `/uploads/users/documents/${filename}`;
 }
 
 export function resolveUploadPath(publicPath) {

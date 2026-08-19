@@ -280,6 +280,24 @@ export async function deleteSubject(req, res, next) {
   }
 }
 
+export async function listAllSectionSubjects(req, res, next) {
+  try {
+    const data = await academicService.listAllSectionSubjects(schoolId(req), req.query);
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createSectionSubjectDirect(req, res, next) {
+  try {
+    const data = await academicService.createSectionSubjectDirect(schoolId(req), req.body);
+    res.status(201).json({ success: true, data, message: 'Subject assigned to section' });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function listSectionSubjects(req, res, next) {
   try {
     const data = await academicService.listSectionSubjects(schoolId(req), req.params.sectionId);

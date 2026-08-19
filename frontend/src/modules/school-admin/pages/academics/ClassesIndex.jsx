@@ -72,8 +72,6 @@ export const ClassesIndex = () => {
       .then((res) => {
         const yearList = res.data || [];
         setYears(yearList);
-        const current = yearList.find((y) => y.isCurrent || y.status === 'ACTIVE');
-        if (current) setSelectedYear(current.id);
       })
       .catch(() => {});
   }, []);
@@ -134,6 +132,14 @@ export const ClassesIndex = () => {
   }, [loadClasses]);
 
   // Filter classes by status locally
+  const statusCounts = useMemo(() => {
+    return {
+      ALL: classes.length,
+      ACTIVE: classes.filter((c) => c.status === 'ACTIVE').length,
+      INACTIVE: classes.filter((c) => c.status === 'INACTIVE').length,
+    };
+  }, [classes]);
+
   const filteredClasses = useMemo(() => {
     return classes.filter((cls) => {
       if (statusFilter === 'ALL') return true;
@@ -284,34 +290,52 @@ export const ClassesIndex = () => {
 
       {/* Filters */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 max-w-xs">
-            <span className="text-xs font-bold text-slate-500 shrink-0">Academic Year:</span>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-            >
-              <option value="">All Classes (School Master List)</option>
-              {years.map((y) => (
-                <option key={y.id} value={y.id}>
-                  {y.name}
-                </option>
-              ))}
-            </select>
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-500 shrink-0 select-none">Academic Year:</span>
+            <div className="relative">
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 pl-3.5 pr-9 text-xs font-semibold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white appearance-none cursor-pointer"
+              >
+                <option value="">All Classes (School Master List)</option>
+                {years.map((y) => (
+                  <option key={y.id} value={y.id}>
+                    {y.name}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
           
-          <div className="flex items-center gap-2 max-w-xs">
-            <span className="text-xs font-bold text-slate-500 shrink-0">Status:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-10 w-40 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="ACTIVE">Active Only</option>
-              <option value="INACTIVE">Inactive Only</option>
-            </select>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-500 shrink-0 select-none">Status:</span>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { id: 'ALL', label: 'All Statuses', count: statusCounts.ALL },
+                { id: 'ACTIVE', label: 'Active', count: statusCounts.ACTIVE },
+                { id: 'INACTIVE', label: 'Inactive', count: statusCounts.INACTIVE },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setStatusFilter(item.id)}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all duration-200 ${
+                    statusFilter === item.id
+                      ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                      : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-850'
+                  }`}
+                >
+                  {item.label} <span className={`ml-1 text-[10px] ${statusFilter === item.id ? 'opacity-80' : 'text-slate-400 dark:text-slate-500'}`}>({item.count})</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -319,10 +343,10 @@ export const ClassesIndex = () => {
       {loading ? (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-100 bg-slate-50/70 dark:border-slate-800">
+            <thead className="border-b border-slate-100 bg-slate-50/70 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
               <tr>
                 {['#', 'Class', 'Academic Year', 'Description', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="px-4 py-3 font-bold text-slate-500">
+                  <th key={h} className="px-4 py-3 font-bold text-slate-500 dark:text-slate-400">
                     {h}
                   </th>
                 ))}
@@ -355,10 +379,10 @@ export const ClassesIndex = () => {
       ) : (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-100 bg-slate-50/70 dark:border-slate-800">
+            <thead className="border-b border-slate-100 bg-slate-50/70 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
               <tr>
                 {['#', 'Class', 'Academic Year', 'Description', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="px-4 py-3 font-bold text-slate-500">
+                  <th key={h} className="px-4 py-3 font-bold text-slate-500 dark:text-slate-400">
                     {h}
                   </th>
                 ))}
