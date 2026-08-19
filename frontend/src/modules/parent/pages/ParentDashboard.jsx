@@ -44,10 +44,9 @@ export const ParentDashboard = () => {
     const storedHomework = localStorage.getItem('school_homework');
     if (storedHomework) {
       const list = JSON.parse(storedHomework);
-      // Pending count
       setChildHomeworkCount(list.filter(h => h.status === 'Pending').length);
     } else {
-      setChildHomeworkCount(selectedChildId === 'STU108902' ? 2 : 1);
+      setChildHomeworkCount(0);
     }
 
     // 3. Load Fees Details
@@ -94,7 +93,7 @@ export const ParentDashboard = () => {
               <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
             </div>
             <h1 className="text-lg sm:text-xl font-black mt-0 mb-0 tracking-tight text-white">{user?.name}</h1>
-            <p className="text-[11px] text-white/70 mt-1">{user?.occupation} • Linked Sibling Count: {user?.childrenCount}</p>
+            <p className="text-[11px] text-white/70 mt-1">{user?.occupation} • Linked Sibling Count: {user?.childrenCount || 0}</p>
             
             {activeChildInfo && (
               <span className="inline-flex items-center gap-1.5 mt-3 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-[9px] font-black text-white uppercase tracking-wider">
@@ -114,7 +113,7 @@ export const ParentDashboard = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <StatCard
               title="Attendance %"
-              value={childAttendance ? `${childAttendance.overallPercentage}%` : '—'}
+              value={childAttendance?.overallPercentage != null ? `${childAttendance.overallPercentage}%` : '0%'}
               subtext="Overall attendance"
               icon={CalendarCheck}
               colorClass="bg-indigo-500"
@@ -122,7 +121,7 @@ export const ParentDashboard = () => {
             />
             <StatCard
               title="Pending Homework"
-              value={`${childHomeworkCount}`}
+              value={childHomeworkCount === 0 ? '00' : `${childHomeworkCount}`}
               subtext="Assignments due"
               icon={BookOpen}
               colorClass="bg-amber-500"
@@ -130,7 +129,7 @@ export const ParentDashboard = () => {
             />
             <StatCard
               title="Outstanding Fees"
-              value={childFees ? `₹${childFees.pendingFees}` : '—'}
+              value={`₹${childFees?.pendingFees ?? 0}`}
               subtext="Pending payment balance"
               icon={CreditCard}
               colorClass="bg-rose-500"
@@ -138,7 +137,7 @@ export const ParentDashboard = () => {
             />
             <StatCard
               title="Academic GPA"
-              value={childResult ? `${childResult.gpa} GPA` : '—'}
+              value={`${childResult?.gpa || '0.0'} GPA`}
               subtext={`Rank: ${childResult?.rank || 'N/A'}`}
               icon={GraduationCap}
               colorClass="bg-purple-500"
@@ -185,7 +184,7 @@ export const ParentDashboard = () => {
             </button>
           </div>
           {todayClasses.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center py-8">No periods scheduled today</p>
+            <p className="text-xs text-slate-400 text-center py-8">No Result — No periods scheduled today</p>
           ) : (
             <div className="space-y-3 flex-1 overflow-y-auto max-h-72 no-scrollbar">
               {todayClasses.map((cl, i) => (
@@ -214,21 +213,7 @@ export const ParentDashboard = () => {
             </button>
           </div>
           <div className="space-y-3">
-            {[
-              { title: 'Half-Yearly Examination Schedule', category: 'Exam', date: 'July 15', body: 'Final datesheet for examination starting Sept 10.' },
-              { title: 'Monsoon Precautions Advisory', category: 'School', date: 'July 10', body: 'Students must carry umbrellas and rain boots.' }
-            ].map((notice, index) => (
-              <div key={index} className="p-3.5 rounded-xl border border-border">
-                <div className="flex items-center justify-between mb-1">
-                  <Badge variant={notice.category === 'Exam' ? 'warning' : 'primary'} className="text-[8px]">
-                    {notice.category}
-                  </Badge>
-                  <span className="text-[9px] text-slate-400">{notice.date}</span>
-                </div>
-                <h4 className="text-xs font-bold text-foreground truncate">{notice.title}</h4>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">{notice.body}</p>
-              </div>
-            ))}
+            <p className="text-xs text-slate-400 text-center py-8">No Result — No circulars or notices</p>
           </div>
         </Card>
       </div>

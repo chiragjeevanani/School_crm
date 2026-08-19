@@ -10,6 +10,7 @@ import { academicPortalApi } from '../../../../shared/api/client';
 import { AcademicBreadcrumb, CountCards, EmptyState } from './components/AcademicUi';
 import { apiMessage, ENTITY_STATUS_VARIANT } from './utils';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { DetailPageSkeleton } from '../../components/ui/SkeletonLoader';
 
 const inputClass =
   'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950';
@@ -96,11 +97,7 @@ export const SectionDetail = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <DetailPageSkeleton />;
   }
 
   if (!section) return null;

@@ -22,6 +22,7 @@ import {
   Sun,
   Upload,
 } from 'lucide-react';
+import { SkeletonForm } from '../../components/ui/SkeletonLoader';
 
 const TABS = [
   { id: 'theme', label: 'Theme' },
@@ -304,11 +305,7 @@ export const Settings = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <SkeletonForm fields={6} />;
   }
 
   return (

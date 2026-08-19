@@ -92,12 +92,12 @@ export const TeacherDashboard = () => {
       <div>
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Today's Overview</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          <StatCard title="Today's Classes" value={`${todayClasses.length}`} subtext="Scheduled periods" icon={Clock} colorClass="bg-indigo-500" onClick={() => navigate('/teacher/timetable')} />
-          <StatCard title="Pending Eval." value={`${pendingHomework}`} subtext="Submissions awaiting" icon={BookOpen} colorClass="bg-amber-500" onClick={() => navigate('/teacher/homework')} />
-          <StatCard title="Marks Pending" value={`${pendingMarks}`} subtext="Exams to evaluate" icon={Upload} colorClass="bg-purple-500" onClick={() => navigate('/teacher/examination')} />
-          <StatCard title="Unread Messages" value={`${unreadMsgCount}`} subtext="From parents & staff" icon={MessageSquare} colorClass="bg-sky-500" onClick={() => navigate('/teacher/messages')} />
-          <StatCard title="Notifications" value={`${unreadNotifCount}`} subtext="Unread alerts" icon={Bell} colorClass="bg-rose-500" onClick={() => navigate('/teacher/notifications')} />
-          <StatCard title="Upcoming Exams" value={`${upcomingExams.length}`} subtext="Next 30 days" icon={FileText} colorClass="bg-emerald-500" onClick={() => navigate('/teacher/examination')} />
+          <StatCard title="Today's Classes" value={todayClasses.length === 0 ? '00' : `${todayClasses.length}`} subtext="Scheduled periods" icon={Clock} colorClass="bg-indigo-500" onClick={() => navigate('/teacher/timetable')} />
+          <StatCard title="Pending Eval." value={pendingHomework === 0 ? '00' : `${pendingHomework}`} subtext="Submissions awaiting" icon={BookOpen} colorClass="bg-amber-500" onClick={() => navigate('/teacher/homework')} />
+          <StatCard title="Marks Pending" value={pendingMarks === 0 ? '00' : `${pendingMarks}`} subtext="Exams to evaluate" icon={Upload} colorClass="bg-purple-500" onClick={() => navigate('/teacher/examination')} />
+          <StatCard title="Unread Messages" value={unreadMsgCount === 0 ? '00' : `${unreadMsgCount}`} subtext="From parents & staff" icon={MessageSquare} colorClass="bg-sky-500" onClick={() => navigate('/teacher/messages')} />
+          <StatCard title="Notifications" value={unreadNotifCount === 0 ? '00' : `${unreadNotifCount}`} subtext="Unread alerts" icon={Bell} colorClass="bg-rose-500" onClick={() => navigate('/teacher/notifications')} />
+          <StatCard title="Upcoming Exams" value={upcomingExams.length === 0 ? '00' : `${upcomingExams.length}`} subtext="Next 30 days" icon={FileText} colorClass="bg-emerald-500" onClick={() => navigate('/teacher/examination')} />
         </div>
       </div>
 
@@ -138,7 +138,7 @@ export const TeacherDashboard = () => {
             </button>
           </div>
           {todayClasses.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center py-8">No classes scheduled today</p>
+            <p className="text-xs text-slate-400 text-center py-8">No Result — No classes scheduled today</p>
           ) : (
             <div className="space-y-3 flex-1 overflow-y-auto max-h-72 no-scrollbar">
               {todayClasses.map((cl, i) => (
@@ -166,18 +166,22 @@ export const TeacherDashboard = () => {
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="space-y-3 flex-1 overflow-y-auto max-h-72 no-scrollbar">
-            {upcomingExams.map(exam => (
-              <div key={exam.id} className="p-3.5 rounded-xl border border-border hover:border-primary/20 duration-150">
-                <div className="flex items-center justify-between mb-1.5">
-                  <Badge variant={examTypeColor[exam.type] || 'default'} className="text-[8px]">{exam.type}</Badge>
-                  <span className="text-[9px] text-slate-400 font-medium">{exam.date}</span>
+          {upcomingExams.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-8">No Result — No exams scheduled</p>
+          ) : (
+            <div className="space-y-3 flex-1 overflow-y-auto max-h-72 no-scrollbar">
+              {upcomingExams.map(exam => (
+                <div key={exam.id} className="p-3.5 rounded-xl border border-border hover:border-primary/20 duration-150">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Badge variant={examTypeColor[exam.type] || 'default'} className="text-[8px]">{exam.type}</Badge>
+                    <span className="text-[9px] text-slate-400 font-medium">{exam.date}</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-foreground">{exam.subject}</h4>
+                  <span className="text-[10px] text-slate-400">{exam.class} • {exam.time} • {exam.venue}</span>
                 </div>
-                <h4 className="text-xs font-bold text-foreground">{exam.subject}</h4>
-                <span className="text-[10px] text-slate-400">{exam.class} • {exam.time} • {exam.venue}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         {/* Recent Announcements */}
@@ -189,23 +193,27 @@ export const TeacherDashboard = () => {
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="space-y-3 flex-1 overflow-y-auto max-h-72 no-scrollbar">
-            {recentAnnouncements.map(ann => (
-              <div key={ann.id} className={`p-3.5 rounded-xl border duration-150 ${ann.isUrgent ? 'border-rose-200 dark:border-rose-900 bg-rose-500/5' : 'border-border hover:border-primary/20'}`}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <Badge
-                    variant={ann.isUrgent ? 'danger' : ann.type === 'Exam' ? 'warning' : ann.type === 'Holiday' ? 'success' : 'info'}
-                    className="text-[8px] tracking-wide uppercase"
-                  >
-                    {ann.isUrgent ? '🚨 Urgent' : ann.type}
-                  </Badge>
-                  <span className="text-[9px] text-slate-400 font-medium">{ann.date}</span>
+          {recentAnnouncements.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-8">No Result — No announcements posted</p>
+          ) : (
+            <div className="space-y-3 flex-1 overflow-y-auto max-h-72 no-scrollbar">
+              {recentAnnouncements.map(ann => (
+                <div key={ann.id} className={`p-3.5 rounded-xl border duration-150 ${ann.isUrgent ? 'border-rose-200 dark:border-rose-900 bg-rose-500/5' : 'border-border hover:border-primary/20'}`}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Badge
+                      variant={ann.isUrgent ? 'danger' : ann.type === 'Exam' ? 'warning' : ann.type === 'Holiday' ? 'success' : 'info'}
+                      className="text-[8px] tracking-wide uppercase"
+                    >
+                      {ann.isUrgent ? '🚨 Urgent' : ann.type}
+                    </Badge>
+                    <span className="text-[9px] text-slate-400 font-medium">{ann.date}</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-foreground truncate">{ann.title}</h4>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">{ann.body}</p>
                 </div>
-                <h4 className="text-xs font-bold text-foreground truncate">{ann.title}</h4>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">{ann.body}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -218,28 +226,33 @@ export const TeacherDashboard = () => {
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {upcomingEvents.map(ev => (
-            <Card key={ev.id} className="flex gap-4" onClick={() => navigate('/teacher/events')}>
-              <div className="shrink-0 text-center">
-                <div className="w-12 h-14 bg-primary/10 rounded-2xl flex flex-col items-center justify-center">
-                  <span className="text-[10px] font-bold text-primary uppercase">{new Date(ev.date).toLocaleString('default', { month: 'short' })}</span>
-                  <span className="text-lg font-black text-primary leading-none">{new Date(ev.date).getDate()}</span>
+        {upcomingEvents.length === 0 ? (
+          <p className="text-xs text-slate-400 text-center py-6">No Result — No upcoming events scheduled</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {upcomingEvents.map(ev => (
+              <Card key={ev.id} className="flex gap-4" onClick={() => navigate('/teacher/events')}>
+                <div className="shrink-0 text-center">
+                  <div className="w-12 h-14 bg-primary/10 rounded-2xl flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-bold text-primary uppercase">{new Date(ev.date).toLocaleString('default', { month: 'short' })}</span>
+                    <span className="text-lg font-black text-primary leading-none">{new Date(ev.date).getDate()}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-xs font-bold text-foreground leading-tight mb-0.5">{ev.title}</h4>
-                <p className="text-[10px] text-slate-400 mb-1.5">{ev.venue} • {ev.time}</p>
-                {ev.duty && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-lg">
-                    <ClipboardList className="w-3 h-3" /> {ev.duty}
-                  </span>
-                )}
-              </div>
-            </Card>
-          ))}
-        </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs font-bold text-foreground leading-tight mb-0.5">{ev.title}</h4>
+                  <p className="text-[10px] text-slate-400 mb-1.5">{ev.venue} • {ev.time}</p>
+                  {ev.duty && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-lg">
+                      <ClipboardList className="w-3 h-3" /> {ev.duty}
+                    </span>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 };
+export default TeacherDashboard;

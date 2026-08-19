@@ -28,6 +28,7 @@ import {
   UserCheck,
   UserX,
 } from 'lucide-react';
+import { DetailPageSkeleton } from '../../components/ui/SkeletonLoader';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace(/\/$/, '');
 
@@ -198,12 +199,7 @@ export const UserDetail = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex h-96 flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-xs font-semibold text-slate-400">Loading user profile details...</p>
-      </div>
-    );
+    return <DetailPageSkeleton />;
   }
 
   if (!user) {

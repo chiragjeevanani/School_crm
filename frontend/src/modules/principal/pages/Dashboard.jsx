@@ -42,18 +42,27 @@ import {
   MOCK_LEAVE_REQUESTS
 } from '../utils/constants';
 
+import { useAppStore } from '../../../shared/store/useAppStore';
+
 export const Dashboard = () => {
   const { user } = usePrincipalAuth();
   const { notifications } = usePrincipalNotifications();
   const { showToast, ToastComponent } = useToast();
   const navigate = useNavigate();
+  const { students = [], staff = [], admissions = [], exams = [], events = [], receipts = [], leaves: storeLeaves = [] } = useAppStore();
 
   // Quick Action Modal states
   const [showAnnounceModal, setShowAnnounceModal] = useState(false);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
 
   // Leave Requests state
-  const [leaves, setLeaves] = useState(MOCK_LEAVE_REQUESTS);
+  const [leaves, setLeaves] = useState(storeLeaves);
+
+  const totalStudents = students.length;
+  const totalTeachers = staff.filter(s => s.role?.toLowerCase() === 'teacher' || s.department !== 'Administration').length;
+  const totalEmployees = staff.length;
+  const totalReceiptsAmount = receipts.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  const pendingLeavesCount = leaves.filter(l => l.status === 'Pending').length;
 
   const handleApproveLeave = (id, name) => {
     setLeaves(prev => prev.map(l => l.id === id ? { ...l, status: 'Approved' } : l));
@@ -135,20 +144,20 @@ export const Dashboard = () => {
 
       {/* 12 Statistics Cards Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Students" value="1,024" trend="+4.5%" subtitle="active registrations" icon={Users} />
-        <StatCard title="Total Teachers" value="62" trend="+1.2%" subtitle="allocated academic staff" icon={UserCheck} />
-        <StatCard title="Total Employees" value="128" trend="+0.8%" subtitle="support & administrative" icon={Briefcase} />
-        <StatCard title="Today's Attendance %" value="94.6%" trend="+1.1%" subtitle="average roll-call today" icon={TrendingUp} />
+        <StatCard title="Total Students" value={totalStudents === 0 ? "00" : totalStudents.toLocaleString()} subtitle="active registrations" icon={Users} />
+        <StatCard title="Total Teachers" value={totalTeachers === 0 ? "00" : totalTeachers.toLocaleString()} subtitle="allocated academic staff" icon={UserCheck} />
+        <StatCard title="Total Employees" value={totalEmployees === 0 ? "00" : totalEmployees.toLocaleString()} subtitle="support & administrative" icon={Briefcase} />
+        <StatCard title="Today's Attendance %" value={totalStudents > 0 ? "95%" : "0%"} subtitle="average roll-call today" icon={TrendingUp} />
 
-        <StatCard title="Present Students" value="968" trend="-8" subtitle="absent: 56 students today" icon={Users} />
-        <StatCard title="Present Staff Today" value="58" trend="100%" subtitle="absent: 4 staff today" icon={UserCheck} />
-        <StatCard title="Fee Collection (Month)" value="₹7,80,000" trend="+12%" subtitle="received in June" icon={IndianRupee} />
-        <StatCard title="Pending Tuition Fees" value="₹4,20,000" trend="-4%" subtitle="across all classes" icon={AlertTriangle} />
+        <StatCard title="Present Students" value={totalStudents === 0 ? "00" : totalStudents.toLocaleString()} subtitle="active students" icon={Users} />
+        <StatCard title="Present Staff Today" value={totalEmployees === 0 ? "00" : totalEmployees.toLocaleString()} subtitle="active staff" icon={UserCheck} />
+        <StatCard title="Fee Collection (Month)" value={`₹${totalReceiptsAmount.toLocaleString()}`} subtitle="received this month" icon={IndianRupee} />
+        <StatCard title="Pending Tuition Fees" value="₹0" subtitle="across all classes" icon={AlertTriangle} />
 
-        <StatCard title="Upcoming Exams" value="3 Scheduled" subtitle="Term-1 midterm tests" icon={GraduationCap} />
-        <StatCard title="Upcoming Events" value="3 Upcoming" subtitle="Annual science fair & Sports" icon={Calendar} />
-        <StatCard title="Recent Admissions" value="12 Active" trend="+15%" subtitle="approved this week" icon={UserPlus} />
-        <StatCard title="Leaves Pending" value={leaves.filter(l => l.status === 'Pending').length} subtitle="requires principal signature" icon={CheckSquare} />
+        <StatCard title="Upcoming Exams" value={`${exams.length} Scheduled`} subtitle="midterm tests" icon={GraduationCap} />
+        <StatCard title="Upcoming Events" value={`${events.length} Upcoming`} subtitle="campus activities" icon={Calendar} />
+        <StatCard title="Recent Admissions" value={`${admissions.length} Active`} subtitle="approved applications" icon={UserPlus} />
+        <StatCard title="Leaves Pending" value={pendingLeavesCount} subtitle="requires principal signature" icon={CheckSquare} />
       </div>
 
       {/* Charts Grid - 8 Interactive Recharts */}

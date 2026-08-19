@@ -43,6 +43,7 @@ import {
   Users,
   XCircle,
 } from 'lucide-react';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 
 const inputClass =
   'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-xs font-semibold outline-none focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white';
@@ -750,10 +751,7 @@ export const LibraryManagement = () => {
 
           {/* Books List View */}
           {loadingBooks ? (
-            <div className="flex h-64 flex-col items-center justify-center gap-2 text-slate-400 rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <p className="text-xs font-semibold">Loading library book catalog...</p>
-            </div>
+            <SkeletonTable rows={6} columns={6} />
           ) : books.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <BookOpen className="h-10 w-10 text-slate-300 dark:text-slate-700" />
@@ -1037,10 +1035,7 @@ export const LibraryManagement = () => {
 
           {/* Issues Table */}
           {loadingIssues ? (
-            <div className="flex h-64 flex-col items-center justify-center gap-2 text-slate-400 rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <p className="text-xs font-semibold">Loading circulation loan logs...</p>
-            </div>
+            <SkeletonTable rows={5} columns={6} />
           ) : issues.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <BookmarkCheck className="h-10 w-10 text-slate-300 dark:text-slate-700" />

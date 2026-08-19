@@ -26,6 +26,7 @@ import {
   UserX,
   Sparkles
 } from 'lucide-react';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 
 const inputClass =
   'h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-xs outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white';
@@ -655,7 +656,9 @@ export const SubjectAssignments = () => {
       </div>
 
       {/* Main Details List Table */}
-      {filteredAssignments.length === 0 ? (
+      {loading ? (
+        <SkeletonTable rows={6} columns={6} />
+      ) : filteredAssignments.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <EmptyState
             title="No Subject Assignments Found"

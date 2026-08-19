@@ -28,6 +28,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 
 function formatCurrency(amount) {
   const num = Number(amount) || 0;
@@ -479,10 +480,7 @@ export const HRAndPayroll = () => {
       {/* Payroll Records Data Table */}
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         {loading ? (
-          <div className="flex h-64 flex-col items-center justify-center gap-2 text-slate-400">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-xs font-semibold">Loading payroll records...</p>
-          </div>
+          <SkeletonTable rows={6} columns={6} />
         ) : payrolls.length === 0 ? (
           <div className="py-16 text-center">
             <Banknote className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />

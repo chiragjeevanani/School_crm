@@ -30,6 +30,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 
 function getTodayString() {
   return new Date().toISOString().split('T')[0];
@@ -755,10 +756,7 @@ export const AttendanceManagement = () => {
       {dateMode === 'single' && (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           {loading ? (
-            <div className="flex h-64 flex-col items-center justify-center gap-2 text-slate-400">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <p className="text-xs font-semibold">Loading staff attendance sheet...</p>
-            </div>
+            <SkeletonTable rows={8} columns={4} />
           ) : attendanceList.length === 0 ? (
             <div className="py-16 text-center">
               <Users className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />
@@ -940,10 +938,7 @@ export const AttendanceManagement = () => {
       {dateMode === 'range' && (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           {rangeLoading ? (
-            <div className="flex h-64 flex-col items-center justify-center gap-2 text-slate-400">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <p className="text-xs font-semibold">Loading custom date range attendance logs...</p>
-            </div>
+            <SkeletonTable rows={8} columns={5} />
           ) : rangeRecords.length === 0 ? (
             <div className="py-16 text-center">
               <FileSpreadsheet className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />

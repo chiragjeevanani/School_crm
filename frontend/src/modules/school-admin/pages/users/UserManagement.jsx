@@ -41,6 +41,7 @@ import {
   UserX,
   X,
 } from 'lucide-react';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace(/\/$/, '');
 
@@ -553,10 +554,7 @@ export const UserManagement = () => {
       {/* Users Data Table */}
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         {loading ? (
-          <div className="flex h-64 flex-col items-center justify-center gap-2 text-slate-400">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-xs font-semibold">Loading staff records...</p>
-          </div>
+          <SkeletonTable rows={6} columns={6} />
         ) : users.length === 0 ? (
           <div className="py-16 text-center">
             <Users className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />

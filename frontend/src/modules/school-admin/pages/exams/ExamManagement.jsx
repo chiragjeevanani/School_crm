@@ -31,6 +31,7 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 
 const inputClass =
   'h-10 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs font-semibold outline-none focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white';
@@ -391,9 +392,7 @@ export const ExamManagement = () => {
 
       {/* Examinations Table */}
       {loading ? (
-        <div className="flex h-64 items-center justify-center text-slate-400 rounded-3xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
+        <SkeletonTable rows={5} columns={6} />
       ) : exams.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <FileSpreadsheet className="h-10 w-10 text-slate-300" />

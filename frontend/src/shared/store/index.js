@@ -1,6 +1,6 @@
 import { INITIAL_DATA } from './initialData';
 
-const STORE_KEY = 'school_master_store_v1';
+const STORE_KEY = 'school_master_store_v2';
 const EVENT_NAME = 'school_store_update';
 
 // Get current state from localStorage or initialize with seed data

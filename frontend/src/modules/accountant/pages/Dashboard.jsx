@@ -33,10 +33,16 @@ import {
 } from '../utils/constants';
 import { formatCurrency } from '../utils/formatters';
 
+import { useAppStore } from '../../../shared/store/useAppStore';
+
 export const Dashboard = () => {
   const { user } = useAccountantAuth();
   const { notifications } = useAccountantNotifications();
   const navigate = useNavigate();
+  const { receipts = [], students = [] } = useAppStore();
+
+  const totalCollected = receipts.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  const totalReceiptsCount = receipts.length;
 
   return (
     <div className="space-y-6">
@@ -110,39 +116,39 @@ export const Dashboard = () => {
 
       {/* 12 Quick Statistics cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Today's Collection" value="₹16,500" trend="+8.5%" subtitle="received today" icon={IndianRupee} />
-        <StatCard title="Monthly Collection" value="₹11,50,000" trend="+14%" subtitle="collected in July" icon={TrendingUp} />
-        <StatCard title="Yearly Collection" value="₹51,00,000" trend="+4%" subtitle="current academic cycle" icon={IndianRupee} />
-        <StatCard title="Pending Fees" value="₹48,000" trend="-1.5%" subtitle="unpaid outstanding dues" icon={AlertTriangle} />
+        <StatCard title="Today's Collection" value={`₹${totalCollected.toLocaleString()}`} subtitle="received today" icon={IndianRupee} />
+        <StatCard title="Monthly Collection" value={`₹${totalCollected.toLocaleString()}`} subtitle="collected this month" icon={TrendingUp} />
+        <StatCard title="Yearly Collection" value={`₹${totalCollected.toLocaleString()}`} subtitle="current academic cycle" icon={IndianRupee} />
+        <StatCard title="Pending Fees" value="₹0" subtitle="unpaid outstanding dues" icon={AlertTriangle} />
 
-        <StatCard title="Overdue Fees" value="₹32,000" subtitle="past installment deadlines" icon={AlertTriangle} />
-        <StatCard title="Today's Transactions" value="2 Receipts" subtitle="processed at desk" icon={Receipt} />
-        <StatCard title="Refund Requests" value="1 Pending" subtitle="awaiting verification approval" icon={CornerUpLeft} />
-        <StatCard title="Scholarships Applied" value="3 Active" subtitle="merit concessions registered" icon={Percent} />
+        <StatCard title="Overdue Fees" value="₹0" subtitle="past installment deadlines" icon={AlertTriangle} />
+        <StatCard title="Today's Transactions" value={`${totalReceiptsCount} Receipts`} subtitle="processed at desk" icon={Receipt} />
+        <StatCard title="Refund Requests" value="0 Pending" subtitle="awaiting verification approval" icon={CornerUpLeft} />
+        <StatCard title="Scholarships Applied" value="0 Active" subtitle="merit concessions registered" icon={Percent} />
 
-        <StatCard title="Discounts Given" value="₹6,500" subtitle="this month's waivers" icon={Percent} />
-        <StatCard title="Total Students Paid Today" value="2" subtitle="cleared transactions" icon={Users} />
-        <StatCard title="Total Pending Students" value="5" subtitle="requires dues notice reminders" icon={Clock} />
-        <StatCard title="Active Installments" value="2 Plans" subtitle="multi-step payments schedules" icon={Coins} />
+        <StatCard title="Discounts Given" value="₹0" subtitle="waivers" icon={Percent} />
+        <StatCard title="Total Students Paid Today" value={totalReceiptsCount === 0 ? "00" : `${totalReceiptsCount}`} subtitle="cleared transactions" icon={Users} />
+        <StatCard title="Total Pending Students" value="00" subtitle="requires dues notice reminders" icon={Clock} />
+        <StatCard title="Active Installments" value="0 Plans" subtitle="multi-step payments schedules" icon={Coins} />
       </div>
 
       {/* 5 Financial Charts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Chart 1 */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block mb-4">Daily Fee Collection (Last 8 Days)</span>
+          <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block mb-4">Daily Fee Collection</span>
           <AreaChart data={DAILY_FEE_COLLECTION} dataKey="collection" xKey="day" height={220} color="#7c3aed" />
         </div>
 
         {/* Chart 2 */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block mb-4">Monthly Collection Trend (July Cycle)</span>
+          <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block mb-4">Monthly Collection Trend</span>
           <BarChart data={MONTHLY_COLLECTION_TREND} dataKey="collected" xKey="month" height={220} color="#8b5cf6" />
         </div>
 
         {/* Chart 3 */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] font-black text-slate-455 uppercase tracking-widest block mb-4">Fee Category Distribution Allocation</span>
+          <span className="text-[10px] font-black text-slate-455 uppercase tracking-widest block mb-4">Fee Category Distribution</span>
           <div className="flex-1 flex items-center justify-center">
             <PieChart data={FEE_CATEGORY_DISTRIBUTION} height={200} colors={["#7c3aed", "#8b5cf6", "#a78bfa", "#c084fc", "#d8b4fe"]} />
           </div>
@@ -150,7 +156,7 @@ export const Dashboard = () => {
 
         {/* Chart 4 */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block mb-4">Pending Fees Analysis (Class-wise)</span>
+          <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block mb-4">Pending Fees Analysis</span>
           <BarChart data={PENDING_FEES_ANALYSIS} dataKey="pending" xKey="class" height={220} color="#8b5cf6" />
         </div>
 
@@ -174,23 +180,29 @@ export const Dashboard = () => {
               <ArrowRight className="w-3 h-3" />
             </button>
           </div>
-          <div className="divide-y divide-slate-100 dark:divide-slate-850/50 space-y-3.5">
-            {MOCK_COLLECTIONS.slice(0, 3).map((item) => (
-              <div key={item.id} className="pt-3.5 flex items-center justify-between text-xs font-semibold">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900 dark:text-white">{item.studentName}</span>
-                    <Badge variant={item.status === 'Paid' ? 'success' : 'warning'}>{item.status}</Badge>
+          {receipts.length === 0 ? (
+            <div className="py-8 text-center text-xs font-semibold text-slate-400">
+              No Result — No fee transactions recorded today.
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-850/50 space-y-3.5">
+              {receipts.slice(0, 3).map((item) => (
+                <div key={item.id} className="pt-3.5 flex items-center justify-between text-xs font-semibold">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900 dark:text-white">{item.studentName || 'Student'}</span>
+                      <Badge variant={item.status === 'Paid' ? 'success' : 'warning'}>{item.status || 'Paid'}</Badge>
+                    </div>
+                    <p className="text-[10px] text-slate-450 mt-0.5">Receipt: {item.id || item.receiptNumber} • Method: {item.paymentMethod || 'Online'}</p>
                   </div>
-                  <p className="text-[10px] text-slate-450 mt-0.5">Receipt: {item.id} • Method: {item.paymentMethod} • Ref: {item.transactionRef}</p>
+                  <div className="text-right">
+                    <span className="font-bold text-slate-900 dark:text-white block">{formatCurrency(item.amount || item.paidAmount || 0)}</span>
+                    <span className="text-[9px] text-slate-400 font-medium block mt-0.5">{item.time || 'Today'}</span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="font-bold text-slate-900 dark:text-white block">{formatCurrency(item.paidAmount)}</span>
-                  <span className="text-[9px] text-slate-400 font-medium block mt-0.5">{item.time}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Live Notification feed */}
@@ -215,3 +227,4 @@ export const Dashboard = () => {
   );
 };
 export default Dashboard;
+

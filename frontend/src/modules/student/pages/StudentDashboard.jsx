@@ -112,23 +112,23 @@ export const StudentDashboard = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <StatCard 
             title="Today's Attendance" 
-            value="Present" 
-            subtext="Marked at 08:15 AM"
+            value={attendance?.todayStatus || "Not Marked"} 
+            subtext="Status"
             icon={UserCheck} 
             colorClass="bg-emerald-500"
             onClick={() => navigate('/student/attendance')}
           />
           <StatCard 
             title="Overall Attendance" 
-            value={`${attendance?.overallPercentage || 92}%`}
-            subtext="Target is > 75%"
+            value={`${attendance?.overallPercentage ?? 0}%`}
+            subtext="Attendance rate"
             icon={CalendarCheck} 
             colorClass="bg-indigo-500"
             onClick={() => navigate('/student/attendance')}
           />
           <StatCard 
             title="Homework Pending" 
-            value={`${pendingHwCount} items`}
+            value={`${pendingHwCount === 0 ? '00' : pendingHwCount} items`}
             subtext={`${submittedHwCount} completed`}
             icon={BookOpen} 
             colorClass="bg-amber-500"
@@ -137,15 +137,15 @@ export const StudentDashboard = () => {
           <StatCard 
             title="Upcoming Exams" 
             value={`${(Array.isArray(exams) ? exams[0]?.schedule : exams?.schedule)?.length || 0} Subjects`}
-            subtext="Starts 10th Sept"
+            subtext="Exam schedule"
             icon={FileText} 
             colorClass="bg-purple-500"
             onClick={() => navigate('/student/exams')}
           />
           <StatCard 
             title="Latest Result" 
-            value={`CGPA: ${results?.gpa || '9.6'}`}
-            subtext="3rd in class rank"
+            value={`CGPA: ${results?.gpa || '0.0'}`}
+            subtext={results?.rank || 'Rank'}
             icon={GraduationCap} 
             colorClass="bg-cyan-500"
             onClick={() => navigate('/student/results')}
@@ -153,23 +153,23 @@ export const StudentDashboard = () => {
           <StatCard 
             title="Pending Fees" 
             value={`₹${fees?.pendingFees ?? 0}`}
-            subtext="Due by 30th Jul"
+            subtext="Fee balance"
             icon={CreditCard} 
             colorClass="bg-rose-500"
             onClick={() => navigate('/student/fees')}
           />
           <StatCard 
             title="Transport Status" 
-            value="On Route" 
-            subtext={transport?.busNo || transport?.vehicleNo || 'Route 2'}
+            value={transport?.vehicleNo || "Not Assigned"} 
+            subtext={transport?.pickupPoint || "Transport"}
             icon={Truck} 
             colorClass="bg-sky-500"
             onClick={() => navigate('/student/transport')}
           />
           <StatCard 
             title="Hostel Room" 
-            value={hostel?.roomNo || hostel?.roomNumber || '204-B'} 
-            subtext={hostel?.building || 'Nilgiri Boys Hostel'}
+            value={hostel?.roomNo || hostel?.roomNumber || "Not Assigned"} 
+            subtext={hostel?.building || "Hostel"}
             icon={Home} 
             colorClass="bg-teal-500"
             onClick={() => navigate('/student/hostel')}
@@ -222,20 +222,24 @@ export const StudentDashboard = () => {
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="space-y-3 flex-1 overflow-y-auto max-h-[300px] no-scrollbar">
-            {todayClasses.map((cl, i) => (
-              <div key={i} className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-slate-50/50 dark:bg-slate-900/50">
-                <div>
-                  <h4 className="text-xs font-bold text-foreground leading-tight">{cl.subject}</h4>
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">{cl.teacher} • Room {cl.room}</span>
+          {todayClasses.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-8">No Result — No classes scheduled today</p>
+          ) : (
+            <div className="space-y-3 flex-1 overflow-y-auto max-h-[300px] no-scrollbar">
+              {todayClasses.map((cl, i) => (
+                <div key={i} className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-slate-50/50 dark:bg-slate-900/50">
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground leading-tight">{cl.subject}</h4>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">{cl.teacher} • Room {cl.room}</span>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant="info" className="text-[9px]">{cl.time}</Badge>
+                    <span className="text-[9px] text-slate-400 font-bold block mt-1">Period {cl.period}</span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <Badge variant="info" className="text-[9px]">{cl.time}</Badge>
-                  <span className="text-[9px] text-slate-400 font-bold block mt-1">Period {cl.period}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         {/* Announcements */}
@@ -247,22 +251,26 @@ export const StudentDashboard = () => {
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="space-y-3 flex-1 overflow-y-auto max-h-[300px] no-scrollbar">
-            {todayAnnouncements.map((ann) => (
-              <div key={ann.id} className="p-3.5 rounded-xl border border-border hover:border-primary/20 duration-150">
-                <div className="flex items-center justify-between mb-1.5">
-                  <Badge variant={ann.category === 'Exam' ? 'danger' : 'info'} className="text-[8px] tracking-wide uppercase">
-                    {ann.category}
-                  </Badge>
-                  <span className="text-[9px] text-slate-400 font-medium">{ann.date}</span>
+          {todayAnnouncements.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-8">No Result — No announcements posted</p>
+          ) : (
+            <div className="space-y-3 flex-1 overflow-y-auto max-h-[300px] no-scrollbar">
+              {todayAnnouncements.map((ann) => (
+                <div key={ann.id} className="p-3.5 rounded-xl border border-border hover:border-primary/20 duration-150">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Badge variant={ann.category === 'Exam' ? 'danger' : 'info'} className="text-[8px] tracking-wide uppercase">
+                      {ann.category}
+                    </Badge>
+                    <span className="text-[9px] text-slate-400 font-medium">{ann.date}</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-foreground truncate">{ann.title}</h4>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                    {ann.content}
+                  </p>
                 </div>
-                <h4 className="text-xs font-bold text-foreground truncate">{ann.title}</h4>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                  {ann.content}
-                </p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         {/* Notifications */}
@@ -274,27 +282,32 @@ export const StudentDashboard = () => {
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="space-y-3 flex-1 overflow-y-auto max-h-[300px] no-scrollbar">
-            {recentNotifications.map((notif) => (
-              <div key={notif.id} className="flex items-start gap-3 p-3.5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10">
-                <div className="p-2 bg-primary/10 rounded-lg text-primary shrink-0">
-                  <Bell className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <h4 className="text-xs font-bold text-foreground truncate leading-none">{notif.title}</h4>
-                    {!notif.read && <span className="w-1.5 h-1.5 bg-rose-500 rounded-full shrink-0"></span>}
+          {recentNotifications.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-8">No Result — No notifications</p>
+          ) : (
+            <div className="space-y-3 flex-1 overflow-y-auto max-h-[300px] no-scrollbar">
+              {recentNotifications.map((notif) => (
+                <div key={notif.id} className="flex items-start gap-3 p-3.5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10">
+                  <div className="p-2 bg-primary/10 rounded-lg text-primary shrink-0">
+                    <Bell className="w-4 h-4" />
                   </div>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-1 leading-relaxed">
-                    {notif.message}
-                  </p>
+                  <div className="min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs font-bold text-foreground truncate leading-none">{notif.title}</h4>
+                      {!notif.read && <span className="w-1.5 h-1.5 bg-rose-500 rounded-full shrink-0"></span>}
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-1 leading-relaxed">
+                      {notif.message}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
 
       </div>
     </div>
   );
 };
+export default StudentDashboard;

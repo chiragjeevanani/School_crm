@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
+import { SkeletonCard } from '../../components/ui/SkeletonLoader';
 
 const selectClass =
   'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950';
@@ -164,7 +165,13 @@ export const ClassTeachers = () => {
         </div>
       </div>
 
-      {activeSections.length === 0 ? (
+      {loading ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      ) : activeSections.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-16 text-center dark:border-slate-800">
           <UserCheck className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-700" />
           <h3 className="mt-4 text-sm font-bold text-slate-700 dark:text-slate-300">No Sections Found</h3>

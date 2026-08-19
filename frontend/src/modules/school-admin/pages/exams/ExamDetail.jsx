@@ -43,6 +43,7 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
+import { DetailPageSkeleton, SkeletonTable } from '../../components/ui/SkeletonLoader';
 
 const inputClass =
   'h-10 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs font-semibold outline-none focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white';
@@ -440,12 +441,7 @@ export const ExamDetail = () => {
   };
 
   if (loadingExam) {
-    return (
-      <div className="flex h-96 flex-col items-center justify-center gap-3 text-slate-400">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm font-semibold">Loading examination details...</p>
-      </div>
-    );
+    return <DetailPageSkeleton />;
   }
 
   if (!exam) {
@@ -582,9 +578,7 @@ export const ExamDetail = () => {
           </div>
 
           {loadingSubjects ? (
-            <div className="flex h-48 items-center justify-center text-slate-400">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
+            <SkeletonTable rows={4} columns={5} />
           ) : subjects.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-800 dark:bg-slate-900">
               <BookOpen className="h-10 w-10 text-slate-300" />
@@ -685,9 +679,7 @@ export const ExamDetail = () => {
           </div>
 
           {loadingSchedule ? (
-            <div className="flex h-48 items-center justify-center text-slate-400">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
+            <SkeletonTable rows={4} columns={5} />
           ) : schedules.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-800 dark:bg-slate-900">
               <Calendar className="h-10 w-10 text-slate-300" />
@@ -844,9 +836,7 @@ export const ExamDetail = () => {
 
           {/* Marks Entry Table */}
           {loadingMarks ? (
-            <div className="flex h-64 items-center justify-center text-slate-400 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
+            <SkeletonTable rows={5} columns={6} />
           ) : marksRoster.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-900">
               <Users className="h-10 w-10 text-slate-300" />
@@ -1003,9 +993,7 @@ export const ExamDetail = () => {
           </div>
 
           {loadingResults ? (
-            <div className="flex h-64 items-center justify-center text-slate-400 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
+            <SkeletonTable rows={5} columns={6} />
           ) : resultsList.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-900">
               <Award className="h-10 w-10 text-slate-300" />

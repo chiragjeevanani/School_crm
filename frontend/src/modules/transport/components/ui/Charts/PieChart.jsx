@@ -1,42 +1,58 @@
 import React from 'react';
 import { ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Tooltip, Legend } from 'recharts';
 
-export const PieChart = ({ data, height = 300, colors = ["#0891b2", "#06b6d4", "#22d3ee", "#67e8f9", "#a5f3fc"] }) => {
+export const PieChart = ({ data, dataKey, nameKey, height = 300, colors = ["#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe"] }) => {
+  const validData = Array.isArray(data) ? data.filter((item) => Number(item?.[dataKey] || 0) > 0) : [];
+
+  if (!validData || validData.length === 0) {
+    return (
+      <div
+        style={{ width: '100%', height }}
+        className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-400 text-xs font-semibold"
+      >
+        <span>No Result</span>
+      </div>
+    );
+  }
+
   return (
     <div style={{ width: '100%', height }}>
       <ResponsiveContainer>
         <RechartsPie>
+          <Pie
+            data={validData}
+            cx="50%"
+            cy="50%"
+            innerRadius={45}
+            outerRadius={75}
+            paddingAngle={4}
+            dataKey={dataKey}
+            nameKey={nameKey}
+          >
+            {validData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+            ))}
+          </Pie>
           <Tooltip 
             contentStyle={{ 
-              backgroundColor: '#fff', 
-              border: '1px solid #e2e8f0', 
+              backgroundColor: '#0f172a', 
+              border: 'none', 
               borderRadius: '12px',
+              color: '#fff',
               fontSize: '11px',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+              fontFamily: 'sans-serif'
             }} 
           />
           <Legend 
             verticalAlign="bottom" 
             height={36} 
-            iconType="circle" 
+            iconType="circle"
             iconSize={8}
             wrapperStyle={{ fontSize: '10px', color: '#64748b' }}
           />
-          <Pie
-            data={data}
-            cx="50%"
-            cy="45%"
-            innerRadius={60}
-            outerRadius={80}
-            paddingAngle={4}
-            dataKey="value"
-          >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-            ))}
-          </Pie>
         </RechartsPie>
       </ResponsiveContainer>
     </div>
   );
 };
+export default PieChart;

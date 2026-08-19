@@ -7,6 +7,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Select } from '../../components/ui/Select';
 import { useToast } from '../../components/ui/Toast';
 import { useSchoolAdminAuth } from '../../context/SchoolAdminAuthContext';
+import { SkeletonList } from '../../components/ui/SkeletonLoader';
 import { schoolSupportApi } from '../../../../shared/api/client';
 
 const CATEGORIES = ['Billing', 'Technical', 'Account', 'Academic', 'Feature Request', 'Other'];
@@ -179,10 +180,7 @@ export const Support = () => {
           />
 
           {authLoading || loading ? (
-            <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-400">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading your tickets...
-            </div>
+            <SkeletonList count={4} />
           ) : !schoolId ? (
             <div className="flex flex-col items-center py-16 text-center">
               <LifeBuoy className="mb-3 h-8 w-8 text-slate-300" />

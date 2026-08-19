@@ -8,6 +8,7 @@ import { schoolPortalApi } from '../../../../shared/api/client';
 import { CountCards, EmptyState } from '../academics/components/AcademicUi';
 import { apiMessage } from '../academics/utils';
 import { ArrowLeft, Ban, Loader2, Pencil, Power, Trash2, UserCircle2 } from 'lucide-react';
+import { DetailPageSkeleton } from '../../components/ui/SkeletonLoader';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace(/\/$/, '');
 
@@ -136,11 +137,7 @@ export const StudentDetail = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <DetailPageSkeleton />;
   }
 
   if (!student) {

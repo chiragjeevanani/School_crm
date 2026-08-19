@@ -52,6 +52,7 @@ import {
   XCircle,
   Zap,
 } from 'lucide-react';
+import { SkeletonStatCard, SkeletonTable } from '../../components/ui/SkeletonLoader';
 
 const inputClass =
   'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-xs font-semibold outline-none focus:border-indigo-500 focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white';
@@ -719,9 +720,14 @@ export const HostelManagement = () => {
 
       {/* LOADING STATE */}
       {loading && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-650 mb-3" />
-          <p className="text-xs font-bold text-slate-400">Loading hostel residential data...</p>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </div>
+          <SkeletonTable rows={6} columns={5} />
         </div>
       )}
 
@@ -1349,9 +1355,7 @@ export const HostelManagement = () => {
 
           {/* Roll Call Attendance Table */}
           {attendanceLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-indigo-650" />
-            </div>
+            <SkeletonTable rows={5} columns={4} />
           ) : !attendanceSheet || attendanceSheet.records?.length === 0 ? (
             <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-2">
               <Users className="w-10 h-10 text-slate-300 mx-auto" />

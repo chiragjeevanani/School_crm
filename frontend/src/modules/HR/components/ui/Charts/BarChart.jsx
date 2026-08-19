@@ -1,7 +1,18 @@
 import React from 'react';
-import { ResponsiveContainer, BarChart as RechartsBar, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart as RechartsBar, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
-export const BarChart = ({ data, dataKey, xKey, height = 300, color = "#e11d48" }) => {
+export const BarChart = ({ data, dataKey, xKey, height = 300, color = "#0d9488" }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div
+        style={{ width: '100%', height }}
+        className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-400 text-xs font-semibold"
+      >
+        <span>No Result</span>
+      </div>
+    );
+  }
+
   return (
     <div style={{ width: '100%', height }}>
       <ResponsiveContainer>
@@ -30,11 +41,11 @@ export const BarChart = ({ data, dataKey, xKey, height = 300, color = "#e11d48" 
               fontFamily: 'sans-serif'
             }} 
           />
-          <Bar dataKey={dataKey} radius={[6, 6, 0, 0]}>
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={color} opacity={0.85 + (index % 2 ? 0.15 : 0)} />
-            ))}
-          </Bar>
+          <Bar 
+            dataKey={dataKey} 
+            fill={color} 
+            radius={[6, 6, 0, 0]} 
+          />
         </RechartsBar>
       </ResponsiveContainer>
     </div>

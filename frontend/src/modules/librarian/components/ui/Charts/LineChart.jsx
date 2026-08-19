@@ -2,45 +2,55 @@ import React from 'react';
 import { ResponsiveContainer, LineChart as RechartsLine, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 export const LineChart = ({ data, dataKey, xKey, height = 300, color = "#d97706" }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div
+        style={{ width: '100%', height }}
+        className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-400 text-xs font-semibold"
+      >
+        <span>No Result</span>
+      </div>
+    );
+  }
+
   return (
     <div style={{ width: '100%', height }}>
       <ResponsiveContainer>
         <RechartsLine data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
           <XAxis 
             dataKey={xKey} 
             stroke="#94a3b8" 
-            fontSize={11} 
+            fontSize={10} 
             tickLine={false} 
             axisLine={false} 
-            dy={10} 
           />
           <YAxis 
             stroke="#94a3b8" 
-            fontSize={11} 
+            fontSize={10} 
             tickLine={false} 
             axisLine={false} 
-            dx={-10} 
           />
           <Tooltip 
             contentStyle={{ 
-              backgroundColor: '#fff', 
-              border: '1px solid #e2e8f0', 
+              backgroundColor: '#0f172a', 
+              border: 'none', 
               borderRadius: '12px',
-              fontSize: '12px',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+              color: '#fff',
+              fontSize: '11px',
+              fontFamily: 'sans-serif'
             }} 
           />
           <Line 
             type="monotone" 
             dataKey={dataKey} 
             stroke={color} 
-            strokeWidth={3} 
-            dot={{ r: 4, stroke: color, strokeWidth: 2, fill: '#fff' }}
-            activeDot={{ r: 6 }} 
+            strokeWidth={2.5} 
+            dot={{ fill: color, r: 3 }} 
           />
         </RechartsLine>
       </ResponsiveContainer>
     </div>
   );
 };
+export default LineChart;

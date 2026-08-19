@@ -1,7 +1,18 @@
 import React from 'react';
 import { ResponsiveContainer, LineChart as RechartsLine, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
-export const LineChart = ({ data, dataKey, xKey, height = 300, color = "#7c3aed" }) => {
+export const LineChart = ({ data, dataKey, xKey, height = 300, color = "#0284c7" }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div
+        style={{ width: '100%', height }}
+        className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-400 text-xs font-semibold"
+      >
+        <span>No Result</span>
+      </div>
+    );
+  }
+
   return (
     <div style={{ width: '100%', height }}>
       <ResponsiveContainer>
@@ -34,9 +45,8 @@ export const LineChart = ({ data, dataKey, xKey, height = 300, color = "#7c3aed"
             type="monotone" 
             dataKey={dataKey} 
             stroke={color} 
-            strokeWidth={3}
-            dot={{ r: 4, strokeWidth: 1, fill: '#fff' }}
-            activeDot={{ r: 6 }}
+            strokeWidth={2.5} 
+            dot={{ fill: color, r: 3 }} 
           />
         </RechartsLine>
       </ResponsiveContainer>

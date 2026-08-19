@@ -10,6 +10,7 @@ import { CountCards, EmptyState } from '../academics/components/AcademicUi';
 import { apiMessage, ENTITY_STATUS_VARIANT } from '../academics/utils';
 import { academicPortalApi, schoolPortalApi } from '../../../../shared/api/client';
 import { Camera, Edit3, Eye, ImagePlus, Loader2, Plus, Trash2, UserCheck, UserCircle2, UserX, X } from 'lucide-react';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 
 const inputClass =
   'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950';
@@ -675,9 +676,7 @@ export const StudentManagement = () => {
       </div>
 
       {loading ? (
-        <div className="flex min-h-[30vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <SkeletonTable rows={8} columns={6} />
       ) : students.length === 0 ? (
         <EmptyState
           title="No students found"

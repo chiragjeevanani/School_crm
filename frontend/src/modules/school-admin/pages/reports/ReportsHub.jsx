@@ -44,6 +44,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 
 const REPORT_CATEGORIES = [
   {
@@ -304,10 +305,7 @@ export const ReportsHub = () => {
 
           {/* Live Data Preview Table */}
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-650 mb-3" />
-              <p className="text-xs font-bold text-slate-400">Compiling report dataset...</p>
-            </div>
+            <SkeletonTable rows={8} columns={6} />
           ) : filteredData.length === 0 ? (
             <div className="text-center py-16 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
               <FileSpreadsheet className="w-10 h-10 text-slate-300 mx-auto" />

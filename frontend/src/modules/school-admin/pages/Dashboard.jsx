@@ -45,6 +45,7 @@ import { BarChart } from '../components/ui/Charts/BarChart';
 import { PieChart } from '../components/ui/Charts/PieChart';
 import { LineChart } from '../components/ui/Charts/LineChart';
 import { Badge } from '../components/ui/Badge';
+import { DashboardSkeleton } from '../components/ui/SkeletonLoader';
 
 export const Dashboard = () => {
   const { user } = useSchoolAdminAuth();
@@ -79,6 +80,10 @@ export const Dashboard = () => {
     navigate(path);
   };
 
+  if (loading && !dashboardData) {
+    return <DashboardSkeleton />;
+  }
+
   const today = new Intl.DateTimeFormat('en-IN', {
     weekday: 'long',
     year: 'numeric',
@@ -86,75 +91,37 @@ export const Dashboard = () => {
     day: 'numeric',
   }).format(new Date());
 
-  const kpi = dashboardData?.kpi || {
-    totalStudents: 920,
-    totalTeachers: 48,
-    totalEmployees: 85,
-    attendanceRate: 94,
-    collectedToday: 48500,
-    collectedMonth: 345000,
-    pendingFees: 185000,
-    classesCount: '12 / 36',
-    libraryBooks: 450,
-    issuedBooks: 65,
-    hostelBeds: 120,
-    hostelOccupied: 98,
-    hostelOccupancyRate: 82,
-    fleetVehicles: 8,
-    transportStudents: 310,
-    upcomingExams: 2,
+  const kpi = {
+    totalStudents: dashboardData?.kpi?.totalStudents ?? 0,
+    totalTeachers: dashboardData?.kpi?.totalTeachers ?? 0,
+    totalEmployees: dashboardData?.kpi?.totalEmployees ?? 0,
+    attendanceRate: dashboardData?.kpi?.attendanceRate ?? 0,
+    collectedToday: dashboardData?.kpi?.collectedToday ?? 0,
+    collectedMonth: dashboardData?.kpi?.collectedMonth ?? 0,
+    pendingFees: dashboardData?.kpi?.pendingFees ?? 0,
+    classesCount: dashboardData?.kpi?.classesCount || '0 / 0',
+    libraryBooks: dashboardData?.kpi?.libraryBooks ?? 0,
+    issuedBooks: dashboardData?.kpi?.issuedBooks ?? 0,
+    hostelBeds: dashboardData?.kpi?.hostelBeds ?? 0,
+    hostelOccupied: dashboardData?.kpi?.hostelOccupied ?? 0,
+    hostelOccupancyRate: dashboardData?.kpi?.hostelOccupancyRate ?? 0,
+    fleetVehicles: dashboardData?.kpi?.fleetVehicles ?? 0,
+    transportStudents: dashboardData?.kpi?.transportStudents ?? 0,
+    upcomingExams: dashboardData?.kpi?.upcomingExams ?? 0,
   };
 
-  const charts = dashboardData?.charts || {
-    admissionsTrend: [
-      { month: 'Feb', admissions: 18 },
-      { month: 'Mar', admissions: 35 },
-      { month: 'Apr', admissions: 82 },
-      { month: 'May', admissions: 64 },
-      { month: 'Jun', admissions: 95 },
-      { month: 'Jul', admissions: 120 },
-      { month: 'Aug', admissions: 142 },
-    ],
-    weeklyAttendance: [
-      { day: 'Mon', attendance: 95 },
-      { day: 'Tue', attendance: 96 },
-      { day: 'Wed', attendance: 92 },
-      { day: 'Thu', attendance: 94 },
-      { day: 'Fri', attendance: 91 },
-      { day: 'Sat', attendance: 88 },
-    ],
-    monthlyFeeTrend: [
-      { month: 'Apr', collected: 240000 },
-      { month: 'May', collected: 320000 },
-      { month: 'Jun', collected: 450000 },
-      { month: 'Jul', collected: 620000 },
-      { month: 'Aug', collected: 510000 },
-    ],
-    examPerformance: [
-      { name: 'UT 1', average: 74 },
-      { name: 'UT 2', average: 78 },
-      { name: 'Half Yearly', average: 82 },
-      { name: 'UT 3', average: 81 },
-    ],
-    genderDistribution: [
-      { name: 'Male', count: 480 },
-      { name: 'Female', count: 420 },
-    ],
-    classStrength: [
-      { class: 'Class 8', strength: 75 },
-      { class: 'Class 9', strength: 82 },
-      { class: 'Class 10', strength: 95 },
-      { class: 'Class 11', strength: 68 },
-      { class: 'Class 12', strength: 74 },
-    ],
+  const charts = {
+    admissionsTrend: dashboardData?.charts?.admissionsTrend || [],
+    weeklyAttendance: dashboardData?.charts?.weeklyAttendance || [],
+    monthlyFeeTrend: dashboardData?.charts?.monthlyFeeTrend || [],
+    examPerformance: dashboardData?.charts?.examPerformance || [],
+    genderDistribution: dashboardData?.charts?.genderDistribution || [],
+    classStrength: dashboardData?.charts?.classStrength || [],
   };
 
-  const recentActivities = dashboardData?.recentActivities || [
-    { id: 1, text: 'New student Aarav Sharma admitted to Class 10-A', time: '12 mins ago', category: 'Admission', color: 'emerald' },
-    { id: 2, text: 'Fee receipt generated for Diya Patel (₹3,500)', time: '1 hour ago', category: 'Finance', color: 'amber' },
-    { id: 3, text: 'Hostel room 101 allocated to Rahul Sharma', time: '2 hours ago', category: 'Hostel', color: 'purple' },
-    { id: 4, text: 'Library book "Concepts of Physics" issued to student', time: '3 hours ago', category: 'Library', color: 'indigo' },
-  ];
+  const recentActivities = dashboardData?.recentActivities || [];
+
+  const formatCount = (val) => (val === 0 ? '00' : val.toLocaleString());
 
   return (
     <div className="space-y-8 pb-12">
@@ -473,29 +440,35 @@ export const Dashboard = () => {
           </button>
         </div>
 
-        <div className="divide-y divide-slate-100 dark:divide-slate-800">
-          {recentActivities.map((act) => (
-            <div key={act.id} className="flex items-center justify-between py-3.5 text-xs">
-              <div className="flex items-center gap-3">
-                <span
-                  className={`px-2.5 py-0.5 rounded-lg font-bold text-[10px] uppercase tracking-wide ${
-                    act.color === 'emerald'
-                      ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40'
-                      : act.color === 'amber'
-                      ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40'
-                      : act.color === 'purple'
-                      ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/40'
-                      : 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40'
-                  }`}
-                >
-                  {act.category}
-                </span>
-                <span className="font-semibold text-slate-700 dark:text-slate-300">{act.text}</span>
+        {recentActivities.length === 0 ? (
+          <div className="py-8 text-center text-xs font-semibold text-slate-400">
+            No Result — No recent school activities recorded.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {recentActivities.map((act) => (
+              <div key={act.id} className="flex items-center justify-between py-3.5 text-xs">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`px-2.5 py-0.5 rounded-lg font-bold text-[10px] uppercase tracking-wide ${
+                      act.color === 'emerald'
+                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40'
+                        : act.color === 'amber'
+                        ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40'
+                        : act.color === 'purple'
+                        ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/40'
+                        : 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40'
+                    }`}
+                  >
+                    {act.category}
+                  </span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">{act.text}</span>
+                </div>
+                <span className="text-[10px] font-semibold text-slate-400">{act.time}</span>
               </div>
-              <span className="text-[10px] font-semibold text-slate-400">{act.time}</span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

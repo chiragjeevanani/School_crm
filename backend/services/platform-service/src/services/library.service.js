@@ -11,103 +11,13 @@ function optionalText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-const DEFAULT_STARTER_BOOKS = [
-  {
-    title: 'Concepts of Physics (Vol 1)',
-    author: 'Dr. H.C. Verma',
-    isbn: '978-8177091878',
-    bookCode: 'BK-PHY-01',
-    category: 'SCIENCE',
-    publisher: 'Bharti Bhawan',
-    edition: '2025 Edition',
-    rackNumber: 'A-1',
-    shelfNumber: '1',
-    totalCopies: 10,
-    availableCopies: 10,
-    price: 495,
-    description: 'Foundation textbook in physics for secondary & senior secondary students.',
-  },
-  {
-    title: 'Higher Algebra',
-    author: 'Hall & Knight',
-    isbn: '978-9351761501',
-    bookCode: 'BK-MATH-02',
-    category: 'MATHEMATICS',
-    publisher: 'Arihant Publications',
-    edition: 'Classical Series',
-    rackNumber: 'A-2',
-    shelfNumber: '2',
-    totalCopies: 8,
-    availableCopies: 8,
-    price: 350,
-    description: 'Comprehensive algebra problems and theoretical concepts.',
-  },
-  {
-    title: 'A Brief History of Time',
-    author: 'Stephen Hawking',
-    isbn: '978-0553380163',
-    bookCode: 'BK-SCI-03',
-    category: 'SCIENCE',
-    publisher: 'Bantam Books',
-    edition: 'Updated Illustrated',
-    rackNumber: 'B-1',
-    shelfNumber: '1',
-    totalCopies: 5,
-    availableCopies: 5,
-    price: 650,
-    description: 'Landmark volume in cosmology, space-time, and modern astrophysics.',
-  },
-  {
-    title: 'Gitanjali (Song Offerings)',
-    author: 'Rabindranath Tagore',
-    isbn: '978-8129118745',
-    bookCode: 'BK-LIT-04',
-    category: 'LITERATURE',
-    publisher: 'Rupa Publications',
-    edition: 'Nobel Centenary Edition',
-    rackNumber: 'C-3',
-    shelfNumber: '1',
-    totalCopies: 6,
-    availableCopies: 6,
-    price: 295,
-    description: 'Nobel prize-winning collection of poetry and spiritual literature.',
-  },
-  {
-    title: 'Computer Science with Python',
-    author: 'Sumita Arora',
-    isbn: '978-9389599206',
-    bookCode: 'BK-CS-05',
-    category: 'COMPUTERS',
-    publisher: 'Dhanpat Rai & Co',
-    edition: 'Revised 2026',
-    rackNumber: 'D-1',
-    shelfNumber: '3',
-    totalCopies: 12,
-    availableCopies: 12,
-    price: 580,
-    description: 'Standard computer science reference for secondary curricula.',
-  },
-];
-
 class LibraryService {
   async getStats(schoolId) {
     return libraryRepository.getLibraryStats(schoolId);
   }
 
   async listBooks(schoolId, query = {}) {
-    let result = await libraryRepository.listBooks(schoolId, query);
-    
-    // Auto-seed starter books if catalog is empty and no query filters applied
-    if (result.total === 0 && !query.search && (!query.category || query.category === 'ALL')) {
-      for (const item of DEFAULT_STARTER_BOOKS) {
-        await libraryRepository.createBook({
-          schoolId,
-          ...item,
-          status: 'AVAILABLE',
-        });
-      }
-      result = await libraryRepository.listBooks(schoolId, query);
-    }
+    const result = await libraryRepository.listBooks(schoolId, query);
 
     return {
       data: result.items.map((b) => b.toPublicJSON()),

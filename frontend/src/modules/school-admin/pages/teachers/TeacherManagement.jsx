@@ -10,6 +10,7 @@ import { academicPortalApi } from '../../../../shared/api/client';
 import { EmptyState } from '../academics/components/AcademicUi';
 import { apiMessage } from '../academics/utils';
 import { Ban, Camera, Eye, ImagePlus, Loader2, Pencil, Plus, Power, Trash2, UserCheck, UserCircle2, Users, X } from 'lucide-react';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 
 const inputClass =
   'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950';
@@ -533,9 +534,7 @@ export const TeacherManagement = () => {
       </div>
 
       {loading ? (
-        <div className="flex min-h-[32vh] items-center justify-center rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <SkeletonTable rows={8} columns={5} />
       ) : teachers.length === 0 ? (
         <EmptyState
           title="No teachers added yet"

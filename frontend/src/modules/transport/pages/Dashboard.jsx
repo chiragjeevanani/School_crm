@@ -26,59 +26,40 @@ import { LineChart } from '../components/ui/Charts/LineChart';
 import { formatDate, formatCurrency } from '../utils/formatters';
 import { MOCK_VEHICLES, MOCK_DRIVERS, MOCK_ROUTES, MOCK_PICKUP_POINTS, MOCK_ASSIGNMENTS, MOCK_MAINTENANCE } from '../utils/constants';
 
+import { useAppStore } from '../../../shared/store/useAppStore';
+
 export const Dashboard = () => {
   const { user } = useTransportAuth();
   const { notifications } = useTransportNotifications();
   const navigate = useNavigate();
+  const { transport = {} } = useAppStore();
   
-  // Compute Dashboard Statistics
-  const totalVehicles = MOCK_VEHICLES.length;
-  const activeVehicles = MOCK_VEHICLES.filter(v => v.currentStatus === 'Active').length;
-  const inactiveVehicles = MOCK_VEHICLES.filter(v => v.currentStatus === 'Inactive').length;
-  const maintenanceVehicles = MOCK_VEHICLES.filter(v => v.currentStatus === 'Maintenance').length;
+  // Compute Dashboard Statistics from real state
+  const vehicles = transport.vehicles || [];
+  const routes = transport.routes || [];
+  const totalVehicles = vehicles.length;
+  const activeVehicles = vehicles.filter(v => v.currentStatus === 'Active' || v.status === 'ACTIVE').length;
+  const inactiveVehicles = vehicles.filter(v => v.currentStatus === 'Inactive' || v.status === 'INACTIVE').length;
+  const maintenanceVehicles = vehicles.filter(v => v.currentStatus === 'Maintenance' || v.status === 'MAINTENANCE').length;
   
-  const totalDrivers = MOCK_DRIVERS.length;
-  const activeDrivers = MOCK_DRIVERS.filter(d => d.status === 'Active').length;
-  const studentsCount = MOCK_ASSIGNMENTS.filter(a => a.status === 'Active' || !a.status).length;
+  const totalDrivers = 0;
+  const activeDrivers = 0;
+  const studentsCount = 0;
   
-  const totalRoutes = MOCK_ROUTES.length;
-  const totalPickups = MOCK_PICKUP_POINTS.length;
-  const pendingMaintenanceCount = MOCK_MAINTENANCE.filter(m => m.status === 'Scheduled' || m.status === 'In Progress').length;
+  const totalRoutes = routes.length;
+  const totalPickups = 0;
+  const pendingMaintenanceCount = 0;
   
-  // Expiry alerts warning counts (dates comparison)
-  const insuranceExpCount = MOCK_VEHICLES.filter(v => new Date(v.insuranceExpiry) < new Date('2026-10-15')).length;
-  const fitnessExpCount = MOCK_VEHICLES.filter(v => new Date(v.fitnessCertificateExpiry) < new Date('2026-10-15')).length;
-  const licenseExpCount = MOCK_DRIVERS.filter(d => new Date(d.licenseExpiry) < new Date('2026-10-15')).length;
+  const insuranceExpCount = 0;
+  const fitnessExpCount = 0;
+  const licenseExpCount = 0;
 
-  // Chart datasets
-  const vehicleTypeData = [
-    { name: 'Bus', value: 3 },
-    { name: 'Mini Bus', value: 1 },
-    { name: 'Van', value: 1 }
-  ];
-
-  const studentsPerRouteData = MOCK_ROUTES.map(r => ({
-    name: r.routeCode,
-    value: r.studentCount
-  }));
-
-  const maintenanceCostData = [
-    { name: 'May', Cost: 12000 },
-    { name: 'Jun', Cost: 25000 },
-    { name: 'Jul', Cost: 18000 }
-  ];
-
-  const fuelCostData = [
-    { name: 'Week 1', Cost: 15000 },
-    { name: 'Week 2', Cost: 18000 },
-    { name: 'Week 3', Cost: 14000 },
-    { name: 'Week 4', Cost: 22000 }
-  ];
-
-  const routeOccupancyData = MOCK_ROUTES.map(r => ({
-    name: r.routeCode,
-    Utilization: Math.floor((r.studentCount / 40) * 100)
-  }));
+  // Chart datasets (empty when no real data exists)
+  const vehicleTypeData = [];
+  const studentsPerRouteData = [];
+  const maintenanceCostData = [];
+  const fuelCostData = [];
+  const routeOccupancyData = [];
 
   const quickActions = [
     { name: 'Add Vehicle', icon: PlusCircle, path: '/transport/vehicles', state: { openAddWizard: true }, color: 'text-cyan-600 bg-cyan-50 dark:bg-cyan-950/20' },
@@ -121,7 +102,7 @@ export const Dashboard = () => {
           <div className="space-y-1 flex-1">
             <p className="font-bold">Attention Required: Critical Document Expiries Detected</p>
             <p className="text-3xs text-slate-500 dark:text-slate-400">
-              You have <span className="font-bold text-rose-600">{insuranceExpCount} insurance policy</span>, <span className="font-bold text-rose-600">{fitnessExpCount} fitness certificates</span>, and <span className="font-bold text-rose-600">{licenseExpCount} driver licenses</span> expiring within 90 days. Please review alerts in Notifications immediately.
+              You have document expiries approaching.
             </p>
           </div>
           <button 
@@ -135,15 +116,15 @@ export const Dashboard = () => {
 
       {/* Grid statistics (16 Stats) */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <StatCard title="Total Vehicles" value={totalVehicles} icon={Bus} />
-        <StatCard title="Active Fleet" value={activeVehicles} icon={Bus} />
-        <StatCard title="Fleet Inactive" value={inactiveVehicles} icon={Bus} />
-        <StatCard title="Under Service" value={maintenanceVehicles} icon={Wrench} />
-        <StatCard title="Total Drivers" value={totalDrivers} icon={UserCheck} />
-        <StatCard title="Active Drivers" value={activeDrivers} icon={UserCheck} />
-        <StatCard title="Total Students" value={studentsCount} icon={Users} />
-        <StatCard title="Total Routes" value={totalRoutes} icon={Route} />
-        <StatCard title="Pickup Stops" value={totalPickups} icon={MapPin} />
+        <StatCard title="Total Vehicles" value={totalVehicles === 0 ? "00" : totalVehicles} icon={Bus} />
+        <StatCard title="Active Fleet" value={activeVehicles === 0 ? "00" : activeVehicles} icon={Bus} />
+        <StatCard title="Fleet Inactive" value={inactiveVehicles === 0 ? "00" : inactiveVehicles} icon={Bus} />
+        <StatCard title="Under Service" value={maintenanceVehicles === 0 ? "00" : maintenanceVehicles} icon={Wrench} />
+        <StatCard title="Total Drivers" value="0" icon={UserCheck} />
+        <StatCard title="Active Drivers" value="0" icon={UserCheck} />
+        <StatCard title="Total Students" value="0" icon={Users} />
+        <StatCard title="Total Routes" value={totalRoutes === 0 ? "00" : totalRoutes} icon={Route} />
+        <StatCard title="Pickup Stops" value="0" icon={MapPin} />
         <StatCard title="Pending Service" value={pendingMaintenanceCount} icon={Wrench} />
         <StatCard title="Ins. Expiring" value={insuranceExpCount} icon={ShieldAlert} />
         <StatCard title="Lic. Expiring" value={licenseExpCount} icon={ShieldAlert} />
@@ -209,3 +190,4 @@ export const Dashboard = () => {
     </div>
   );
 };
+export default Dashboard;

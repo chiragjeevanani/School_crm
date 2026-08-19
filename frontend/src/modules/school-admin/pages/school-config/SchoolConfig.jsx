@@ -14,6 +14,7 @@ import {
   Save,
   X,
 } from 'lucide-react';
+import { SkeletonForm } from '../../components/ui/SkeletonLoader';
 
 const SCHOOL_TYPES = ['Public', 'Private', 'Government', 'Government Aided', 'International', 'Other'];
 const SCHOOL_BOARDS = ['CBSE', 'ICSE', 'State Board', 'IB', 'Cambridge', 'Other'];
@@ -258,21 +259,12 @@ export const SchoolConfig = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-10 bg-slate-100 dark:bg-slate-800 rounded-xl w-1/3" />
-        <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded-xl w-1/2" />
-        <div className="h-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-6">
-          <div className="h-5 bg-slate-100 dark:bg-slate-800 rounded w-1/5" />
-          <div className="grid grid-cols-2 gap-4">
-            <div className="h-11 bg-slate-100 dark:bg-slate-800 rounded-xl" />
-            <div className="h-11 bg-slate-100 dark:bg-slate-800 rounded-xl" />
-          </div>
-          <div className="h-5 bg-slate-100 dark:bg-slate-800 rounded w-1/5" />
-          <div className="grid grid-cols-2 gap-4">
-            <div className="h-11 bg-slate-100 dark:bg-slate-800 rounded-xl" />
-            <div className="h-11 bg-slate-100 dark:bg-slate-800 rounded-xl" />
-          </div>
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          title="School Configuration"
+          subtitle="Update your school profile, contact, address, and academic details."
+        />
+        <SkeletonForm fields={8} />
       </div>
     );
   }

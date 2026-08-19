@@ -9,6 +9,7 @@ import { academicPortalApi } from '../../../../shared/api/client';
 import { AcademicBreadcrumb, CountCards, EmptyState } from './components/AcademicUi';
 import { apiMessage, formatDate, YEAR_STATUS_VARIANT } from './utils';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { DetailPageSkeleton } from '../../components/ui/SkeletonLoader';
 
 export const AcademicYearDetail = () => {
   const { yearId } = useParams();
@@ -121,11 +122,7 @@ export const AcademicYearDetail = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <DetailPageSkeleton />;
   }
 
   if (!year) {

@@ -33,10 +33,18 @@ import {
   MOCK_EMPLOYEES
 } from '../utils/constants';
 
+import { useAppStore } from '../../../shared/store/useAppStore';
+
 export const Dashboard = () => {
   const { user } = useHRAuth();
   const { notifications } = useHRNotifications();
   const navigate = useNavigate();
+  const { staff = [], leaves = [] } = useAppStore();
+
+  const totalEmployees = staff.length;
+  const teachingStaff = staff.filter(s => s.role?.toLowerCase() === 'teacher').length;
+  const nonTeachingStaff = totalEmployees - teachingStaff;
+  const pendingLeaves = leaves.filter(l => l.status === 'Pending').length;
 
   return (
     <div className="space-y-6">
@@ -117,20 +125,20 @@ export const Dashboard = () => {
 
       {/* 12 Quick Statistics cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Employees" value="35 Staff" trend="+2 Joinings" subtitle="active records" icon={Users} />
-        <StatCard title="Teaching Staff" value="18 Teacher" subtitle="academics division" icon={Users} />
-        <StatCard title="Non-Teaching Staff" value="17 Staff" subtitle="administrative support" icon={Users} />
-        <StatCard title="Today's Attendance" value="98%" trend="+1.5%" subtitle="present today" icon={ShieldCheck} />
+        <StatCard title="Total Employees" value={`${totalEmployees} Staff`} subtitle="active records" icon={Users} />
+        <StatCard title="Teaching Staff" value={`${teachingStaff} Teachers`} subtitle="academics division" icon={Users} />
+        <StatCard title="Non-Teaching Staff" value={`${nonTeachingStaff} Staff`} subtitle="administrative support" icon={Users} />
+        <StatCard title="Today's Attendance" value={totalEmployees > 0 ? "98%" : "0%"} subtitle="present today" icon={ShieldCheck} />
 
-        <StatCard title="Employees on Leave" value="1 Staff" subtitle="approved casual leaves" icon={CalendarRange} />
-        <StatCard title="Late Arrivals" value="1 Staff" subtitle="grace period warnings" icon={Clock} />
-        <StatCard title="New Joinings" value="2 Joinings" subtitle="registered this cycle" icon={UserPlus} />
-        <StatCard title="Pending Leave Requests" value="1 Request" subtitle="awaiting approval reviews" icon={CalendarRange} />
+        <StatCard title="Employees on Leave" value="0 Staff" subtitle="approved casual leaves" icon={CalendarRange} />
+        <StatCard title="Late Arrivals" value="0 Staff" subtitle="grace period warnings" icon={Clock} />
+        <StatCard title="New Joinings" value="0 Joinings" subtitle="registered this cycle" icon={UserPlus} />
+        <StatCard title="Pending Leave Requests" value={`${pendingLeaves} Requests`} subtitle="awaiting approval reviews" icon={CalendarRange} />
 
-        <StatCard title="Payroll Status" value="Paid" subtitle="July payroll cycle disbursed" icon={Coins} />
-        <StatCard title="Upcoming Birthdays" value="2 Staff" subtitle="this calendar month" icon={CalendarDays} />
-        <StatCard title="Upcoming Work Anniversaries" value="3 Staff" subtitle="this calendar cycle" icon={TrendingUp} />
-        <StatCard title="Open Positions" value="5 Vacant" subtitle="unassigned staff slots" icon={Contact} />
+        <StatCard title="Payroll Status" value="Processed" subtitle="payroll cycle" icon={Coins} />
+        <StatCard title="Upcoming Birthdays" value="0 Staff" subtitle="this calendar month" icon={CalendarDays} />
+        <StatCard title="Upcoming Work Anniversaries" value="0 Staff" subtitle="this calendar cycle" icon={TrendingUp} />
+        <StatCard title="Open Positions" value="0 Vacant" subtitle="unassigned staff slots" icon={Contact} />
       </div>
 
       {/* 5 HR Charts Grid */}
@@ -143,7 +151,7 @@ export const Dashboard = () => {
 
         {/* Chart 2 */}
         <div className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block mb-4">Attendance Trend (Last 8 Days)</span>
+          <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block mb-4">Attendance Trend</span>
           <AreaChart data={ATTENDANCE_TREND} dataKey="rate" xKey="date" height={220} color="#f43f5e" />
         </div>
 
@@ -179,22 +187,28 @@ export const Dashboard = () => {
               <ArrowRight className="w-3 h-3" />
             </button>
           </div>
-          <div className="divide-y divide-slate-105 dark:divide-slate-850/50 space-y-3.5">
-            {MOCK_EMPLOYEES.slice(0, 3).map((item) => (
-              <div key={item.id} className="pt-3.5 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <img src={item.photo} alt={item.name} className="w-9 h-9 rounded-xl object-cover border" />
-                  <div>
-                    <span className="font-bold text-slate-900 dark:text-white block">{item.name}</span>
-                    <span className="text-[9px] text-slate-450 block mt-0.5">{item.designation} • {item.department}</span>
+          {staff.length === 0 ? (
+            <div className="py-8 text-center text-xs font-semibold text-slate-400">
+              No Result — No employee records registered.
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-105 dark:divide-slate-850/50 space-y-3.5">
+              {staff.slice(0, 3).map((item) => (
+                <div key={item.id} className="pt-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <img src={item.photo || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'} alt={item.name} className="w-9 h-9 rounded-xl object-cover border" />
+                    <div>
+                      <span className="font-bold text-slate-900 dark:text-white block">{item.name}</span>
+                      <span className="text-[9px] text-slate-450 block mt-0.5">{item.designation || 'Staff'} • {item.department || 'General'}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[9px] font-black text-rose-700 bg-rose-50 px-2 py-0.5 rounded-lg block uppercase">{item.role || 'Full-Time'}</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-[9px] font-black text-rose-700 bg-rose-50 px-2 py-0.5 rounded-lg block uppercase">{item.employmentType}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Live Notification feed */}

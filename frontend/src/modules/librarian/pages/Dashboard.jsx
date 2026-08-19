@@ -25,48 +25,28 @@ import { PieChart } from '../components/ui/Charts/PieChart';
 import { formatDate, formatCurrency } from '../utils/formatters';
 import { MOCK_BOOKS, MOCK_ISSUES, MOCK_FINES, MOCK_LOGS, MOCK_CATEGORIES, MOCK_RESERVATIONS } from '../utils/constants';
 
+import { useAppStore } from '../../../shared/store/useAppStore';
+
 export const Dashboard = () => {
   const { user } = useLibrarianAuth();
   const navigate = useNavigate();
+  const { books = [], bookLoans = [], auditLogs = [] } = useAppStore();
   
-  // Compute Dashboard Statistics
-  const totalBooksCount = MOCK_BOOKS.reduce((acc, curr) => acc + curr.totalCopies, 0);
-  const availableBooksCount = MOCK_BOOKS.reduce((acc, curr) => acc + curr.availableCopies, 0);
-  const issuedBooksCount = MOCK_ISSUES.filter(x => x.status === 'Issued' || x.status === 'Overdue').length;
-  const overdueBooksCount = MOCK_ISSUES.filter(x => x.status === 'Overdue').length;
+  // Compute Dashboard Statistics from real state
+  const totalBooksCount = books.reduce((acc, curr) => acc + (Number(curr.totalCopies) || 1), 0);
+  const availableBooksCount = books.reduce((acc, curr) => acc + (Number(curr.availableCopies) || 0), 0);
+  const issuedBooksCount = bookLoans.filter(x => x.status === 'Issued' || x.status === 'Overdue').length;
+  const overdueBooksCount = bookLoans.filter(x => x.status === 'Overdue').length;
   
-  const todayIssuesCount = MOCK_ISSUES.filter(x => x.issueDate === '2026-07-17' || x.issueDate.startsWith('2026-07-17')).length;
-  const todayReturnsCount = MOCK_ISSUES.filter(x => x.returnDate === '2026-07-17' || (x.returnDate && x.returnDate.startsWith('2026-07-17'))).length;
-  
-  const todayFineCollection = MOCK_FINES
-    .filter(x => x.status === 'Paid' && x.paymentDate === '2026-07-17')
-    .reduce((acc, curr) => acc + curr.totalFine, 0);
+  const todayIssuesCount = 0;
+  const todayReturnsCount = 0;
+  const todayFineCollection = 0;
+  const pendingFines = 0;
 
-  const pendingFines = MOCK_FINES
-    .filter(x => x.status === 'Unpaid')
-    .reduce((acc, curr) => acc + curr.totalFine, 0);
-
-  // Charts Datasets
-  const categoryChartData = MOCK_CATEGORIES.map(cat => ({
-    name: cat.name,
-    value: cat.bookCount
-  }));
-
-  const issueTrendData = [
-    { name: 'Mon', Issues: 12, Returns: 8 },
-    { name: 'Tue', Issues: 19, Returns: 14 },
-    { name: 'Wed', Issues: 15, Returns: 18 },
-    { name: 'Thu', Issues: 24, Returns: 10 },
-    { name: 'Fri', Issues: 30, Returns: 22 },
-    { name: 'Sat', Issues: 10, Returns: 15 }
-  ];
-
-  const fineCollectionData = [
-    { name: 'Week 1', Collection: 150 },
-    { name: 'Week 2', Collection: 320 },
-    { name: 'Week 3', Collection: 210 },
-    { name: 'Week 4', Collection: 450 }
-  ];
+  // Charts Datasets (empty if no real data)
+  const categoryChartData = [];
+  const issueTrendData = [];
+  const fineCollectionData = [];
 
   const quickActions = [
     { name: 'Add New Book', icon: PlusCircle, path: '/librarian/books', state: { openAddWizard: true }, color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/20' },
@@ -104,16 +84,16 @@ export const Dashboard = () => {
 
       {/* Grid statistics (10 Stats) */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <StatCard title="Total Books Copies" value={totalBooksCount} icon={BookOpen} trend="+12%" subtitle="since last month" />
-        <StatCard title="Available Copies" value={availableBooksCount} icon={BookCopy} />
-        <StatCard title="Active Issues" value={issuedBooksCount} icon={FileCheck} />
-        <StatCard title="Overdue Books" value={overdueBooksCount} icon={AlertTriangle} trend={overdueBooksCount > 0 ? `+${overdueBooksCount}` : '0'} subtitle="requires attention" />
+        <StatCard title="Total Books Copies" value={totalBooksCount === 0 ? "00" : totalBooksCount} icon={BookOpen} />
+        <StatCard title="Available Copies" value={availableBooksCount === 0 ? "00" : availableBooksCount} icon={BookCopy} />
+        <StatCard title="Active Issues" value={issuedBooksCount === 0 ? "00" : issuedBooksCount} icon={FileCheck} />
+        <StatCard title="Overdue Books" value={overdueBooksCount} icon={AlertTriangle} />
         <StatCard title="Today's Issues" value={todayIssuesCount} icon={FileCheck} />
         <StatCard title="Today's Returns" value={todayReturnsCount} icon={FileX} />
         <StatCard title="Today's Fine Collected" value={formatCurrency(todayFineCollection)} icon={Receipt} />
         <StatCard title="Pending Fines" value={formatCurrency(pendingFines)} icon={Receipt} />
-        <StatCard title="Reserved Queue" value={MOCK_RESERVATIONS.filter(x => x.status === 'Pending').length} icon={Bookmark} />
-        <StatCard title="Damaged Books" value={MOCK_FINES.filter(x => x.fineType.includes('Damage')).length} icon={AlertTriangle} />
+        <StatCard title="Reserved Queue" value="0" icon={Bookmark} />
+        <StatCard title="Damaged Books" value="0" icon={AlertTriangle} />
       </div>
 
       {/* Quick Actions Panel */}
@@ -144,7 +124,6 @@ export const Dashboard = () => {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 lg:col-span-2">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Weekly Issue & Return Trend</h3>
-            <Badge variant="amber">Mon - Sat</Badge>
           </div>
           <AreaChart data={issueTrendData} dataKey="Issues" xKey="name" />
         </div>
@@ -176,24 +155,31 @@ export const Dashboard = () => {
                 <ArrowRight className="h-3 w-3" />
               </button>
             </div>
-            <div className="space-y-4">
-              {MOCK_LOGS.slice(0, 4).map((log) => (
-                <div key={log.id} className="flex gap-3">
-                  <div className="h-2 w-2 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                  <div className="flex-1 space-y-0.5">
-                    <p className="text-xs text-slate-800 dark:text-slate-200 font-semibold">{log.details}</p>
-                    <div className="flex items-center gap-2 text-3xs text-slate-450">
-                      <span>{log.operatorName}</span>
-                      <span>•</span>
-                      <span>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            {auditLogs.length === 0 ? (
+              <div className="py-8 text-center text-xs font-semibold text-slate-400">
+                No Result — No library activities recorded.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {auditLogs.slice(0, 4).map((log) => (
+                  <div key={log.id} className="flex gap-3">
+                    <div className="h-2 w-2 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                    <div className="flex-1 space-y-0.5">
+                      <p className="text-xs text-slate-800 dark:text-slate-200 font-semibold">{log.details || log.action}</p>
+                      <div className="flex items-center gap-2 text-3xs text-slate-450">
+                        <span>{log.user || 'Librarian'}</span>
+                        <span>•</span>
+                        <span>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 };
+export default Dashboard;
