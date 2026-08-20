@@ -8,122 +8,166 @@ export const CommandPalette = ({ isOpen, onClose }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const navigate = useNavigate();
   const inputRef = useRef(null);
-  const listRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
       setQuery('');
       setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setTimeout(() => inputRef.current?.focus(), 100);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
     }
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isOpen]);
 
-  const filtered = NAVIGATION_ITEMS.filter((item) =>
-    item.name.toLowerCase().includes(query.toLowerCase()) ||
-    item.category.toLowerCase().includes(query.toLowerCase())
-  );
-
-  useEffect(() => {
-    const handleKeys = (e) => {
-      if (!isOpen) return;
-
-      if (e.key === 'Escape') {
-        onClose();
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % Math.max(filtered.length, 1));
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + filtered.length) % Math.max(filtered.length, 1));
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (filtered[selectedIndex]) {
-          navigate(filtered[selectedIndex].path);
-          onClose();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeys);
-    return () => window.removeEventListener('keydown', handleKeys);
-  }, [isOpen, filtered, selectedIndex, navigate, onClose]);
-
-  useEffect(() => {
-    if (listRef.current) {
-      const activeEl = listRef.current.children[selectedIndex];
-      if (activeEl) {
-        activeEl.scrollIntoView({ block: 'nearest' });
-      }
+  // Flatten nested navigation tree items with null checks
+  const flattenedItems = [];
+  (NAVIGATION_ITEMS || []).forEach((item) => {
+    if (item?.path) {
+      flattenedItems.push({
+        title: item.title || '',
+        path: item.path,
+        icon: item.icon,
+        category: 'Main',
+      });
     }
-  }, [selectedIndex]);
+    if (Array.isArray(item?.children)) {
+      item.children.forEach((child) => {
+        if (child?.title && child?.path) {
+          flattenedItems.push({
+            title: child.title,
+            path: child.path,
+            icon: child.icon || item.icon,
+            category: item.title || 'Section',
+          });
+        }
+      });
+    }
+  });
+
+  const filteredItems = flattenedItems.filter((item) => {
+    const q = (query || '').toLowerCase().trim();
+    if (!q) return true;
+    const titleMatch = (item.title || '').toLowerCase().includes(q);
+    const catMatch = (item.category || '').toLowerCase().includes(q);
+    return titleMatch || catMatch;
+  });
+
+  const handleSelect = (item) => {
+    if (item?.path) {
+      navigate(item.path);
+    }
+    onClose();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < filteredItems.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : filteredItems.length - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (filteredItems[selectedIndex]) {
+        handleSelect(filteredItems[selectedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      onClose();
+    }
+  };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4 select-none">
-      <div className="fixed inset-0 bg-slate-955/65 backdrop-blur-sm" onClick={onClose}></div>
-
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-805 rounded-3xl shadow-2xl w-full max-w-lg z-10 overflow-hidden flex flex-col max-h-[60vh]">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-850 shrink-0">
-          <Search className="w-5 h-5 text-slate-405 dark:text-slate-500" />
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in duration-100"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
+      >
+        {/* Search Bar Input */}
+        <div className="flex items-center px-4 border-b border-slate-100 dark:border-slate-800">
+          <Search className="w-5 h-5 text-indigo-500 shrink-0 mr-3" />
           <input
             ref={inputRef}
             type="text"
-            placeholder="Type page name, e.g. Employees, Leave..."
+            placeholder="Type a module or action... (e.g. Employee, Payroll, Attendance)"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            className="w-full bg-transparent text-sm font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
+            className="w-full py-4 text-sm font-semibold bg-transparent text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none"
           />
+          <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded-md">
+            ESC to close
+          </span>
         </div>
 
-        <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-1 no-scrollbar min-h-24">
-          {filtered.length === 0 ? (
-            <div className="text-center py-8 text-xs font-semibold text-slate-405">
-              No matching pages found.
+        {/* Results List */}
+        <div className="max-h-80 overflow-y-auto p-2 space-y-1">
+          {filteredItems.length === 0 ? (
+            <div className="py-8 text-center text-slate-400 text-xs font-semibold">
+              No matching pages or actions found for "{query}"
             </div>
           ) : (
-            filtered.map((item, idx) => {
+            filteredItems.map((item, idx) => {
               const Icon = item.icon;
               const isSelected = idx === selectedIndex;
+
               return (
                 <div
-                  key={item.name}
-                  onClick={() => {
-                    navigate(item.path);
-                    onClose();
-                  }}
-                  className={`flex items-center justify-between px-4 py-3 rounded-2xl cursor-pointer transition-all ${
-                    isSelected 
-                      ? 'bg-rose-600 text-white shadow-md shadow-rose-600/10' 
-                      : 'hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-700 dark:text-slate-350'
+                  key={`${item.path}-${idx}`}
+                  onClick={() => handleSelect(item)}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-colors ${
+                    isSelected
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
-                    <div className="text-left font-semibold">
-                      <span className="text-xs font-bold block">{item.name}</span>
-                      <span className={`text-[9px] font-medium block mt-0.5 uppercase tracking-wide ${isSelected ? 'text-rose-250' : 'text-slate-450'}`}>{item.category}</span>
-                    </div>
+                    {Icon && (
+                      <Icon
+                        className={`w-4 h-4 ${
+                          isSelected ? 'text-white' : 'text-slate-400'
+                        }`}
+                      />
+                    )}
+                    <span>{item.title}</span>
                   </div>
-                  {isSelected && (
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-rose-100">
-                      <span>Jump</span>
-                      <CornerDownLeft className="w-3 h-3" />
-                    </div>
-                  )}
+
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
+                        isSelected
+                          ? 'bg-indigo-700 text-indigo-100'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {item.category}
+                    </span>
+                    {isSelected && (
+                      <CornerDownLeft className="w-3.5 h-3.5 text-white/80" />
+                    )}
+                  </div>
                 </div>
               );
             })
           )}
         </div>
 
-        <div className="px-5 py-2.5 bg-slate-50 dark:bg-slate-955 border-t border-slate-100 dark:border-slate-850 shrink-0 flex items-center justify-between text-[10px] text-slate-455 dark:text-slate-500 font-bold uppercase tracking-wider">
-          <span>Arrows to navigate</span>
-          <span>Enter to select</span>
-          <span>Esc to close</span>
+        {/* Footer */}
+        <div className="px-4 py-2 bg-slate-50 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+          <span>Navigate with ↑ and ↓</span>
+          <span>Press Enter to select</span>
         </div>
       </div>
     </div>

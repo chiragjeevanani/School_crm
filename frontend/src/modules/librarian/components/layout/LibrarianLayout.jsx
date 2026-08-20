@@ -7,7 +7,7 @@ import { CommandPalette } from './CommandPalette';
 import { useLibrarianAuth } from '../../context/LibrarianAuthContext';
 import { useLibrarianNotifications } from '../../context/LibrarianNotificationContext';
 import { usePlatformPush } from '../../../../shared/hooks/usePlatformPush';
-import { cn } from '../../utils/cn';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export const LibrarianLayout = () => {
   const { user, loading } = useLibrarianAuth();
@@ -21,22 +21,22 @@ export const LibrarianLayout = () => {
     mergeInbox,
     onPush: (item) => addNotification(item.title, item.message, 'info'),
   });
-  
+
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
-  // Auto-close sidebar on navigate (tablet/mobile view)
+  // Auto-close drawer on route change
   useEffect(() => {
-    setSidebarOpen(false);
+    setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  // Handle Ctrl+K / Cmd+K keydown listener
+  // Setup Command Palette shortcut (Ctrl+K / Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setCommandPaletteOpen(prev => !prev);
+        setCommandPaletteOpen((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -45,58 +45,84 @@ export const LibrarianLayout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center font-bold text-slate-400">
-        Loading Library System...
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="w-10 h-10 rounded-full border-t-2 border-indigo-600 animate-spin"></div>
       </div>
     );
   }
 
-  // If not authenticated, redirect to Login
   if (!user && location.pathname !== '/librarian/login') {
     return <Navigate to="/librarian/login" replace />;
   }
 
-  // If authenticated and visiting root/login directly, redirect to Dashboard
   if (user && (location.pathname === '/librarian' || location.pathname === '/librarian/login')) {
     return <Navigate to="/librarian/dashboard" replace />;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-200">
-      {/* Sidebar Panel */}
-      <Sidebar 
+    <div className="min-h-screen flex bg-slate-50 text-slate-800 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-200">
+      {/* Desktop Navigation Sidebar */}
+      <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
-        isOpen={sidebarOpen} 
-        toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+        isOpen={false}
+        toggleSidebar={() => {}}
       />
 
-      {/* Main Content Layout area */}
-      <div className={cn(
-        "min-h-screen flex flex-col transition-all duration-300", 
-        isCollapsed ? "md:pl-20" : "md:pl-68 lg:pl-72"
-      )}>
-        {/* Top Header */}
-        <TopBar 
-          toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+      {/* Mobile Drawer */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 bg-slate-950"
+            />
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="relative w-64 bg-slate-950 h-full flex flex-col z-10"
+            >
+              <Sidebar
+                isCollapsed={false}
+                setIsCollapsed={() => {}}
+                isOpen={true}
+                toggleSidebar={() => setMobileMenuOpen(false)}
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content Area with responsive margin matching School Admin */}
+      <div
+        className={`flex-1 flex flex-col min-h-screen relative max-w-full overflow-x-hidden transition-[margin] duration-200 ${
+          isCollapsed ? 'md:ml-[68px]' : 'md:ml-64'
+        }`}
+      >
+        {/* Header/TopBar */}
+        <TopBar
+          toggleSidebar={() => setMobileMenuOpen(true)}
           onSearchTrigger={() => setCommandPaletteOpen(true)}
         />
 
         {/* Content Body */}
-        <main className="p-6 md:p-8 flex-1 max-w-[1400px] w-full mx-auto">
-          {/* Breadcrumb Navigator */}
+        <main className="p-4 md:p-8 flex-1 max-w-7xl w-full mx-auto space-y-6">
           <Breadcrumb />
-          
-          {/* Route Content */}
           <Outlet />
         </main>
       </div>
 
-      {/* Command Shortcut Modal */}
-      <CommandPalette 
-        isOpen={commandPaletteOpen} 
-        onClose={() => setCommandPaletteOpen(false)} 
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
       />
     </div>
   );
 };
+export default LibrarianLayout;

@@ -15,7 +15,7 @@ export const Notifications = () => {
       case 'fine':
         return <Receipt className="h-5 w-5 text-emerald-600 dark:text-emerald-450" />;
       case 'reservation':
-        return <Bookmark className="h-5 w-5 text-amber-600 dark:text-amber-400" />;
+        return <Bookmark className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />;
       default:
         return <Info className="h-5 w-5 text-blue-600 dark:text-blue-450" />;
     }
@@ -28,7 +28,7 @@ export const Notifications = () => {
       case 'fine':
         return 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-950/30';
       case 'reservation':
-        return 'bg-amber-50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-950/30';
+        return 'bg-indigo-50 dark:bg-indigo-950/20 border-indigo-100 dark:border-indigo-950/30';
       default:
         return 'bg-blue-50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-950/30';
     }
@@ -61,7 +61,7 @@ export const Notifications = () => {
               className={cn(
                 "p-5 border rounded-2xl flex gap-4 transition-all duration-150 cursor-pointer",
                 getBg(notif.type),
-                !notif.read ? "shadow-xs border-amber-300 dark:border-amber-900/50" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-70 hover:opacity-100"
+                !notif.read ? "shadow-xs border-indigo-300 dark:border-indigo-900/50" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-70 hover:opacity-100"
               )}
             >
               <div className="p-2.5 bg-white dark:bg-slate-950 rounded-xl shrink-0 h-10 w-10 flex items-center justify-center border border-slate-100 dark:border-slate-850 shadow-xs">
@@ -78,7 +78,7 @@ export const Notifications = () => {
                   {notif.message}
                 </p>
                 {!notif.read && (
-                  <Badge variant="amber" className="mt-1.5">
+                  <Badge variant="indigo" className="mt-1.5">
                     Unread Alert
                   </Badge>
                 )}

@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Users,
+  UserPlus,
   Building,
   Contact,
   CalendarDays,
@@ -8,52 +9,68 @@ import {
   BadgeCent,
   FolderOpen,
   Award,
-  Megaphone,
   BarChart3,
+  Megaphone,
   ClipboardList,
   Bell,
-  Settings
+  Settings as SettingsIcon,
+  ShieldCheck,
+  CheckCircle,
+  Clock,
+  FileText
 } from 'lucide-react';
 
 export const NAVIGATION_ITEMS = [
-  // MAIN
-  { name: 'Dashboard', path: '/hr/dashboard', icon: LayoutDashboard, category: 'Main' },
-  
-  // PEOPLE
-  { name: 'Employee Directory', path: '/hr/employees', icon: Users, category: 'People' },
-  { name: 'Departments', path: '/hr/departments', icon: Building, category: 'People' },
-  { name: 'Designations', path: '/hr/designations', icon: Contact, category: 'People' },
-  
-  // OPERATIONS
-  { name: 'Attendance Record', path: '/hr/attendance', icon: CalendarDays, category: 'Operations' },
-  { name: 'Leave Management', path: '/hr/leave', icon: CalendarRange, category: 'Operations' },
-  { name: 'Payroll & Slips', path: '/hr/payroll', icon: BadgeCent, category: 'Operations' },
-  { name: 'Documents Locker', path: '/hr/documents', icon: FolderOpen, category: 'Operations' },
-  
-  // ANALYTICS
-  { name: 'Performance reviews', path: '/hr/performance', icon: Award, category: 'Analytics' },
-  { name: 'Reports Hub', path: '/hr/reports', icon: BarChart3, category: 'Analytics' },
-  
-  // SYSTEM
-  { name: 'Announcements Board', path: '/hr/announcements', icon: Megaphone, category: 'System' },
-  { name: 'System Audit Logs', path: '/hr/audit', icon: ClipboardList, category: 'System' },
-  { name: 'Notifications Feed', path: '/hr/notifications', icon: Bell, category: 'System' },
-  { name: 'System Settings', path: '/hr/settings', icon: Settings, category: 'System' }
+  // Dashboard
+  {
+    title: 'Dashboard',
+    path: '/hr/dashboard',
+    icon: LayoutDashboard,
+  },
+
+  // People & Organization
+  {
+    title: 'People & Staff',
+    icon: Users,
+    children: [
+      { title: 'Employee Directory', path: '/hr/employees', icon: Users },
+      { title: 'Add New Employee', path: '/hr/employees/new', icon: UserPlus },
+      { title: 'Departments', path: '/hr/departments', icon: Building },
+      { title: 'Designations', path: '/hr/designations', icon: Contact },
+    ],
+  },
+
+  // Operations
+  {
+    title: 'HR Operations',
+    icon: CalendarDays,
+    children: [
+      { title: 'Attendance Record', path: '/hr/attendance', icon: CalendarDays },
+      { title: 'Leave Management', path: '/hr/leave', icon: CalendarRange },
+      { title: 'Payroll & Slips', path: '/hr/payroll', icon: BadgeCent },
+      { title: 'Documents Locker', path: '/hr/documents', icon: FolderOpen },
+    ],
+  },
+
+  // Analytics & Quality
+  {
+    title: 'Reviews & Reports',
+    icon: BarChart3,
+    children: [
+      { title: 'Performance Reviews', path: '/hr/performance', icon: Award },
+      { title: 'Reports Hub', path: '/hr/reports', icon: BarChart3 },
+    ],
+  },
+
+  // System & Communications
+  {
+    title: 'System & Notice',
+    icon: SettingsIcon,
+    children: [
+      { title: 'Announcements', path: '/hr/announcements', icon: Megaphone },
+      { title: 'System Audit Logs', path: '/hr/audit', icon: ClipboardList },
+      { title: 'Notifications Feed', path: '/hr/notifications', icon: Bell },
+      { title: 'HR Settings', path: '/hr/settings', icon: SettingsIcon },
+    ],
+  },
 ];
-
-export const MOCK_EMPLOYEES = [];
-export const MOCK_DEPARTMENTS = [];
-export const MOCK_DESIGNATIONS = [];
-export const MOCK_ATTENDANCE = [];
-export const MOCK_LEAVE_REQUESTS = [];
-export const MOCK_LEAVE_BALANCES = {};
-export const MOCK_PAYROLL = [];
-export const MOCK_REVIEWS = [];
-export const MOCK_AUDIT_LOGS = [];
-
-// ANALYTICS DATASETS
-export const DEPARTMENT_WISE_EMPLOYEES = [];
-export const ATTENDANCE_TREND = [];
-export const LEAVE_STATISTICS = [];
-export const PAYROLL_DISTRIBUTION = [];
-export const EMPLOYEE_GROWTH = [];

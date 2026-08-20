@@ -39,10 +39,14 @@ export const HRNotificationProvider = ({ children }) => {
     });
   };
 
+  const clearAll = () => {
+    setNotifications([]);
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <HRNotificationContext.Provider value={{ notifications, unreadCount, markAllAsRead, markAsRead, addNotification, mergeInbox }}>
+    <HRNotificationContext.Provider value={{ notifications, unreadCount, markAllAsRead, markAsRead, addNotification, mergeInbox, clearAll }}>
       {children}
     </HRNotificationContext.Provider>
   );

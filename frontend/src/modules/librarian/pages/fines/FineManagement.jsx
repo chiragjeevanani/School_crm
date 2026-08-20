@@ -1,130 +1,313 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { StatCard } from '../../components/ui/StatCard';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { Tabs } from '../../components/ui/Tabs';
 import { useToast } from '../../components/ui/Toast';
-import { MOCK_FINES } from '../../utils/constants';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { Receipt, Coins, ShieldCheck, HelpCircle } from 'lucide-react';
+import { Receipt, Coins, Sliders, RefreshCw, CheckCircle2, ShieldAlert, Save } from 'lucide-react';
+import { librarianApi } from '../../../../shared/api/client';
 
 export const FineManagement = () => {
   const toast = useToast();
-  const [fines, setFines] = useState(MOCK_FINES);
-  const [selectedFine, setSelectedFine] = useState(null);
-  const [waiveDialog, setWaiveDialog] = useState(false);
+  const location = useLocation();
 
-  // Stats
-  const collectedTotal = fines.filter(x => x.status === 'Paid').reduce((acc, curr) => acc + curr.paidAmount, 0);
-  const pendingTotal = fines.filter(x => x.status === 'Unpaid').reduce((acc, curr) => acc + curr.totalFine, 0);
-  const waivedTotal = fines.filter(x => x.status === 'Waived').reduce((acc, curr) => acc + curr.totalFine, 0);
+  const [activeTab, setActiveTab] = useState(() => {
+    if (location.pathname.includes('/pending')) return 'pending';
+    if (location.pathname.includes('/collected')) return 'collected';
+    if (location.pathname.includes('/rules')) return 'rules';
+    return 'pending';
+  });
 
-  const handleCollect = (fine) => {
-    setFines(prev => prev.map(f => f.id === fine.id ? { 
-      ...f, 
-      status: 'Paid', 
-      paidAmount: f.totalFine,
-      paymentDate: new Date().toISOString().split('T')[0]
-    } : f));
-    toast.success(`Collected fine payment of ${formatCurrency(fine.totalFine)} from ${fine.memberName}.`);
+  const [pendingFines, setPendingFines] = useState([]);
+  const [collectedFines, setCollectedFines] = useState([]);
+  const [settings, setSettings] = useState({
+    finePerDay: 5,
+    maxFineAmount: 500,
+    gracePeriodDays: 0,
+    lostBookFineMultiplier: 1.5,
+  });
+  const [loading, setLoading] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [pendingRes, paidRes, settingsRes] = await Promise.allSettled([
+        librarianApi.issues({ fineStatus: 'PENDING' }),
+        librarianApi.issues({ fineStatus: 'PAID' }),
+        librarianApi.settings(),
+      ]);
+
+      if (pendingRes.status === 'fulfilled' && Array.isArray(pendingRes.value?.data)) {
+        setPendingFines(pendingRes.value.data);
+      }
+
+      if (paidRes.status === 'fulfilled' && Array.isArray(paidRes.value?.data)) {
+        setCollectedFines(paidRes.value.data);
+      }
+
+      if (settingsRes.status === 'fulfilled' && settingsRes.value?.data) {
+        setSettings(settingsRes.value.data);
+      }
+    } catch {
+      toast.error('Failed to load fines data');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleWaiveClick = (fine) => {
-    setSelectedFine(fine);
-    setWaiveDialog(true);
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (location.pathname.includes('/pending')) setActiveTab('pending');
+    else if (location.pathname.includes('/collected')) setActiveTab('collected');
+    else if (location.pathname.includes('/rules')) setActiveTab('rules');
+  }, [location.pathname]);
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      await librarianApi.updateSettings({
+        finePerDay: Number(settings.finePerDay) || 0,
+        maxFineAmount: Number(settings.maxFineAmount) || 0,
+        gracePeriodDays: Number(settings.gracePeriodDays) || 0,
+        lostBookFineMultiplier: Number(settings.lostBookFineMultiplier) || 1.5,
+      });
+      toast.success('Library fine rules and policies saved to database successfully!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to update rules');
+    } finally {
+      setSavingSettings(false);
+    }
   };
 
-  const handleWaiveConfirm = (reason) => {
-    setFines(prev => prev.map(f => f.id === selectedFine.id ? {
-      ...f,
-      status: 'Waived',
-      waiveReason: reason
-    } : f));
-    toast.success(`Waived outstanding fine for ${selectedFine.memberName}.`);
-    setWaiveDialog(false);
-    setSelectedFine(null);
-  };
+  const totalCollectedAmount = collectedFines.reduce((acc, curr) => acc + (curr.fineAmount || 0), 0);
+  const totalPendingAmount = pendingFines.reduce((acc, curr) => acc + (curr.fineAmount || 0), 0);
+
+  const tabs = [
+    { id: 'pending', label: 'Pending Fines', count: pendingFines.length },
+    { id: 'collected', label: 'Collected Fines', count: collectedFines.length },
+    { id: 'rules', label: 'Fine Rules & Rates' },
+  ];
 
   const columns = [
-    { title: 'Fine ID', key: 'id', sortable: true },
-    { title: 'Borrower', key: 'memberName', sortable: true },
-    { title: 'Book Title', key: 'bookTitle' },
-    { title: 'Type', key: 'fineType' },
-    { title: 'Overdue (Days)', key: 'daysOverdue' },
-    { title: 'Fine Amount', key: 'totalFine', render: (val) => formatCurrency(val) },
-    { title: 'Status', key: 'status', render: (val) => (
-        <Badge variant={val === 'Paid' ? 'success' : val === 'Unpaid' ? 'danger' : 'warning'}>
+    {
+      title: 'Borrower',
+      key: 'borrowerName',
+      sortable: true,
+      render: (val, row) => (
+        <div>
+          <span className="font-bold text-slate-800 dark:text-slate-200 text-xs block">{val}</span>
+          <span className="text-3xs text-slate-400">{row.borrowerType} • {row.borrowerCode || 'STU'}</span>
+        </div>
+      ),
+    },
+    {
+      title: 'Book Title',
+      key: 'bookTitle',
+      sortable: true,
+      render: (val, row) => (
+        <div>
+          <span className="font-bold text-slate-800 dark:text-slate-200 text-xs block">{val}</span>
+          <span className="text-3xs text-slate-400">Copy: {row.accessionNumber || 'N/A'}</span>
+        </div>
+      ),
+    },
+    { title: 'Due Date', key: 'dueDate', render: (val) => formatDate(val) },
+    { title: 'Return Date', key: 'returnDate', render: (val) => (val ? formatDate(val) : '—') },
+    {
+      title: 'Fine Amount',
+      key: 'fineAmount',
+      sortable: true,
+      render: (val) => <span className="font-bold text-xs text-rose-600 dark:text-rose-400">{formatCurrency(val || 0)}</span>,
+    },
+    {
+      title: 'Status',
+      key: 'fineStatus',
+      sortable: true,
+      render: (val) => (
+        <Badge variant={val === 'PAID' ? 'success' : val === 'PENDING' ? 'danger' : 'warning'}>
           {val}
         </Badge>
-      )
+      ),
     },
-    { title: 'Actions', key: 'actions', render: (_, row) => (
-        <div className="flex gap-2">
-          {row.status === 'Unpaid' && (
-            <>
-              <button
-                onClick={() => handleCollect(row)}
-                className="h-8 px-3 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 transition-all duration-150"
-              >
-                <ShieldCheck className="h-3.5 w-3.5" />
-                <span>Collect</span>
-              </button>
-              <button
-                onClick={() => handleWaiveClick(row)}
-                className="h-8 px-3 text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 dark:text-rose-450 border border-rose-200 dark:border-rose-900/30 rounded-lg transition-all duration-150"
-              >
-                <span>Waive</span>
-              </button>
-            </>
-          )}
-        </div>
-      )
-    }
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Fine Ledger Desk"
-        subtitle="Settle or waive overdue library fee accounts and print deposit slips."
+        title="Fines & Penalties Management"
+        subtitle="Manage overdue fine collections, outstanding student dues, and customize penalty calculation rates."
+        actions={
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300 transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        }
       />
 
-      {/* Fine stats */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard title="Total Fines Collected" value={formatCurrency(collectedTotal)} icon={ShieldCheck} />
-        <StatCard title="Total Outstanding Pending" value={formatCurrency(pendingTotal)} icon={Coins} />
-        <StatCard title="Total Fines Waived" value={formatCurrency(waivedTotal)} icon={Receipt} />
-      </div>
-
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
-        <DataTable
-          columns={columns}
-          data={fines}
-          searchPlaceholder="Search fine logs by member or book..."
-          searchKeys={['memberName', 'bookTitle', 'id']}
-          csvFilename="library_fine_ledgers.csv"
+        <StatCard
+          title="Total Fine Collected"
+          value={formatCurrency(totalCollectedAmount)}
+          icon={Coins}
+        />
+        <StatCard
+          title="Outstanding Pending Fines"
+          value={formatCurrency(totalPendingAmount)}
+          icon={Receipt}
+        />
+        <StatCard
+          title="Daily Overdue Rate"
+          value={`₹${settings?.finePerDay ?? 5} / day`}
+          icon={Sliders}
         />
       </div>
 
-      {/* Waive Confirm Reason dialog */}
-      {selectedFine && (
-        <ConfirmDialog
-          isOpen={waiveDialog}
-          onClose={() => {
-            setWaiveDialog(false);
-            setSelectedFine(null);
-          }}
-          onConfirm={handleWaiveConfirm}
-          title="Waive Fine Authorization"
-          message={`Confirm waiving fine of ${formatCurrency(selectedFine.totalFine)} for ${selectedFine.memberName}? A mandatory audit waiver reason must be entered below.`}
-          confirmText="Waive Fine"
-          variant="danger"
-          requireInput={true}
-          inputPlaceholder="e.g. Student justified absence with medical documentation..."
-          inputLabel="Waiver Audit Reason"
-        />
+      {/* Tabs */}
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+      {loading ? (
+        <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
+          <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
+          <span>Loading fines audit records...</span>
+        </div>
+      ) : activeTab === 'pending' ? (
+        pendingFines.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
+            <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500" />
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">No Pending Fines</h3>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              There are no unpaid overdue fines on record across the school library.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
+            <DataTable
+              columns={columns}
+              data={pendingFines}
+              searchPlaceholder="Search pending fines by student or book..."
+              searchKeys={['borrowerName', 'bookTitle', 'borrowerCode']}
+              csvFilename="pending_fines.csv"
+            />
+          </div>
+        )
+      ) : activeTab === 'collected' ? (
+        collectedFines.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
+            <Receipt className="h-8 w-8 mx-auto text-slate-400" />
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">No Fine Collections Yet</h3>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Fine collections recorded upon overdue book returns will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
+            <DataTable
+              columns={columns}
+              data={collectedFines}
+              searchPlaceholder="Search collected fines..."
+              searchKeys={['borrowerName', 'bookTitle']}
+              csvFilename="collected_fines.csv"
+            />
+          </div>
+        )
+      ) : (
+        /* Fine Rules Tab */
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 max-w-2xl">
+          <form onSubmit={handleSaveSettings} className="space-y-6">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                Fine Calculation Policy & Rates
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                These settings directly govern the automatic fine calculation when overdue books are returned.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-3xs font-extrabold uppercase tracking-wider text-slate-500">
+                  Daily Overdue Fine Rate (₹ / Day) *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  value={settings.finePerDay}
+                  onChange={(e) => setSettings({ ...settings, finePerDay: e.target.value })}
+                  className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-3xs font-extrabold uppercase tracking-wider text-slate-500">
+                  Maximum Fine Cap (₹) *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  value={settings.maxFineAmount}
+                  onChange={(e) => setSettings({ ...settings, maxFineAmount: e.target.value })}
+                  className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-3xs font-extrabold uppercase tracking-wider text-slate-500">
+                  Grace Period (Days Before Fine Starts)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={settings.gracePeriodDays}
+                  onChange={(e) => setSettings({ ...settings, gracePeriodDays: e.target.value })}
+                  className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-3xs font-extrabold uppercase tracking-wider text-slate-500">
+                  Lost Book Cost Multiplier
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="1"
+                  value={settings.lostBookFineMultiplier}
+                  onChange={(e) => setSettings({ ...settings, lostBookFineMultiplier: e.target.value })}
+                  className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="submit"
+                disabled={savingSettings}
+                className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-indigo-900/10 disabled:opacity-50"
+              >
+                <Save className="h-4 w-4" />
+                <span>{savingSettings ? 'Saving Policy...' : 'Save Fine Policy Rules'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );
 };
+export default FineManagement;

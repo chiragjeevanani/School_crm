@@ -178,16 +178,34 @@ import {
   updateSingleStatus,
 } from '../controllers/staffAttendance.controller.js';
 import {
-  createBook,
-  deleteBook,
-  getBook,
-  getEligibleBorrowers,
+  librarianLogin,
+  getLibrarySettings,
+  updateLibrarySettings,
   getLibraryStats,
-  issueBook,
+  getCategories,
+  getAuthors,
+  getPublishers,
   listBooks,
-  listIssues,
-  returnBook,
+  getBook,
+  createBook,
   updateBook,
+  deleteBook,
+  listBookCopies,
+  createBookCopy,
+  updateBookCopy,
+  deleteBookCopy,
+  listIssues,
+  issueBook,
+  returnBook,
+  renewBook,
+  getEligibleBorrowers,
+  listReservations,
+  createReservation,
+  approveReservation,
+  rejectReservation,
+  cancelReservation,
+  listTransactions,
+  getReportData,
 } from '../controllers/library.controller.js';
 import {
   addExamSubject,
@@ -273,6 +291,56 @@ import { getSchoolAdminDashboardSummary } from '../controllers/schoolDashboard.c
 import { getSchoolReportsSummary, getCategoryReportData } from '../controllers/schoolReports.controller.js';
 import { requireSuperAdmin } from '../middleware/requireSuperAdmin.js';
 import { requireSchoolAdmin } from '../middleware/requireSchoolAdmin.js';
+import { requireLibrarian } from '../middleware/requireLibrarian.js';
+import { requireHR } from '../middleware/requireHR.js';
+import {
+  hrLogin,
+  getHRDashboard,
+  listEmployees as hrListEmployees,
+  getEmployee as hrGetEmployee,
+  createEmployee as hrCreateEmployee,
+  updateEmployee as hrUpdateEmployee,
+  updateEmployeeStatus as hrUpdateEmployeeStatus,
+  deleteEmployee as hrDeleteEmployee,
+  listDepartments as hrListDepartments,
+  createDepartment as hrCreateDepartment,
+  updateDepartment as hrUpdateDepartment,
+  deleteDepartment as hrDeleteDepartment,
+  listDesignations as hrListDesignations,
+  createDesignation as hrCreateDesignation,
+  updateDesignation as hrUpdateDesignation,
+  deleteDesignation as hrDeleteDesignation,
+  getHRAttendance,
+  saveHRAttendance,
+  updateSingleAttendance,
+  markAllHRAttendance,
+  getHRMonthlyAttendance,
+  getHRAttendanceReport,
+  listLeaveRequests,
+  createLeaveRequest,
+  approveLeave,
+  rejectLeave,
+  cancelLeave,
+  getLeaveBalance,
+  listHRPayrolls,
+  getHREligiblePayrollEmployees,
+  createHRPayroll,
+  getHRPayroll,
+  updateHRPayrollStatus,
+  releaseAllHRPayrolls,
+  deleteHRPayroll,
+  listPerformanceReviews,
+  createPerformanceReview,
+  getPerformanceReview,
+  updatePerformanceReview,
+  deletePerformanceReview,
+  listHRDocuments,
+  getHRSettings,
+  updateHRSettings,
+  getHRReportData,
+  listAnnouncements as hrListAnnouncements,
+  createAnnouncement as hrCreateAnnouncement,
+} from '../controllers/hr.controller.js';
 import { assertSchoolAccess } from '../middleware/assertSchoolAccess.js';
 import { uploadStudentFiles, convertStudentImages } from '../middleware/uploadStudentPhoto.js';
 import { convertTeacherImages, uploadTeacherFiles } from '../middleware/uploadTeacherPhoto.js';
@@ -289,6 +357,10 @@ router.post('/schools/:id/reset-login', requireSuperAdmin, resetSchoolLogin);
 router.delete('/schools/:id', requireSuperAdmin, deleteSchool);
 router.get('/school-auth/branding', schoolBranding);
 router.post('/school-auth/login', schoolAdminLogin);
+router.post('/school-auth/librarian-login', librarianLogin);
+router.post('/school-portal/auth/librarian-login', librarianLogin);
+router.post('/school-auth/hr-login', hrLogin);
+router.post('/school-portal/auth/hr-login', hrLogin);
 router.post('/school-auth/forgot-password', schoolAdminForgotPassword);
 router.post('/school-auth/reset-password', schoolAdminResetPassword);
 router.get('/school-portal/dashboard/summary', requireSchoolAdmin, getSchoolAdminDashboardSummary);
@@ -412,17 +484,39 @@ router.patch('/school-portal/attendance/staff/:employeeRefId', requireSchoolAdmi
 router.post('/school-portal/attendance/staff/mark-all', requireSchoolAdmin, markAllStatus);
 router.get('/school-portal/attendance/staff/monthly', requireSchoolAdmin, getMonthlySummary);
 
-// Library Management Endpoints
-router.get('/school-portal/library/stats', requireSchoolAdmin, getLibraryStats);
-router.get('/school-portal/library/borrowers', requireSchoolAdmin, getEligibleBorrowers);
-router.get('/school-portal/library/books', requireSchoolAdmin, listBooks);
-router.post('/school-portal/library/books', requireSchoolAdmin, createBook);
-router.get('/school-portal/library/books/:id', requireSchoolAdmin, getBook);
-router.patch('/school-portal/library/books/:id', requireSchoolAdmin, updateBook);
-router.delete('/school-portal/library/books/:id', requireSchoolAdmin, deleteBook);
-router.get('/school-portal/library/issues', requireSchoolAdmin, listIssues);
-router.post('/school-portal/library/issues', requireSchoolAdmin, issueBook);
-router.post('/school-portal/library/issues/:id/return', requireSchoolAdmin, returnBook);
+// Library Management Endpoints (accessible by School Admin & Librarian)
+router.get('/school-portal/library/settings', requireLibrarian, getLibrarySettings);
+router.patch('/school-portal/library/settings', requireLibrarian, updateLibrarySettings);
+router.get('/school-portal/library/stats', requireLibrarian, getLibraryStats);
+router.get('/school-portal/library/categories', requireLibrarian, getCategories);
+router.get('/school-portal/library/authors', requireLibrarian, getAuthors);
+router.get('/school-portal/library/publishers', requireLibrarian, getPublishers);
+router.get('/school-portal/library/borrowers', requireLibrarian, getEligibleBorrowers);
+
+router.get('/school-portal/library/books', requireLibrarian, listBooks);
+router.post('/school-portal/library/books', requireLibrarian, createBook);
+router.get('/school-portal/library/books/:id', requireLibrarian, getBook);
+router.patch('/school-portal/library/books/:id', requireLibrarian, updateBook);
+router.delete('/school-portal/library/books/:id', requireLibrarian, deleteBook);
+
+router.get('/school-portal/library/copies', requireLibrarian, listBookCopies);
+router.post('/school-portal/library/copies', requireLibrarian, createBookCopy);
+router.patch('/school-portal/library/copies/:id', requireLibrarian, updateBookCopy);
+router.delete('/school-portal/library/copies/:id', requireLibrarian, deleteBookCopy);
+
+router.get('/school-portal/library/issues', requireLibrarian, listIssues);
+router.post('/school-portal/library/issues', requireLibrarian, issueBook);
+router.post('/school-portal/library/issues/:id/return', requireLibrarian, returnBook);
+router.post('/school-portal/library/issues/:id/renew', requireLibrarian, renewBook);
+
+router.get('/school-portal/library/reservations', requireLibrarian, listReservations);
+router.post('/school-portal/library/reservations', requireLibrarian, createReservation);
+router.patch('/school-portal/library/reservations/:id/approve', requireLibrarian, approveReservation);
+router.patch('/school-portal/library/reservations/:id/reject', requireLibrarian, rejectReservation);
+router.patch('/school-portal/library/reservations/:id/cancel', requireLibrarian, cancelReservation);
+
+router.get('/school-portal/library/transactions', requireLibrarian, listTransactions);
+router.get('/school-portal/library/reports/:category', requireLibrarian, getReportData);
 
 // Examination & Terms Endpoints
 router.get('/school-portal/exams/stats', requireSchoolAdmin, getExamStats);
@@ -523,6 +617,71 @@ router.post('/school-portal/transport/maintenance', requireSchoolAdmin, createMa
 router.get('/school-portal/transport/incidents', requireSchoolAdmin, listTransportIncidents);
 router.post('/school-portal/transport/incidents', requireSchoolAdmin, createTransportIncident);
 router.patch('/school-portal/transport/incidents/:id', requireSchoolAdmin, updateTransportIncident);
+
+// ==========================================
+// HR Management Endpoints (accessible by School Admin & HR)
+// ==========================================
+router.get('/school-portal/hr/dashboard', requireHR, getHRDashboard);
+router.get('/school-portal/hr/settings', requireHR, getHRSettings);
+router.patch('/school-portal/hr/settings', requireHR, updateHRSettings);
+router.get('/school-portal/hr/documents', requireHR, listHRDocuments);
+router.get('/school-portal/hr/announcements', requireHR, hrListAnnouncements);
+router.post('/school-portal/hr/announcements', requireHR, hrCreateAnnouncement);
+
+// Employees
+router.get('/school-portal/hr/employees', requireHR, hrListEmployees);
+router.post('/school-portal/hr/employees', requireHR, hrCreateEmployee);
+router.get('/school-portal/hr/employees/:id', requireHR, hrGetEmployee);
+router.patch('/school-portal/hr/employees/:id', requireHR, hrUpdateEmployee);
+router.patch('/school-portal/hr/employees/:id/status', requireHR, hrUpdateEmployeeStatus);
+router.delete('/school-portal/hr/employees/:id', requireHR, hrDeleteEmployee);
+
+// Departments
+router.get('/school-portal/hr/departments', requireHR, hrListDepartments);
+router.post('/school-portal/hr/departments', requireHR, hrCreateDepartment);
+router.patch('/school-portal/hr/departments/:id', requireHR, hrUpdateDepartment);
+router.delete('/school-portal/hr/departments/:id', requireHR, hrDeleteDepartment);
+
+// Designations
+router.get('/school-portal/hr/designations', requireHR, hrListDesignations);
+router.post('/school-portal/hr/designations', requireHR, hrCreateDesignation);
+router.patch('/school-portal/hr/designations/:id', requireHR, hrUpdateDesignation);
+router.delete('/school-portal/hr/designations/:id', requireHR, hrDeleteDesignation);
+
+// Attendance (Static routes BEFORE dynamic routes)
+router.get('/school-portal/hr/attendance/monthly', requireHR, getHRMonthlyAttendance);
+router.get('/school-portal/hr/attendance/report', requireHR, getHRAttendanceReport);
+router.post('/school-portal/hr/attendance/mark-all', requireHR, markAllHRAttendance);
+router.get('/school-portal/hr/attendance', requireHR, getHRAttendance);
+router.post('/school-portal/hr/attendance', requireHR, saveHRAttendance);
+router.patch('/school-portal/hr/attendance/:id', requireHR, updateSingleAttendance);
+
+// Leave Management (Static routes BEFORE dynamic routes)
+router.get('/school-portal/hr/leave/balance/:empId', requireHR, getLeaveBalance);
+router.get('/school-portal/hr/leave', requireHR, listLeaveRequests);
+router.post('/school-portal/hr/leave', requireHR, createLeaveRequest);
+router.patch('/school-portal/hr/leave/:id/approve', requireHR, approveLeave);
+router.patch('/school-portal/hr/leave/:id/reject', requireHR, rejectLeave);
+router.patch('/school-portal/hr/leave/:id/cancel', requireHR, cancelLeave);
+
+// Payroll (Static routes BEFORE dynamic routes)
+router.get('/school-portal/hr/payroll/employees', requireHR, getHREligiblePayrollEmployees);
+router.post('/school-portal/hr/payroll/release', requireHR, releaseAllHRPayrolls);
+router.get('/school-portal/hr/payroll', requireHR, listHRPayrolls);
+router.post('/school-portal/hr/payroll', requireHR, createHRPayroll);
+router.get('/school-portal/hr/payroll/:id', requireHR, getHRPayroll);
+router.patch('/school-portal/hr/payroll/:id/status', requireHR, updateHRPayrollStatus);
+router.delete('/school-portal/hr/payroll/:id', requireHR, deleteHRPayroll);
+
+// Performance Reviews (Static routes BEFORE dynamic routes)
+router.get('/school-portal/hr/performance', requireHR, listPerformanceReviews);
+router.post('/school-portal/hr/performance', requireHR, createPerformanceReview);
+router.get('/school-portal/hr/performance/:id', requireHR, getPerformanceReview);
+router.patch('/school-portal/hr/performance/:id', requireHR, updatePerformanceReview);
+router.delete('/school-portal/hr/performance/:id', requireHR, deletePerformanceReview);
+
+// Reports
+router.get('/school-portal/hr/reports/:category', requireHR, getHRReportData);
 
 router.get('/subscriptions', requireSuperAdmin, listPlans);
 router.post('/subscriptions', requireSuperAdmin, createPlan);

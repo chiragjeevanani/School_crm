@@ -1,47 +1,104 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Tabs } from '../../components/ui/Tabs';
 import { useLibrarianAuth } from '../../context/LibrarianAuthContext';
-import { useLibrarianTheme } from '../../context/LibrarianThemeContext';
 import { useToast } from '../../components/ui/Toast';
-import { Save, User, FileText, DollarSign, Printer, Moon, Sun } from 'lucide-react';
-import { cn } from '../../utils/cn';
+import { Save, User, Sliders, Receipt, RefreshCw, CheckCircle2, ShieldCheck, Building } from 'lucide-react';
+import { librarianApi } from '../../../../shared/api/client';
 
 export const Settings = () => {
   const { user } = useLibrarianAuth();
-  const { darkMode, toggleDarkMode } = useLibrarianTheme();
+  const location = useLocation();
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState('profile');
 
-  // Library rules state
-  const [studentLimit, setStudentLimit] = useState(3);
-  const [teacherLimit, setTeacherLimit] = useState(7);
-  const [loanPeriod, setLoanPeriod] = useState(14);
-  const [finePerDay, setFinePerDay] = useState(2);
-  const [gracePeriod, setGracePeriod] = useState(0);
+  const getInitialTab = () => {
+    if (location.pathname.includes('/rules')) return 'rules';
+    if (location.pathname.includes('/fines')) return 'fines';
+    return 'library';
+  };
 
-  const handleSaveSettings = () => {
-    toast.success('Library circulation settings saved successfully.');
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [settings, setSettings] = useState({
+    defaultIssueDays: 14,
+    allowRenewal: true,
+    maxRenewals: 2,
+    renewalPeriodDays: 14,
+    maxBooksStudent: 3,
+    maxBooksTeacher: 5,
+    finePerDay: 5,
+    maxFineAmount: 500,
+    gracePeriodDays: 0,
+    lostBookFineMultiplier: 1.5,
+  });
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const res = await librarianApi.settings();
+      if (res?.success && res.data) {
+        setSettings(res.data);
+      }
+    } catch {
+      toast.error('Failed to load library settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    setActiveTab(getInitialTab());
+  }, [location.pathname]);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await librarianApi.updateSettings({
+        defaultIssueDays: Number(settings.defaultIssueDays) || 14,
+        allowRenewal: Boolean(settings.allowRenewal),
+        maxRenewals: Number(settings.maxRenewals) || 2,
+        renewalPeriodDays: Number(settings.renewalPeriodDays) || 14,
+        maxBooksStudent: Number(settings.maxBooksStudent) || 3,
+        maxBooksTeacher: Number(settings.maxBooksTeacher) || 5,
+        finePerDay: Number(settings.finePerDay) || 5,
+        maxFineAmount: Number(settings.maxFineAmount) || 500,
+        gracePeriodDays: Number(settings.gracePeriodDays) || 0,
+        lostBookFineMultiplier: Number(settings.lostBookFineMultiplier) || 1.5,
+      });
+      toast.success('Library settings & policies successfully saved to database!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const settingsTabs = [
-    { id: 'profile', label: 'Librarian Profile' },
-    { id: 'rules', label: 'Circulation & Fines' },
-    { id: 'preferences', label: 'System Preferences' }
+    { id: 'library', label: 'Library Settings & Profile' },
+    { id: 'rules', label: 'Issue / Return Rules' },
+    { id: 'fines', label: 'Fine Settings' },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <PageHeader
-        title="Portal Settings"
-        subtitle="Manage personal profiles, print templates, and library rule constraints."
+        title="Library Settings & Policy Controls"
+        subtitle="Configure school-wide library borrowing rules, circulation loan limits, and penalty rates."
         actions={
           <button
-            onClick={handleSaveSettings}
-            className="h-10 px-4 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all duration-150 shadow-xs"
+            onClick={fetchSettings}
+            disabled={loading}
+            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300 transition-colors"
           >
-            <Save className="h-4 w-4" />
-            <span>Save All Config</span>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         }
       />
@@ -49,167 +106,236 @@ export const Settings = () => {
       {/* Tabs */}
       <Tabs tabs={settingsTabs} activeTab={activeTab} onChange={setActiveTab} />
 
-      {/* Settings body */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 max-w-3xl mx-auto">
-        {activeTab === 'profile' && user && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-center gap-5 pb-6 border-b border-slate-100 dark:border-slate-850">
-              <img
-                src={user.photoUrl}
-                alt={user.name}
-                className="h-20 w-20 rounded-full border-2 border-amber-500 shadow-sm shrink-0"
-              />
-              <div className="text-center sm:text-left space-y-1">
-                <h4 className="text-base font-bold text-slate-850 dark:text-slate-200">{user.name}</h4>
-                <p className="text-xs text-slate-450">{user.role} | Greenfield Public School</p>
-                <span className="inline-flex px-2 py-0.5 bg-amber-50 dark:bg-amber-955/20 text-amber-600 dark:text-amber-400 rounded-lg text-3xs font-bold border border-amber-100 dark:border-amber-900/30">
-                  ID: {user.id}
-                </span>
+      {loading ? (
+        <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
+          <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
+          <span>Loading configuration from database...</span>
+        </div>
+      ) : (
+        <form onSubmit={handleSave} className="space-y-6">
+          {/* Tab 1: Library Profile */}
+          {activeTab === 'library' && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 space-y-6">
+              <div className="flex items-center gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+                <img
+                  src={user?.photoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face'}
+                  alt={user?.name || 'Librarian'}
+                  className="h-16 w-16 rounded-full border-2 border-indigo-500 shrink-0 object-cover"
+                />
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">{user?.name || 'Sanjay Kumar'}</h3>
+                  <p className="text-xs text-slate-500">{user?.role || 'Head Librarian'} • {user?.email || 'librarian@greenfield.edu'}</p>
+                  <span className="inline-block mt-1 px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 text-3xs font-bold rounded-full">
+                    Active Librarian Session
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-3xs font-bold text-slate-500 uppercase">School Institution</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={user?.schoolName || 'Greenfield Public School'}
+                    className="w-full h-10 px-3.5 bg-slate-100 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-3xs font-bold text-slate-500 uppercase">Academic Session</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={user?.academicSession || '2024-2025'}
+                    className="w-full h-10 px-3.5 bg-slate-100 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/30 rounded-2xl flex items-start gap-3">
+                <ShieldCheck className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-indigo-800 dark:text-indigo-300">
+                  <span className="font-bold block">Strict School Data Isolation</span>
+                  All catalog records, borrower requests, and transaction logs are isolated strictly to your school workspace.
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="space-y-1">
-                <span className="font-semibold text-slate-450 block">Username:</span>
-                <input
-                  type="text"
-                  disabled
-                  value={user.username}
-                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-500 cursor-not-allowed"
-                />
-              </div>
-              <div className="space-y-1">
-                <span className="font-semibold text-slate-450 block">Email Address:</span>
-                <input
-                  type="email"
-                  value={user.email}
-                  disabled
-                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-550 cursor-not-allowed"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'rules' && (
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1.5">
-              <FileText className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
-              <span>Circulation Limits</span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-550 dark:text-slate-450">Student Max Hold</label>
-                <input
-                  type="number"
-                  value={studentLimit}
-                  onChange={(e) => setStudentLimit(Number(e.target.value))}
-                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-550 dark:text-slate-450">Teacher Max Hold</label>
-                <input
-                  type="number"
-                  value={teacherLimit}
-                  onChange={(e) => setTeacherLimit(Number(e.target.value))}
-                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-550 dark:text-slate-450">Circulation Limit (Days)</label>
-                <input
-                  type="number"
-                  value={loanPeriod}
-                  onChange={(e) => setLoanPeriod(Number(e.target.value))}
-                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-            </div>
-
-            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1.5 pt-4">
-              <DollarSign className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
-              <span>Overdue Fines Rules</span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-550 dark:text-slate-450">Fine Per Overdue Day (INR)</label>
-                <input
-                  type="number"
-                  value={finePerDay}
-                  onChange={(e) => setFinePerDay(Number(e.target.value))}
-                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-550 dark:text-slate-450">Grace Period Days</label>
-                <input
-                  type="number"
-                  value={gracePeriod}
-                  onChange={(e) => setGracePeriod(Number(e.target.value))}
-                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'preferences' && (
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1.5">
-              <Printer className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
-              <span>Label Printing Details</span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-550 dark:text-slate-450">Barcode Width (inches)</label>
-                <select className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950">
-                  <option value="2.0">2.0" label (Standard shelf)</option>
-                  <option value="1.5">1.5" label (Slim spine)</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-550 dark:text-slate-450">Receipt Print Format</label>
-                <select className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950">
-                  <option value="Thermal">80mm Thermal Paper</option>
-                  <option value="Letter">A4 Letter Paper</option>
-                </select>
-              </div>
-            </div>
-
-            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1.5 pt-4">
-              <Sun className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
-              <span>Theme Appearance</span>
-            </h3>
-
-            <div className="flex justify-between items-center text-xs pt-2">
+          {/* Tab 2: Issue / Return Rules */}
+          {activeTab === 'rules' && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 space-y-6">
               <div>
-                <span className="font-bold text-slate-850 dark:text-slate-200 block">Dark Mode</span>
-                <span className="text-slate-450 text-3xs">Use dark color schemes for low light conditions.</span>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  Circulation Loan & Renewal Rules
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Configure lending limits and durations for student and teacher borrowers.
+                </p>
               </div>
-              <button
-                onClick={toggleDarkMode}
-                className={cn(
-                  "h-10 px-4 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-2",
-                  darkMode 
-                    ? "bg-amber-600 text-white hover:bg-amber-700" 
-                    : "border border-slate-200 hover:bg-slate-50 text-slate-800"
-                )}
-              >
-                {darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                <span>{darkMode ? 'Disable Dark Mode' : 'Enable Dark Mode'}</span>
-              </button>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-3xs font-bold text-slate-500 uppercase">
+                    Default Loan Duration (Days) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={settings.defaultIssueDays}
+                    onChange={(e) => setSettings({ ...settings, defaultIssueDays: e.target.value })}
+                    className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-3xs font-bold text-slate-500 uppercase">
+                    Max Books Allowed (Students) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={settings.maxBooksStudent}
+                    onChange={(e) => setSettings({ ...settings, maxBooksStudent: e.target.value })}
+                    className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-3xs font-bold text-slate-500 uppercase">
+                    Max Books Allowed (Teachers/Faculty) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={settings.maxBooksTeacher}
+                    onChange={(e) => setSettings({ ...settings, maxBooksTeacher: e.target.value })}
+                    className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-3xs font-bold text-slate-500 uppercase">
+                    Max Renewals Allowed Per Loan *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={settings.maxRenewals}
+                    onChange={(e) => setSettings({ ...settings, maxRenewals: e.target.value })}
+                    className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-3xs font-bold text-slate-500 uppercase">
+                  Days Added Per Renewal (Days)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={settings.renewalPeriodDays}
+                  onChange={(e) => setSettings({ ...settings, renewalPeriodDays: e.target.value })}
+                  className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
             </div>
+          )}
+
+          {/* Tab 3: Fine Settings */}
+          {activeTab === 'fines' && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 space-y-6">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  Fine Rates & Penalty Rules
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Set daily late fee tariffs, grace periods, and caps for the school library.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-3xs font-bold text-slate-500 uppercase">
+                    Overdue Tariff (₹ / Day) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={settings.finePerDay}
+                    onChange={(e) => setSettings({ ...settings, finePerDay: e.target.value })}
+                    className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-3xs font-bold text-slate-500 uppercase">
+                    Maximum Penalty Cap (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={settings.maxFineAmount}
+                    onChange={(e) => setSettings({ ...settings, maxFineAmount: e.target.value })}
+                    className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-3xs font-bold text-slate-500 uppercase">
+                    Grace Period (Days Before Fine Starts)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={settings.gracePeriodDays}
+                    onChange={(e) => setSettings({ ...settings, gracePeriodDays: e.target.value })}
+                    className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-3xs font-bold text-slate-500 uppercase">
+                    Lost Copy Penalty Multiplier
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="1"
+                    value={settings.lostBookFineMultiplier}
+                    onChange={(e) => setSettings({ ...settings, lostBookFineMultiplier: e.target.value })}
+                    className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-indigo-900/10 disabled:opacity-50"
+            >
+              <Save className="h-4 w-4" />
+              <span>{saving ? 'Saving Changes...' : 'Save Configuration to Database'}</span>
+            </button>
           </div>
-        )}
-      </div>
+        </form>
+      )}
     </div>
   );
 };
+export default Settings;

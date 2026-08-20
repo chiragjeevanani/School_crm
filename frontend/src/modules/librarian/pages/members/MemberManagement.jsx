@@ -1,144 +1,185 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
-import { Modal } from '../../components/ui/Modal';
+import { Tabs } from '../../components/ui/Tabs';
 import { useToast } from '../../components/ui/Toast';
-import { MOCK_MEMBERS } from '../../utils/constants';
-import { User, ShieldAlert, Award, FileText, CheckCircle } from 'lucide-react';
-import { formatCurrency } from '../../utils/formatters';
+import { User, Users, GraduationCap, Briefcase, RefreshCw, BookOpen } from 'lucide-react';
+import { librarianApi } from '../../../../shared/api/client';
 
 export const MemberManagement = () => {
   const toast = useToast();
-  const [members, setMembers] = useState(MOCK_MEMBERS);
-  const [selectedMember, setSelectedMember] = useState(null);
-  const [statusModal, setStatusModal] = useState(false);
+  const location = useLocation();
 
-  const toggleMembershipStatus = (member) => {
-    const nextStatus = member.membershipStatus === 'Active' ? 'Suspended' : 'Active';
-    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, membershipStatus: nextStatus } : m));
-    toast.success(`Membership status updated to ${nextStatus} for ${member.memberName}.`);
-    setStatusModal(false);
-    setSelectedMember(null);
+  const [members, setMembers] = useState([]);
+  const [activeIssues, setActiveIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState(() => {
+    if (location.pathname.includes('/students')) return 'students';
+    if (location.pathname.includes('/staff')) return 'staff';
+    return 'all';
+  });
+
+  const fetchMembers = async () => {
+    setLoading(true);
+    try {
+      const [borrowersRes, issuesRes] = await Promise.allSettled([
+        librarianApi.borrowers(),
+        librarianApi.issues({ status: 'ISSUED' }),
+      ]);
+
+      if (borrowersRes.status === 'fulfilled' && Array.isArray(borrowersRes.value?.data)) {
+        setMembers(borrowersRes.value.data);
+      } else {
+        setMembers([]);
+      }
+
+      if (issuesRes.status === 'fulfilled' && Array.isArray(issuesRes.value?.data)) {
+        setActiveIssues(issuesRes.value.data);
+      }
+    } catch {
+      toast.error('Failed to load library members directory');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleActionClick = (member) => {
-    setSelectedMember(member);
-    setStatusModal(true);
-  };
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+  useEffect(() => {
+    if (location.pathname.includes('/students')) setActiveTab('students');
+    else if (location.pathname.includes('/staff')) setActiveTab('staff');
+  }, [location.pathname]);
+
+  // Compute active loans map per member
+  const loanCountMap = {};
+  activeIssues.forEach((issue) => {
+    if (issue.borrowerRefId) {
+      loanCountMap[issue.borrowerRefId] = (loanCountMap[issue.borrowerRefId] || 0) + 1;
+    }
+  });
+
+  const enrichedMembers = members.map((m) => ({
+    ...m,
+    booksIssued: loanCountMap[m.id] || 0,
+    maxAllowed: m.type === 'TEACHER' ? 5 : 3,
+  }));
+
+  const filteredData = enrichedMembers.filter((m) => {
+    if (activeTab === 'students') return m.type === 'STUDENT';
+    if (activeTab === 'staff') return m.type === 'TEACHER' || m.type === 'STAFF';
+    return true;
+  });
+
+  const tabs = [
+    { id: 'all', label: 'All Members', count: enrichedMembers.length },
+    { id: 'students', label: 'Students', count: enrichedMembers.filter((m) => m.type === 'STUDENT').length },
+    { id: 'staff', label: 'Teachers / Staff', count: enrichedMembers.filter((m) => m.type !== 'STUDENT').length },
+  ];
 
   const columns = [
-    { title: 'Member ID', key: 'memberId', sortable: true },
-    { title: 'Name', key: 'memberName', sortable: true },
-    { title: 'Type', key: 'memberType', filterable: true },
-    { title: 'Class / Dept', key: 'class' },
-    { title: 'Books Issued', key: 'booksIssued', sortable: true, render: (val, row) => `${val} / ${row.maxBooksAllowed}` },
-    { title: 'Fines Due', key: 'pendingFines', sortable: true, render: (val) => formatCurrency(val) },
-    { title: 'Status', key: 'membershipStatus', render: (val) => (
-        <Badge variant={val === 'Active' ? 'success' : 'danger'}>
+    {
+      title: 'Member Code',
+      key: 'code',
+      sortable: true,
+      render: (val) => (
+        <span className="font-bold font-mono text-xs text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+          {val || '—'}
+        </span>
+      ),
+    },
+    {
+      title: 'Name',
+      key: 'name',
+      sortable: true,
+      render: (val, row) => (
+        <div className="flex items-center gap-2.5">
+          <div className={`p-2 rounded-lg ${row.type === 'STUDENT' ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/30' : 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30'}`}>
+            {row.type === 'STUDENT' ? <GraduationCap className="h-4 w-4" /> : <Briefcase className="h-4 w-4" />}
+          </div>
+          <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">{val}</span>
+        </div>
+      ),
+    },
+    {
+      title: 'Member Type',
+      key: 'type',
+      sortable: true,
+      render: (val) => (
+        <Badge variant={val === 'STUDENT' ? 'neutral' : 'indigo'}>
           {val}
         </Badge>
-      )
+      ),
     },
-    { title: 'Actions', key: 'actions', render: (_, row) => (
-        <button
-          onClick={() => handleActionClick(row)}
-          className="px-2.5 py-1 text-2xs font-semibold bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-850 border border-slate-205 dark:border-slate-800 rounded-lg"
-        >
-          Manage
-        </button>
-      )
-    }
+    {
+      title: 'Class / Department',
+      key: 'class',
+      render: (val) => <span className="text-xs text-slate-600 dark:text-slate-400">{val || 'Standard'}</span>,
+    },
+    {
+      title: 'Active Book Loans',
+      key: 'booksIssued',
+      sortable: true,
+      render: (val, row) => (
+        <span className={`text-xs font-bold ${val > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
+          {val} / {row.maxAllowed} Books
+        </span>
+      ),
+    },
+    {
+      title: 'Status',
+      key: 'status',
+      render: () => <Badge variant="success">Active</Badge>,
+    },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Library Members"
-        subtitle="Manage student & staff membership statuses, borrowing limit configurations, and fine blocks."
+        title="Library Members Directory"
+        subtitle="Manage student and staff borrowing privileges, active quotas, and verified profiles."
+        actions={
+          <button
+            onClick={fetchMembers}
+            disabled={loading}
+            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300 transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        }
       />
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
-        <DataTable
-          columns={columns}
-          data={members}
-          searchPlaceholder="Search members by name, ID or admission code..."
-          searchKeys={['memberName', 'memberId', 'admissionNo']}
-          csvFilename="library_membership_audit.csv"
-        />
-      </div>
+      {/* Tabs */}
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-      {/* Member Management Details Modal */}
-      <Modal
-        isOpen={statusModal}
-        onClose={() => setStatusModal(false)}
-        title="Manage Membership Account"
-        size="md"
-      >
-        {selectedMember && (
-          <div className="space-y-5">
-            {/* Summary card */}
-            <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-800 rounded-2xl">
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 rounded-2xl shrink-0">
-                <User className="h-6 w-6" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">{selectedMember.memberName}</h4>
-                <p className="text-3xs text-slate-450 mt-0.5">{selectedMember.class} | ID: {selectedMember.memberId}</p>
-                <div className="flex gap-2 mt-1.5">
-                  <Badge variant={selectedMember.membershipStatus === 'Active' ? 'success' : 'danger'}>
-                    {selectedMember.membershipStatus}
-                  </Badge>
-                  <Badge variant="amber">
-                    {selectedMember.booksIssued} Issued
-                  </Badge>
-                </div>
-              </div>
-            </div>
-
-            {/* Config options */}
-            <div className="space-y-3 pt-2">
-              <p className="text-2xs font-extrabold text-slate-450 uppercase tracking-widest border-b pb-2">Membership Controls</p>
-              
-              <div className="flex justify-between items-center text-xs">
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Change Status</span>
-                  <span className="text-slate-500 text-3xs">Block/Restore borrowing privileges.</span>
-                </div>
-                <button
-                  onClick={() => toggleMembershipStatus(selectedMember)}
-                  className={`h-9 px-3 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors ${
-                    selectedMember.membershipStatus === 'Active'
-                      ? "bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/25 dark:text-rose-400"
-                      : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/25 dark:text-emerald-400"
-                  }`}
-                >
-                  {selectedMember.membershipStatus === 'Active' ? (
-                    <>
-                      <ShieldAlert className="h-4 w-4" />
-                      <span>Suspend Member</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4" />
-                      <span>Activate Member</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-850">
-              <button
-                onClick={() => setStatusModal(false)}
-                className="h-10 px-4 text-sm font-semibold border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl"
-              >
-                Close Panel
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      {loading ? (
+        <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
+          <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
+          <span>Loading verified school members...</span>
+        </div>
+      ) : filteredData.length === 0 ? (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
+          <Users className="h-8 w-8 mx-auto text-slate-400" />
+          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">No Members Found</h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            Eligible student and staff profiles are synchronized from the school enrollment database.
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            searchPlaceholder="Search members by name or code..."
+            searchKeys={['name', 'code', 'type', 'class']}
+            csvFilename="library_members_directory.csv"
+          />
+        </div>
+      )}
     </div>
   );
 };
+export default MemberManagement;

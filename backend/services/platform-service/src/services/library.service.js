@@ -1,5 +1,9 @@
 import { AppError } from '../../../shared/AppError.js';
 import { libraryRepository } from '../repositories/library.repository.js';
+import { librarySettingsRepository } from '../repositories/librarySettings.repository.js';
+import { bookCopyRepository } from '../repositories/bookCopy.repository.js';
+import { libraryReservationRepository } from '../repositories/libraryReservation.repository.js';
+import { libraryTransactionRepository } from '../repositories/libraryTransaction.repository.js';
 
 function requireText(value, label) {
   const text = typeof value === 'string' ? value.trim() : '';
@@ -12,28 +16,43 @@ function optionalText(value) {
 }
 
 class LibraryService {
+  // Settings
+  async getSettings(schoolId) {
+    const settings = await librarySettingsRepository.getSettings(schoolId);
+    return settings.toPublicJSON();
+  }
+
+  async updateSettings(schoolId, payload = {}) {
+    const updates = {};
+    if (payload.finePerDay !== undefined) updates.finePerDay = Math.max(0, Number(payload.finePerDay) || 0);
+    if (payload.maxFineAmount !== undefined) updates.maxFineAmount = Math.max(0, Number(payload.maxFineAmount) || 0);
+    if (payload.gracePeriodDays !== undefined) updates.gracePeriodDays = Math.max(0, Number(payload.gracePeriodDays) || 0);
+    if (payload.defaultIssueDays !== undefined) updates.defaultIssueDays = Math.max(1, Number(payload.defaultIssueDays) || 14);
+    if (payload.allowRenewal !== undefined) updates.allowRenewal = Boolean(payload.allowRenewal);
+    if (payload.maxRenewals !== undefined) updates.maxRenewals = Math.max(0, Number(payload.maxRenewals) || 0);
+    if (payload.renewalPeriodDays !== undefined) updates.renewalPeriodDays = Math.max(1, Number(payload.renewalPeriodDays) || 14);
+    if (payload.maxBooksStudent !== undefined) updates.maxBooksStudent = Math.max(1, Number(payload.maxBooksStudent) || 3);
+    if (payload.maxBooksTeacher !== undefined) updates.maxBooksTeacher = Math.max(1, Number(payload.maxBooksTeacher) || 5);
+    if (payload.lostBookFineMultiplier !== undefined) updates.lostBookFineMultiplier = Math.max(1, Number(payload.lostBookFineMultiplier) || 1.5);
+
+    const updated = await librarySettingsRepository.updateSettings(schoolId, updates);
+    return updated.toPublicJSON();
+  }
+
+  // Dashboard Stats
   async getStats(schoolId) {
     return libraryRepository.getLibraryStats(schoolId);
   }
 
+  // Books CRUD
   async listBooks(schoolId, query = {}) {
-    const result = await libraryRepository.listBooks(schoolId, query);
-
-    return {
-      data: result.items.map((b) => b.toPublicJSON()),
-      pagination: {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / result.limit) || 1,
-      },
-    };
+    return libraryRepository.listBooks(schoolId, query);
   }
 
   async getBook(schoolId, id) {
-    const book = await libraryRepository.findBookById(schoolId, id);
-    if (!book) throw new AppError('Library book not found', 404);
-    return book.toPublicJSON();
+    const res = await libraryRepository.findBookById(schoolId, id);
+    if (!res || !res.book) throw new AppError('Library book not found', 404);
+    return res.book.toPublicJSON(res.stats);
   }
 
   async createBook(schoolId, payload = {}) {
@@ -41,7 +60,6 @@ class LibraryService {
     const author = requireText(payload.author, 'Author');
     const category = optionalText(payload.category) || 'GENERAL';
     const totalCopies = Math.max(1, Number(payload.totalCopies) || 1);
-    const availableCopies = payload.availableCopies !== undefined ? Math.max(0, Number(payload.availableCopies)) : totalCopies;
 
     const book = await libraryRepository.createBook({
       schoolId,
@@ -52,21 +70,25 @@ class LibraryService {
       category: category.toUpperCase(),
       publisher: optionalText(payload.publisher),
       edition: optionalText(payload.edition),
+      publicationYear: Number(payload.publicationYear) || null,
+      language: optionalText(payload.language) || 'English',
+      pages: Math.max(0, Number(payload.pages) || 0),
+      coverImage: optionalText(payload.coverImage),
       rackNumber: optionalText(payload.rackNumber),
       shelfNumber: optionalText(payload.shelfNumber),
       totalCopies,
-      availableCopies,
+      availableCopies: totalCopies,
       price: Math.max(0, Number(payload.price) || 0),
       description: optionalText(payload.description),
-      status: availableCopies > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK',
+      status: 'AVAILABLE',
     });
 
     return book.toPublicJSON();
   }
 
   async updateBook(schoolId, id, payload = {}) {
-    const book = await libraryRepository.findBookById(schoolId, id);
-    if (!book) throw new AppError('Library book not found', 404);
+    const res = await libraryRepository.findBookById(schoolId, id);
+    if (!res || !res.book) throw new AppError('Library book not found', 404);
 
     const updates = {};
     if (payload.title) updates.title = payload.title.trim();
@@ -76,38 +98,139 @@ class LibraryService {
     if (payload.category) updates.category = payload.category.trim().toUpperCase();
     if (payload.publisher !== undefined) updates.publisher = optionalText(payload.publisher);
     if (payload.edition !== undefined) updates.edition = optionalText(payload.edition);
+    if (payload.publicationYear !== undefined) updates.publicationYear = Number(payload.publicationYear) || null;
+    if (payload.language !== undefined) updates.language = optionalText(payload.language);
+    if (payload.pages !== undefined) updates.pages = Math.max(0, Number(payload.pages) || 0);
+    if (payload.coverImage !== undefined) updates.coverImage = optionalText(payload.coverImage);
     if (payload.rackNumber !== undefined) updates.rackNumber = optionalText(payload.rackNumber);
     if (payload.shelfNumber !== undefined) updates.shelfNumber = optionalText(payload.shelfNumber);
     if (payload.price !== undefined) updates.price = Math.max(0, Number(payload.price) || 0);
     if (payload.description !== undefined) updates.description = optionalText(payload.description);
 
-    if (payload.totalCopies !== undefined) {
-      const newTotal = Math.max(1, Number(payload.totalCopies));
-      const currentlyIssued = Math.max(0, book.totalCopies - book.availableCopies);
-      updates.totalCopies = newTotal;
-      updates.availableCopies = Math.max(0, newTotal - currentlyIssued);
-      updates.status = updates.availableCopies > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK';
-    }
-
     const updated = await libraryRepository.updateBook(schoolId, id, updates);
-    return updated.toPublicJSON();
+    return updated;
   }
 
   async deleteBook(schoolId, id) {
-    const book = await libraryRepository.findBookById(schoolId, id);
-    if (!book) throw new AppError('Library book not found', 404);
+    const res = await libraryRepository.findBookById(schoolId, id);
+    if (!res || !res.book) throw new AppError('Library book not found', 404);
 
-    // Check if any copies are currently issued
+    // Strict Rule: Block delete if active issues or pending reservations exist
     const activeIssues = await libraryRepository.listIssues(schoolId, { bookId: id, status: 'ISSUED' });
     if (activeIssues.total > 0) {
-      throw new AppError('Cannot delete book while copies are currently issued to students/staff.', 400);
+      throw new AppError(`Cannot delete book: ${activeIssues.total} copy/copies are currently issued to borrowers.`, 400);
+    }
+
+    const pendingRes = await libraryReservationRepository.listReservations(schoolId, { bookId: id, status: 'PENDING' });
+    if (pendingRes.total > 0) {
+      throw new AppError(`Cannot delete book: There are ${pendingRes.total} pending reservation(s) for this book.`, 400);
     }
 
     await libraryRepository.deleteBook(schoolId, id);
-    return { message: 'Library book deleted successfully' };
+    return { message: 'Library book and copies deleted successfully' };
   }
 
-  // Issues / Circulation
+  // Aggregations
+  async getCategories(schoolId) {
+    return libraryRepository.getCategories(schoolId);
+  }
+
+  async getAuthors(schoolId) {
+    return libraryRepository.getAuthors(schoolId);
+  }
+
+  async getPublishers(schoolId) {
+    return libraryRepository.getPublishers(schoolId);
+  }
+
+  // Physical Book Copies
+  async listCopies(schoolId, query = {}) {
+    const result = await bookCopyRepository.listCopies(schoolId, query);
+    return {
+      data: result.items.map((c) => c.toPublicJSON()),
+      pagination: {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: Math.ceil(result.total / result.limit) || 1,
+      },
+    };
+  }
+
+  async createCopy(schoolId, payload = {}) {
+    const bookId = requireText(payload.bookId, 'Parent Book ID');
+    const bookRes = await libraryRepository.findBookById(schoolId, bookId);
+    if (!bookRes || !bookRes.book) throw new AppError('Book catalog entry not found', 404);
+
+    let accessionNumber = optionalText(payload.accessionNumber);
+    if (!accessionNumber) {
+      const shortId = bookId.slice(-4).toUpperCase();
+      const prefix = (bookRes.book.category ? bookRes.book.category.slice(0, 3) : 'BK').toUpperCase();
+      const timestamp = Date.now().toString().slice(-4);
+      accessionNumber = `ACC-${prefix}-${shortId}-${timestamp}`;
+    }
+
+    const existing = await bookCopyRepository.findByAccessionNumber(schoolId, accessionNumber);
+    if (existing) {
+      throw new AppError(`Accession number "${accessionNumber}" already exists in this school library.`, 400);
+    }
+
+    const copy = await bookCopyRepository.createCopy({
+      schoolId,
+      bookId,
+      accessionNumber,
+      barcode: optionalText(payload.barcode) || accessionNumber,
+      rackNumber: optionalText(payload.rackNumber) || bookRes.book.rackNumber || '',
+      shelfNumber: optionalText(payload.shelfNumber) || bookRes.book.shelfNumber || '',
+      condition: (payload.condition || 'GOOD').toUpperCase(),
+      status: 'AVAILABLE',
+      price: payload.price !== undefined ? Math.max(0, Number(payload.price)) : bookRes.book.price,
+      remarks: optionalText(payload.remarks),
+    });
+
+    return copy.toPublicJSON();
+  }
+
+  async updateCopy(schoolId, id, payload = {}) {
+    const copy = await bookCopyRepository.findCopyById(schoolId, id);
+    if (!copy) throw new AppError('Book copy not found', 404);
+
+    const updates = {};
+    if (payload.accessionNumber && payload.accessionNumber !== copy.accessionNumber) {
+      const existing = await bookCopyRepository.findByAccessionNumber(schoolId, payload.accessionNumber);
+      if (existing) throw new AppError(`Accession number "${payload.accessionNumber}" already in use.`, 400);
+      updates.accessionNumber = payload.accessionNumber.trim();
+    }
+    if (payload.barcode !== undefined) updates.barcode = optionalText(payload.barcode);
+    if (payload.rackNumber !== undefined) updates.rackNumber = optionalText(payload.rackNumber);
+    if (payload.shelfNumber !== undefined) updates.shelfNumber = optionalText(payload.shelfNumber);
+    if (payload.condition) updates.condition = payload.condition.toUpperCase();
+    if (payload.status) {
+      if (copy.status === 'ISSUED' && payload.status !== 'ISSUED') {
+        throw new AppError('Cannot manually change status of an actively issued copy. Return the book first.', 400);
+      }
+      updates.status = payload.status.toUpperCase();
+    }
+    if (payload.price !== undefined) updates.price = Math.max(0, Number(payload.price) || 0);
+    if (payload.remarks !== undefined) updates.remarks = optionalText(payload.remarks);
+
+    const updated = await bookCopyRepository.updateCopy(schoolId, id, updates);
+    return updated.toPublicJSON();
+  }
+
+  async deleteCopy(schoolId, id) {
+    const copy = await bookCopyRepository.findCopyById(schoolId, id);
+    if (!copy) throw new AppError('Book copy not found', 404);
+
+    if (copy.status === 'ISSUED') {
+      throw new AppError('Cannot delete a physical copy while it is currently issued to a borrower.', 400);
+    }
+
+    await bookCopyRepository.deleteCopy(schoolId, id);
+    return { message: 'Physical copy deleted successfully' };
+  }
+
+  // Issues & Circulation
   async listIssues(schoolId, query = {}) {
     const result = await libraryRepository.listIssues(schoolId, query);
     return {
@@ -121,25 +244,41 @@ class LibraryService {
     };
   }
 
-  async issueBook(schoolId, payload = {}) {
+  async issueBook(schoolId, payload = {}, performedBy = 'Librarian') {
     const bookId = requireText(payload.bookId, 'Book');
     const borrowerRefId = requireText(payload.borrowerRefId, 'Borrower selection');
     const borrowerType = (payload.borrowerType || 'STUDENT').toUpperCase();
 
-    // 1. Verify book availability
-    const book = await libraryRepository.findBookById(schoolId, bookId);
-    if (!book) throw new AppError('Selected book not found', 404);
-    if (book.availableCopies <= 0) {
-      throw new AppError(`"${book.title}" is currently out of stock (All copies issued).`, 400);
+    // 1. Fetch school library settings
+    const settings = await librarySettingsRepository.getSettings(schoolId);
+
+    // 2. Verify book availability
+    const bookRes = await libraryRepository.findBookById(schoolId, bookId);
+    if (!bookRes || !bookRes.book) throw new AppError('Selected book not found in catalog', 404);
+
+    // 3. Find physical copy to issue
+    let selectedCopy = null;
+    if (payload.copyId) {
+      selectedCopy = await bookCopyRepository.findCopyById(schoolId, payload.copyId);
+      if (!selectedCopy || selectedCopy.status !== 'AVAILABLE') {
+        throw new AppError('The selected physical copy is not available for issue.', 400);
+      }
+    } else {
+      // Pick first available copy
+      const availableCopies = await bookCopyRepository.listCopies(schoolId, { bookId, status: 'AVAILABLE', limit: 1 });
+      if (!availableCopies.items.length) {
+        throw new AppError(`No available physical copies for "${bookRes.book.title}". All copies are currently issued or reserved.`, 400);
+      }
+      selectedCopy = availableCopies.items[0];
     }
 
-    // 2. Check borrower active unreturned issues
+    // 4. Check borrower active unreturned issues vs settings limit
     const activeBorrowerIssues = await libraryRepository.listIssues(schoolId, {
       borrowerRefId,
       status: 'ISSUED',
     });
 
-    const maxAllowed = borrowerType === 'TEACHER' ? 5 : 3;
+    const maxAllowed = borrowerType === 'TEACHER' ? (settings.maxBooksTeacher || 5) : (settings.maxBooksStudent || 3);
     if (activeBorrowerIssues.total >= maxAllowed) {
       throw new AppError(
         `Borrower already has ${activeBorrowerIssues.total} unreturned books (Limit: ${maxAllowed}). Please return an earlier book first.`,
@@ -147,9 +286,9 @@ class LibraryService {
       );
     }
 
-    // 3. Due Date calculation
+    // 5. Due Date calculation
     const issueDate = payload.issueDate ? new Date(payload.issueDate) : new Date();
-    const durationDays = Math.max(1, Number(payload.durationDays) || 14);
+    const durationDays = Number(payload.durationDays) || settings.defaultIssueDays || 14;
     let dueDate = payload.dueDate ? new Date(payload.dueDate) : null;
     if (!dueDate || isNaN(dueDate.getTime())) {
       dueDate = new Date(issueDate);
@@ -159,8 +298,10 @@ class LibraryService {
     const issue = await libraryRepository.createIssue({
       schoolId,
       bookId,
-      bookTitle: book.title,
-      bookCode: book.bookCode || `BK-${book._id.toString().slice(-4).toUpperCase()}`,
+      copyId: selectedCopy._id,
+      bookTitle: bookRes.book.title,
+      bookCode: bookRes.book.bookCode || `BK-${bookRes.book._id.toString().slice(-4).toUpperCase()}`,
+      accessionNumber: selectedCopy.accessionNumber,
       borrowerType,
       borrowerRefId,
       borrowerName: requireText(payload.borrowerName, 'Borrower name'),
@@ -168,34 +309,42 @@ class LibraryService {
       borrowerClass: optionalText(payload.borrowerClass),
       issueDate,
       dueDate,
+      maxRenewals: settings.maxRenewals ?? 2,
       status: 'ISSUED',
       remarks: optionalText(payload.remarks),
-    });
+    }, performedBy);
 
     return issue.toPublicJSON();
   }
 
-  async returnBook(schoolId, issueId, payload = {}) {
+  async returnBook(schoolId, issueId, payload = {}, performedBy = 'Librarian') {
     const issue = await libraryRepository.findIssueById(schoolId, issueId);
     if (!issue) throw new AppError('Library loan record not found', 404);
     if (issue.status === 'RETURNED') {
       throw new AppError('This book has already been returned', 400);
     }
 
+    const settings = await librarySettingsRepository.getSettings(schoolId);
     const returnDate = payload.returnDate ? new Date(payload.returnDate) : new Date();
+
     let fineAmount = Number(payload.fineAmount);
     if (isNaN(fineAmount) || fineAmount < 0) {
-      // Auto-calculate fine if late (e.g. ₹5 per day)
-      if (returnDate > new Date(issue.dueDate)) {
-        const diffTime = Math.max(0, returnDate - new Date(issue.dueDate));
+      // Calculate fine from DB settings
+      const dueDate = new Date(issue.dueDate);
+      const graceDays = settings.gracePeriodDays || 0;
+      const effectiveDueDate = new Date(dueDate.getTime() + graceDays * 24 * 60 * 60 * 1000);
+
+      if (returnDate > effectiveDueDate) {
+        const diffTime = Math.max(0, returnDate - dueDate);
         const overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        fineAmount = overdueDays * 5;
+        const calculatedFine = overdueDays * (settings.finePerDay ?? 5);
+        fineAmount = Math.min(calculatedFine, settings.maxFineAmount ?? 500);
       } else {
         fineAmount = 0;
       }
     }
 
-    const fineStatus = fineAmount > 0 ? payload.fineStatus || 'PAID' : 'NONE';
+    const fineStatus = fineAmount > 0 ? (payload.fineStatus || 'PAID') : 'NONE';
 
     const updated = await libraryRepository.returnIssue(schoolId, issueId, {
       returnDate,
@@ -203,11 +352,173 @@ class LibraryService {
       fineStatus,
       conditionOnReturn: payload.conditionOnReturn || 'GOOD',
       remarks: payload.remarks,
+    }, performedBy);
+
+    return updated.toPublicJSON();
+  }
+
+  async renewBook(schoolId, issueId, performedBy = 'Librarian') {
+    const issue = await libraryRepository.findIssueById(schoolId, issueId);
+    if (!issue) throw new AppError('Loan record not found', 404);
+    if (issue.status === 'RETURNED') throw new AppError('Cannot renew an already returned book', 400);
+
+    const settings = await librarySettingsRepository.getSettings(schoolId);
+    if (!settings.allowRenewal) {
+      throw new AppError('Book renewal is currently disabled by library policy.', 400);
+    }
+
+    const maxRenewals = issue.maxRenewals !== undefined ? issue.maxRenewals : (settings.maxRenewals ?? 2);
+    if ((issue.renewalCount || 0) >= maxRenewals) {
+      throw new AppError(`Maximum renewal limit (${maxRenewals}) reached for this book issue. Please return the book.`, 400);
+    }
+
+    const extendDays = settings.renewalPeriodDays || 14;
+    const updated = await libraryRepository.renewIssue(schoolId, issueId, extendDays, performedBy);
+    return updated.toPublicJSON();
+  }
+
+  // Reservations
+  async listReservations(schoolId, query = {}) {
+    const result = await libraryReservationRepository.listReservations(schoolId, query);
+    return {
+      data: result.items.map((r) => r.toPublicJSON()),
+      pagination: {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: Math.ceil(result.total / result.limit) || 1,
+      },
+    };
+  }
+
+  async createReservation(schoolId, payload = {}, createdBy = 'Librarian') {
+    const bookId = requireText(payload.bookId, 'Book');
+    const borrowerRefId = requireText(payload.borrowerRefId, 'Borrower ID');
+
+    const bookRes = await libraryRepository.findBookById(schoolId, bookId);
+    if (!bookRes || !bookRes.book) throw new AppError('Selected book not found', 404);
+
+    const existingPending = await libraryReservationRepository.listReservations(schoolId, {
+      bookId,
+      borrowerRefId,
+      status: 'PENDING',
+    });
+    if (existingPending.total > 0) {
+      throw new AppError('This borrower already has an active pending reservation for this book.', 400);
+    }
+
+    const reservation = await libraryReservationRepository.createReservation({
+      schoolId,
+      bookId,
+      borrowerRefId,
+      borrowerType: (payload.borrowerType || 'STUDENT').toUpperCase(),
+      borrowerName: requireText(payload.borrowerName, 'Borrower name'),
+      borrowerCode: optionalText(payload.borrowerCode),
+      borrowerClass: optionalText(payload.borrowerClass),
+      status: 'PENDING',
+      createdBy,
+      remarks: optionalText(payload.remarks),
+    });
+
+    return reservation.toPublicJSON();
+  }
+
+  async approveReservation(schoolId, id, performedBy = 'Librarian') {
+    const reservation = await libraryReservationRepository.findById(schoolId, id);
+    if (!reservation) throw new AppError('Reservation request not found', 404);
+    if (reservation.status !== 'PENDING') {
+      throw new AppError(`Cannot approve reservation with status "${reservation.status}". Only PENDING reservations can be approved.`, 400);
+    }
+
+    // Available copy check
+    const availableCopies = await bookCopyRepository.listCopies(schoolId, {
+      bookId: reservation.bookId._id || reservation.bookId,
+      status: 'AVAILABLE',
+      limit: 1,
+    });
+
+    if (!availableCopies.items.length) {
+      throw new AppError(`Cannot approve reservation: No copies of "${reservation.bookId?.title || 'Book'}" are currently available in the library.`, 400);
+    }
+
+    const updated = await libraryReservationRepository.updateStatus(schoolId, id, 'APPROVED', {
+      approvedAt: new Date(),
+      remarks: `Approved by ${performedBy}`,
     });
 
     return updated.toPublicJSON();
   }
 
+  async rejectReservation(schoolId, id, reason = '') {
+    const reservation = await libraryReservationRepository.findById(schoolId, id);
+    if (!reservation) throw new AppError('Reservation request not found', 404);
+    if (reservation.status !== 'PENDING') {
+      throw new AppError(`Cannot reject reservation with status "${reservation.status}".`, 400);
+    }
+
+    const updated = await libraryReservationRepository.updateStatus(schoolId, id, 'REJECTED', {
+      remarks: reason || 'Rejected by Librarian',
+    });
+
+    return updated.toPublicJSON();
+  }
+
+  async cancelReservation(schoolId, id) {
+    const reservation = await libraryReservationRepository.findById(schoolId, id);
+    if (!reservation) throw new AppError('Reservation request not found', 404);
+    if (reservation.status === 'FULFILLED' || reservation.status === 'CANCELLED') {
+      throw new AppError(`Cannot cancel a reservation that is already ${reservation.status}.`, 400);
+    }
+
+    const updated = await libraryReservationRepository.updateStatus(schoolId, id, 'CANCELLED', {
+      cancelledAt: new Date(),
+    });
+
+    return updated.toPublicJSON();
+  }
+
+  // Transactions Audit Log
+  async listTransactions(schoolId, query = {}) {
+    const result = await libraryTransactionRepository.listTransactions(schoolId, query);
+    return {
+      data: result.items.map((t) => t.toPublicJSON()),
+      pagination: {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: Math.ceil(result.total / result.limit) || 1,
+      },
+    };
+  }
+
+  // Reports
+  async getReportData(schoolId, category, query = {}) {
+    switch (category) {
+      case 'most-issued':
+        return libraryTransactionRepository.getMostIssuedBooks(schoolId, Number(query.limit) || 10);
+      case 'issue-trend':
+        return libraryTransactionRepository.getIssueReturnTrend(schoolId, Number(query.months) || 6);
+      case 'fine-trend':
+        return libraryTransactionRepository.getFineTrend(schoolId, Number(query.months) || 6);
+      case 'inventory': {
+        const [categories, copiesStats] = await Promise.all([
+          libraryRepository.getCategories(schoolId),
+          libraryRepository.getLibraryStats(schoolId),
+        ]);
+        return { categories, stats: copiesStats };
+      }
+      case 'overdue':
+        return libraryRepository.listIssues(schoolId, { status: 'OVERDUE', limit: 100 });
+      case 'issues':
+        return libraryRepository.listIssues(schoolId, { status: 'ALL', limit: 100 });
+      case 'fines':
+        return libraryRepository.listIssues(schoolId, { fineStatus: 'PAID', limit: 100 });
+      default:
+        throw new AppError(`Unknown report category "${category}"`, 400);
+    }
+  }
+
+  // Borrowers
   async getEligibleBorrowers(schoolId) {
     return libraryRepository.getEligibleBorrowers(schoolId);
   }

@@ -1,125 +1,147 @@
 import React from 'react';
-import { Printer, Download, Mail, MessageSquare } from 'lucide-react';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import { Printer, Download, Mail, Building } from 'lucide-react';
 
-export const SalarySlip = ({ payroll, employee, onPrint, onSendEmail }) => {
-  if (!payroll || !employee) return null;
+export const SalarySlip = ({ payroll, onPrint }) => {
+  if (!payroll) return null;
 
   const handlePrint = () => {
     if (onPrint) onPrint();
     window.print();
   };
 
+  const bank = payroll.bankDetails || {};
+
   return (
-    <div className="bg-white dark:bg-slate-900 border rounded-3xl p-6 shadow-sm space-y-6 text-xs max-w-2xl mx-auto" id="printable-payslip">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-6 text-xs max-w-2xl mx-auto" id="printable-payslip">
       {/* Header */}
-      <div className="flex justify-between items-start pb-4 border-b border-dashed">
+      <div className="flex justify-between items-start pb-4 border-b border-dashed border-slate-200 dark:border-slate-800">
         <div className="space-y-1">
-          <h2 className="text-sm font-black text-slate-905 dark:text-white uppercase tracking-wider">Greenfield Public School</h2>
-          <p className="text-[10px] text-slate-400">Sector 9, Gachibowli, Hyderabad, TS</p>
-          <p className="text-[9px] text-slate-400">Staff Salary Statement Receipt</p>
+          <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+            Greenfield Public School
+          </h2>
+          <p className="text-[10px] text-slate-400">Institutional Payroll Statement & Salary Voucher</p>
         </div>
         <div className="text-right space-y-1 shrink-0">
-          <span className="inline-block bg-rose-50 text-rose-700 dark:bg-rose-955/40 dark:text-rose-400 px-2.5 py-1 rounded-lg font-black text-[10px] uppercase">
+          <span className="inline-block bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 px-2.5 py-1 rounded-lg font-black text-[10px] uppercase">
             Salary Payslip
           </span>
-          <p className="text-[10px] font-bold text-slate-900 dark:text-white pt-1">Period: {payroll.month} {payroll.year}</p>
-          <p className="text-[9px] text-slate-400">Generated: {formatDate(new Date())}</p>
+          <p className="text-[10px] font-bold text-slate-900 dark:text-white pt-1">
+            Period: {payroll.payrollMonth}
+          </p>
+          <p className="text-[9px] text-slate-400">
+            Payment Status: <strong className="text-emerald-600 dark:text-emerald-400">{payroll.paymentStatus}</strong>
+          </p>
         </div>
       </div>
 
       {/* Employee Details block */}
-      <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-955/40 p-4 rounded-2xl border">
+      <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
         <div className="space-y-1.5 font-semibold">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wide">Staff Details</p>
-          <p className="text-slate-800 dark:text-slate-200">Name: <span className="font-bold">{employee.name}</span></p>
-          <p className="text-slate-500">Employee ID: <span className="font-bold text-slate-705 dark:text-slate-300">{employee.employeeId}</span></p>
-          <p className="text-slate-500">Department: <span className="font-bold text-slate-705 dark:text-slate-300">{employee.department}</span></p>
-          <p className="text-slate-500">Designation: <span className="font-bold text-slate-705 dark:text-slate-300">{employee.designation}</span></p>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Staff Particulars</p>
+          <p className="text-slate-800 dark:text-slate-200">
+            Name: <span className="font-bold">{payroll.employeeName}</span>
+          </p>
+          <p className="text-slate-500">
+            Employee ID: <span className="font-bold text-slate-700 dark:text-slate-300">{payroll.employeeId}</span>
+          </p>
+          <p className="text-slate-500">
+            Department: <span className="font-bold text-slate-700 dark:text-slate-300">{payroll.department || 'N/A'}</span>
+          </p>
+          <p className="text-slate-500">
+            Designation: <span className="font-bold text-slate-700 dark:text-slate-300">{payroll.designation || 'Staff'}</span>
+          </p>
         </div>
         <div className="space-y-1.5 font-semibold text-right">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wide">Account Details</p>
-          <p className="text-slate-550">Bank: <span className="font-bold text-slate-700 dark:text-slate-350">{employee.bankDetails.bankName}</span></p>
-          <p className="text-slate-555">A/C No: <span className="font-bold text-slate-700 dark:text-slate-350">{employee.bankDetails.accountNo}</span></p>
-          <p className="text-slate-550">IFSC: <span className="font-bold text-slate-700 dark:text-slate-350 font-mono">{employee.bankDetails.ifsc}</span></p>
-          <p className="text-slate-555">PF No: <span className="font-bold text-slate-700 dark:text-slate-350">{employee.pfNo || '--'}</span></p>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Account Details</p>
+          <p className="text-slate-500">
+            Bank: <span className="font-bold text-slate-700 dark:text-slate-300">{bank.bankName || 'Direct'}</span>
+          </p>
+          <p className="text-slate-500">
+            A/C No: <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">{bank.accountNumber || '—'}</span>
+          </p>
+          <p className="text-slate-500">
+            IFSC: <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">{bank.ifscCode || '—'}</span>
+          </p>
+          <p className="text-slate-500">
+            Method: <span className="font-bold text-slate-700 dark:text-slate-300">{payroll.paymentMethod || 'BANK_TRANSFER'}</span>
+          </p>
         </div>
       </div>
 
       {/* Earnings & Deductions Tables */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Earnings */}
-        <div className="border rounded-2xl overflow-hidden">
-          <div className="bg-slate-50 dark:bg-slate-955/60 px-3 py-2 border-b">
-            <span className="font-bold text-[10px] text-slate-800 dark:text-white uppercase tracking-wider">Earnings</span>
+        <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div className="bg-slate-50 dark:bg-slate-950 px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+            <span className="font-bold text-[10px] text-slate-800 dark:text-white uppercase tracking-wider">
+              Earnings Breakdown
+            </span>
           </div>
           <div className="p-3 space-y-2">
             <div className="flex justify-between">
               <span className="text-slate-500">Basic Salary</span>
-              <span className="font-bold">{formatCurrency(payroll.basic || employee.salary.basic)}</span>
+              <span className="font-bold">₹{Number(payroll.basicSalary || 0).toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">HRA Concession</span>
-              <span className="font-bold">{formatCurrency(employee.salary.hra)}</span>
+              <span className="text-slate-500">Allowances</span>
+              <span className="font-bold">₹{Number(payroll.allowances || 0).toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">DA Allowance</span>
-              <span className="font-bold">{formatCurrency(employee.salary.da)}</span>
+              <span className="text-slate-500">Incentive / Bonus</span>
+              <span className="font-bold">₹{Number((payroll.incentive || 0) + (payroll.bonus || 0)).toLocaleString('en-IN')}</span>
             </div>
-            <div className="flex justify-between border-t border-dashed pt-2 font-bold text-slate-800 dark:text-white">
+            <div className="flex justify-between border-t border-slate-100 dark:border-slate-800 pt-2 font-black text-slate-900 dark:text-white">
               <span>Gross Earnings</span>
-              <span>{formatCurrency(payroll.basic ? payroll.basic + employee.salary.hra + employee.salary.da : employee.salary.basic + employee.salary.hra + employee.salary.da)}</span>
+              <span>₹{Number(payroll.grossEarnings || payroll.basicSalary || 0).toLocaleString('en-IN')}</span>
             </div>
           </div>
         </div>
 
         {/* Deductions */}
-        <div className="border rounded-2xl overflow-hidden">
-          <div className="bg-slate-50 dark:bg-slate-955/60 px-3 py-2 border-b">
-            <span className="font-bold text-[10px] text-slate-800 dark:text-white uppercase tracking-wider">Deductions</span>
+        <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div className="bg-slate-50 dark:bg-slate-950 px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+            <span className="font-bold text-[10px] text-slate-800 dark:text-white uppercase tracking-wider">
+              Deductions & Offsets
+            </span>
           </div>
           <div className="p-3 space-y-2">
             <div className="flex justify-between">
-              <span className="text-slate-500">PF Deduction</span>
-              <span className="font-bold text-rose-600">-{formatCurrency(payroll.deductions || 5400)}</span>
+              <span className="text-slate-500">Leave Deductions</span>
+              <span className="font-bold text-rose-500">₹{Number(payroll.leaveDeduction || 0).toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Professional Tax</span>
-              <span className="font-bold text-rose-600">-{formatCurrency(200)}</span>
+              <span className="text-slate-500">Advance / Loan Recovery</span>
+              <span className="font-bold text-rose-500">₹{Number(payroll.advanceLoanDeduction || 0).toLocaleString('en-IN')}</span>
             </div>
-            <div className="flex justify-between border-t border-dashed pt-2 font-bold text-slate-800 dark:text-white">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Other Deductions</span>
+              <span className="font-bold text-rose-500">₹{Number(payroll.otherDeduction || 0).toLocaleString('en-IN')}</span>
+            </div>
+            <div className="flex justify-between border-t border-slate-100 dark:border-slate-800 pt-2 font-black text-rose-600">
               <span>Total Deductions</span>
-              <span>-{formatCurrency((payroll.deductions || 5400) + 200)}</span>
+              <span>₹{Number(payroll.totalDeductions || 0).toLocaleString('en-IN')}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Net Salary Summary */}
-      <div className="border-t border-dashed pt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+      {/* Net Pay Highlight Banner */}
+      <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 flex items-center justify-between">
         <div>
-          <span className="text-[10px] text-slate-400 font-bold block">Status: {payroll.status}</span>
-          <p className="text-slate-500 mt-1">Disbursement Date: {payroll.datePaid}</p>
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block">
+            Net Salary Payable
+          </span>
+          <span className="text-xl font-black text-emerald-700 dark:text-emerald-300">
+            ₹{Number(payroll.netSalary || 0).toLocaleString('en-IN')}
+          </span>
         </div>
-        <div className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900/30 px-5 py-3 rounded-2xl text-right">
-          <span className="text-[9px] font-black text-rose-700 dark:text-rose-400 uppercase tracking-widest block">Net Disbursed Salary</span>
-          <h3 className="text-lg font-black text-rose-600 mt-0.5">{formatCurrency(payroll.netSalary)}</h3>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="pt-4 border-t flex justify-end gap-2.5 shrink-0 no-print">
-        {onSendEmail && (
-          <button onClick={onSendEmail} title="Email Payslip" className="p-2 border rounded-xl hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-500">
-            <Mail className="w-4 h-4" />
-          </button>
-        )}
         <button
+          type="button"
           onClick={handlePrint}
-          className="flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-750 text-white font-bold rounded-xl shadow-sm"
+          className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-xs cursor-pointer"
         >
-          <Printer className="w-3.5 h-3.5" />
-          <span>Print Statement</span>
+          <Printer className="w-4 h-4" />
+          <span>Print Voucher</span>
         </button>
       </div>
     </div>

@@ -20,9 +20,10 @@ export const HRThemeProvider = ({ children }) => {
   }, [darkMode]);
 
   const toggleTheme = () => setDarkMode(!darkMode);
+  const toggleDarkMode = () => setDarkMode(!darkMode);
 
   return (
-    <HRThemeContext.Provider value={{ darkMode, toggleTheme }}>
+    <HRThemeContext.Provider value={{ darkMode, toggleTheme, toggleDarkMode }}>
       {children}
     </HRThemeContext.Provider>
   );

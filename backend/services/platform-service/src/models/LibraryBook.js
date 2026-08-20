@@ -44,6 +44,25 @@ const libraryBookSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    publicationYear: {
+      type: Number,
+      default: null,
+    },
+    language: {
+      type: String,
+      default: 'English',
+      trim: true,
+    },
+    pages: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    coverImage: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     rackNumber: {
       type: String,
       default: '',
@@ -58,7 +77,7 @@ const libraryBookSchema = new mongoose.Schema(
       type: Number,
       required: true,
       default: 1,
-      min: 1,
+      min: 0,
     },
     availableCopies: {
       type: Number,
@@ -88,9 +107,14 @@ const libraryBookSchema = new mongoose.Schema(
 
 libraryBookSchema.index({ schoolId: 1, title: 1 });
 libraryBookSchema.index({ schoolId: 1, category: 1 });
+libraryBookSchema.index({ schoolId: 1, author: 1 });
+libraryBookSchema.index({ schoolId: 1, publisher: 1 });
 libraryBookSchema.index({ schoolId: 1, isbn: 1 });
 
-libraryBookSchema.methods.toPublicJSON = function toPublicJSON() {
+libraryBookSchema.methods.toPublicJSON = function toPublicJSON(extraStats = null) {
+  const totalCopies = extraStats?.totalCopies !== undefined ? extraStats.totalCopies : this.totalCopies;
+  const availableCopies = extraStats?.availableCopies !== undefined ? extraStats.availableCopies : this.availableCopies;
+
   return {
     id: this._id.toString(),
     schoolId: this.schoolId.toString(),
@@ -101,14 +125,18 @@ libraryBookSchema.methods.toPublicJSON = function toPublicJSON() {
     category: this.category,
     publisher: this.publisher,
     edition: this.edition,
+    publicationYear: this.publicationYear,
+    language: this.language || 'English',
+    pages: this.pages || 0,
+    coverImage: this.coverImage || '',
     rackNumber: this.rackNumber,
     shelfNumber: this.shelfNumber,
-    totalCopies: this.totalCopies,
-    availableCopies: this.availableCopies,
-    issuedCopies: Math.max(0, this.totalCopies - this.availableCopies),
+    totalCopies,
+    availableCopies,
+    issuedCopies: Math.max(0, totalCopies - availableCopies),
     price: this.price,
     description: this.description,
-    status: this.availableCopies > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK',
+    status: availableCopies > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK',
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
   };

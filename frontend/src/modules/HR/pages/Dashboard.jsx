@@ -1,232 +1,321 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHRAuth } from '../context/HRAuthContext';
-import { useHRNotifications } from '../context/HRNotificationContext';
-import { 
-  Users, 
-  TrendingUp, 
-  CalendarDays, 
-  CalendarRange, 
-  Clock, 
-  ArrowRight,
+import { hrApi } from '../../../shared/api/client';
+import {
+  Users,
   UserPlus,
-  Coins,
+  CalendarDays,
+  CalendarRange,
   BadgeCent,
-  ShieldCheck,
   Building,
   Contact,
-  Megaphone
+  Megaphone,
+  ArrowRight,
+  ShieldCheck,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  TrendingUp,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
-import { StatCard } from '../components/ui/StatCard';
-import { AreaChart } from '../components/ui/Charts/AreaChart';
-import { BarChart } from '../components/ui/Charts/BarChart';
-import { PieChart } from '../components/ui/Charts/PieChart';
-import { LineChart } from '../components/ui/Charts/LineChart';
 import { useNavigate } from 'react-router-dom';
-
-import {
-  DEPARTMENT_WISE_EMPLOYEES,
-  ATTENDANCE_TREND,
-  LEAVE_STATISTICS,
-  PAYROLL_DISTRIBUTION,
-  EMPLOYEE_GROWTH,
-  MOCK_EMPLOYEES
-} from '../utils/constants';
-
-import { useAppStore } from '../../../shared/store/useAppStore';
 
 export const Dashboard = () => {
   const { user } = useHRAuth();
-  const { notifications } = useHRNotifications();
   const navigate = useNavigate();
-  const { staff = [], leaves = [] } = useAppStore();
 
-  const totalEmployees = staff.length;
-  const teachingStaff = staff.filter(s => s.role?.toLowerCase() === 'teacher').length;
-  const nonTeachingStaff = totalEmployees - teachingStaff;
-  const pendingLeaves = leaves.filter(l => l.status === 'Pending').length;
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  const fetchDashboard = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await hrApi.dashboard();
+      if (res?.success) {
+        setData(res.data);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to load HR dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const summary = data?.summary || {
+    totalEmployees: 0,
+    activeEmployees: 0,
+    teachingStaff: 0,
+    nonTeachingStaff: 0,
+    presentToday: 0,
+    absentToday: 0,
+    onLeaveToday: 0,
+    pendingLeaves: 0,
+    totalPayrollPaid: 0,
+    totalPayrollPending: 0,
+  };
+
+  const departmentWise = data?.departmentWise || [];
 
   return (
     <div className="space-y-6">
-      {/* Welcome Board */}
+      {/* Welcome Banner */}
       <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 select-none">
         <div className="flex items-center gap-4">
-          <img 
-            src={user?.photo} 
-            alt={user?.name} 
-            className="w-16 h-16 rounded-2xl object-cover border-2 border-rose-500 shrink-0" 
-          />
+          <div className="w-14 h-14 rounded-2xl bg-indigo-600/30 border-2 border-indigo-500 flex items-center justify-center font-black text-xl text-indigo-400 shrink-0">
+            {user?.name ? user.name.charAt(0).toUpperCase() : 'H'}
+          </div>
           <div className="text-left">
-            <span className="text-[10px] font-extrabold tracking-widest text-rose-400 uppercase">
-              Staff & Payroll Administration
+            <span className="text-[10px] font-extrabold tracking-widest text-indigo-400 uppercase">
+              Staff & Payroll Administration Desk
             </span>
-            <h2 className="text-lg md:text-xl font-black mt-0.5">Welcome, {user?.name}</h2>
+            <h2 className="text-lg md:text-xl font-black mt-0.5">Welcome, {user?.name || 'HR Manager'}</h2>
             <p className="text-xs text-slate-400 mt-1 font-semibold">
-              Employee ID: {user?.employeeId} • {user?.department} • Academic Session {user?.academicSession}
+              Employee ID: {user?.employeeId || 'HR-201'} • {user?.department || 'Human Resources'} • {user?.schoolName || 'Greenfield School'}
             </p>
           </div>
         </div>
-        <div className="text-left md:text-right md:border-l md:border-slate-850 md:pl-6">
-          <span className="text-[10px] font-black text-slate-505 uppercase tracking-widest block">HRMS Workspace Date</span>
-          <span className="text-xs font-bold text-slate-350 mt-1 block">
+        <div className="text-left md:text-right md:border-l md:border-slate-800 md:pl-6">
+          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">HRMS Workspace Date</span>
+          <span className="text-xs font-bold text-slate-300 mt-1 block">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </span>
+          <span className="text-[11px] font-medium text-slate-400 mt-0.5 block">
+            Shift: {data?.shiftTimings || '08:00 AM - 03:00 PM'}
           </span>
         </div>
       </div>
 
-      {/* Quick Operations Actions bar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
+      {/* Error state */}
+      {error && (
+        <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 p-4 rounded-2xl text-rose-700 dark:text-rose-400 text-xs font-semibold flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={fetchDashboard} className="underline hover:no-underline font-bold cursor-pointer">Retry</button>
+        </div>
+      )}
+
+      {/* Quick Actions Bar */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-3">Quick Actions Desk</span>
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-          <button 
-            onClick={() => navigate('/hr/employees')} 
-            className="flex items-center gap-2 px-3.5 py-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-955/20 text-rose-650 dark:text-rose-450 rounded-2xl text-xs font-extrabold transition-all text-left"
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <button
+            onClick={() => navigate('/hr/employees/new')}
+            className="flex items-center gap-2.5 p-3 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/70 transition-colors text-xs font-bold cursor-pointer"
           >
-            <UserPlus className="w-4 h-4 shrink-0 text-rose-600" />
-            <span>Add Employee</span>
+            <UserPlus className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <span className="truncate">Add Employee</span>
           </button>
-          <button 
-            onClick={() => navigate('/hr/attendance')} 
-            className="flex items-center gap-2 px-3.5 py-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 text-slate-655 dark:text-slate-350 border rounded-2xl text-xs font-extrabold transition-all text-left"
+          <button
+            onClick={() => navigate('/hr/attendance')}
+            className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs font-bold cursor-pointer"
           >
-            <CalendarDays className="w-4 h-4 shrink-0 text-slate-400" />
-            <span>Mark Attendance</span>
+            <CalendarDays className="w-4 h-4 text-slate-500 shrink-0" />
+            <span className="truncate">Mark Attendance</span>
           </button>
-          <button 
-            onClick={() => navigate('/hr/leave')} 
-            className="flex items-center gap-2 px-3.5 py-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 text-slate-655 dark:text-slate-350 border rounded-2xl text-xs font-extrabold transition-all text-left"
+          <button
+            onClick={() => navigate('/hr/leave')}
+            className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs font-bold cursor-pointer"
           >
-            <CalendarRange className="w-4 h-4 shrink-0 text-slate-400" />
-            <span>Approve Leave</span>
+            <CalendarRange className="w-4 h-4 text-amber-500 shrink-0" />
+            <span className="truncate">Leave Desk</span>
           </button>
-          <button 
-            onClick={() => navigate('/hr/payroll')} 
-            className="flex items-center gap-2 px-3.5 py-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 text-slate-655 dark:text-slate-350 border rounded-2xl text-xs font-extrabold transition-all text-left"
+          <button
+            onClick={() => navigate('/hr/payroll')}
+            className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs font-bold cursor-pointer"
           >
-            <Coins className="w-4 h-4 shrink-0 text-slate-400" />
-            <span>Process Payroll</span>
+            <BadgeCent className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span className="truncate">Process Payroll</span>
           </button>
-          <button 
-            onClick={() => navigate('/hr/payroll')} 
-            className="flex items-center gap-2 px-3.5 py-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 text-slate-655 dark:text-slate-350 border rounded-2xl text-xs font-extrabold transition-all text-left"
+          <button
+            onClick={() => navigate('/hr/departments')}
+            className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs font-bold cursor-pointer"
           >
-            <BadgeCent className="w-4 h-4 shrink-0 text-slate-400" />
-            <span>Salary Slips</span>
+            <Building className="w-4 h-4 text-blue-500 shrink-0" />
+            <span className="truncate">Departments</span>
           </button>
-          <button 
-            onClick={() => navigate('/hr/reports')} 
-            className="flex items-center gap-2 px-3.5 py-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 text-slate-655 dark:text-slate-350 border rounded-2xl text-xs font-extrabold transition-all text-left"
+          <button
+            onClick={() => navigate('/hr/announcements')}
+            className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs font-bold cursor-pointer"
           >
-            <TrendingUp className="w-4 h-4 shrink-0 text-slate-400" />
-            <span>View Reports</span>
+            <Megaphone className="w-4 h-4 text-purple-500 shrink-0" />
+            <span className="truncate">Post Notice</span>
           </button>
         </div>
       </div>
 
-      {/* 12 Quick Statistics cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Employees" value={`${totalEmployees} Staff`} subtitle="active records" icon={Users} />
-        <StatCard title="Teaching Staff" value={`${teachingStaff} Teachers`} subtitle="academics division" icon={Users} />
-        <StatCard title="Non-Teaching Staff" value={`${nonTeachingStaff} Staff`} subtitle="administrative support" icon={Users} />
-        <StatCard title="Today's Attendance" value={totalEmployees > 0 ? "98%" : "0%"} subtitle="present today" icon={ShieldCheck} />
-
-        <StatCard title="Employees on Leave" value="0 Staff" subtitle="approved casual leaves" icon={CalendarRange} />
-        <StatCard title="Late Arrivals" value="0 Staff" subtitle="grace period warnings" icon={Clock} />
-        <StatCard title="New Joinings" value="0 Joinings" subtitle="registered this cycle" icon={UserPlus} />
-        <StatCard title="Pending Leave Requests" value={`${pendingLeaves} Requests`} subtitle="awaiting approval reviews" icon={CalendarRange} />
-
-        <StatCard title="Payroll Status" value="Processed" subtitle="payroll cycle" icon={Coins} />
-        <StatCard title="Upcoming Birthdays" value="0 Staff" subtitle="this calendar month" icon={CalendarDays} />
-        <StatCard title="Upcoming Work Anniversaries" value="0 Staff" subtitle="this calendar cycle" icon={TrendingUp} />
-        <StatCard title="Open Positions" value="0 Vacant" subtitle="unassigned staff slots" icon={Contact} />
-      </div>
-
-      {/* 5 HR Charts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Chart 1 */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block mb-4">Department-wise Employees Allocation</span>
-          <BarChart data={DEPARTMENT_WISE_EMPLOYEES} dataKey="value" xKey="name" height={220} color="#e11d48" />
+      {/* KPI Stats Grid */}
+      {loading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+            <div key={n} className="h-28 bg-slate-100 dark:bg-slate-800/60 rounded-3xl animate-pulse" />
+          ))}
         </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Employees */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Total Staff</span>
+              <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                <Users className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white">{summary.totalEmployees}</div>
+            <div className="flex items-center gap-2 mt-2 text-[11px] font-semibold text-slate-400">
+              <span className="text-indigo-600 dark:text-indigo-400 font-bold">{summary.activeEmployees} Active</span>
+              <span>•</span>
+              <span>{summary.teachingStaff} Teachers / {summary.nonTeachingStaff} Staff</span>
+            </div>
+          </div>
 
-        {/* Chart 2 */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block mb-4">Attendance Trend</span>
-          <AreaChart data={ATTENDANCE_TREND} dataKey="rate" xKey="date" height={220} color="#f43f5e" />
-        </div>
+          {/* Present Today */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Present Today</span>
+              <div className="p-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white">{summary.presentToday}</div>
+            <div className="flex items-center gap-2 mt-2 text-[11px] font-semibold text-slate-400">
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                {summary.totalEmployees > 0 ? `${Math.round((summary.presentToday / summary.totalEmployees) * 100)}%` : '0%'}
+              </span>
+              <span>Attendance Rate</span>
+            </div>
+          </div>
 
-        {/* Chart 3 */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] font-black text-slate-455 uppercase tracking-widest block mb-4">Leave Statistics by Category</span>
-          <div className="flex-1 flex items-center justify-center">
-            <PieChart data={LEAVE_STATISTICS} height={200} colors={["#e11d48", "#f43f5e", "#fda4af", "#fb7185", "#fecdd3"]} />
+          {/* Pending Leaves */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Pending Leaves</span>
+              <div className="p-2 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-xl">
+                <CalendarRange className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white">{summary.pendingLeaves}</div>
+            <div className="flex items-center gap-2 mt-2 text-[11px] font-semibold text-slate-400">
+              <span className="text-amber-600 dark:text-amber-400 font-bold">{summary.onLeaveToday} on leave today</span>
+            </div>
+          </div>
+
+          {/* Total Payroll Paid */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Total Payroll Disbursed</span>
+              <div className="p-2 bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 rounded-xl">
+                <BadgeCent className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white">
+              ₹{Number(summary.totalPayrollPaid || 0).toLocaleString('en-IN')}
+            </div>
+            <div className="flex items-center gap-2 mt-2 text-[11px] font-semibold text-slate-400">
+              <span>{summary.totalPayrollPending > 0 ? `₹${Number(summary.totalPayrollPending).toLocaleString('en-IN')} Pending` : 'All cleared'}</span>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Chart 4 */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block mb-4">Payroll Distribution by Department (INR)</span>
-          <BarChart data={PAYROLL_DISTRIBUTION} dataKey="budget" xKey="dept" height={220} color="#f43f5e" />
-        </div>
-
-        {/* Chart 5 */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block mb-4">Employee Growth Chart (Yearly)</span>
-          <LineChart data={EMPLOYEE_GROWTH} dataKey="count" xKey="year" height={220} color="#e11d48" />
-        </div>
-      </div>
-
-      {/* Timeline Feed & Alerts log */}
+      {/* Two Column Layout: Department Distribution & System Status */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Activity feed list */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm lg:col-span-2 space-y-4 text-xs font-semibold">
-          <div className="flex items-center justify-between pb-3 border-b">
-            <h4 className="text-xs font-black text-slate-850 dark:text-slate-200 uppercase tracking-wider">Staff Directory Preview</h4>
-            <button onClick={() => navigate('/hr/employees')} className="text-[10px] font-bold text-rose-600 hover:underline flex items-center gap-1">
-              <span>View Directory</span>
-              <ArrowRight className="w-3 h-3" />
+        {/* Department Breakdown */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Department Headcount</h3>
+              <p className="text-xs text-slate-400">Real-time dynamic employee count per department</p>
+            </div>
+            <button
+              onClick={() => navigate('/hr/departments')}
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>Manage Departments</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          {staff.length === 0 ? (
-            <div className="py-8 text-center text-xs font-semibold text-slate-400">
-              No Result — No employee records registered.
+
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-10 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : departmentWise.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs font-semibold">
+              <Building className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-700 mb-2" />
+              <span>No departments created yet. Click "Manage Departments" to get started.</span>
             </div>
           ) : (
-            <div className="divide-y divide-slate-105 dark:divide-slate-850/50 space-y-3.5">
-              {staff.slice(0, 3).map((item) => (
-                <div key={item.id} className="pt-3.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <img src={item.photo || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'} alt={item.name} className="w-9 h-9 rounded-xl object-cover border" />
-                    <div>
-                      <span className="font-bold text-slate-900 dark:text-white block">{item.name}</span>
-                      <span className="text-[9px] text-slate-450 block mt-0.5">{item.designation || 'Staff'} • {item.department || 'General'}</span>
+            <div className="space-y-3">
+              {departmentWise.map((dept) => {
+                const percentage =
+                  summary.totalEmployees > 0
+                    ? Math.round((dept.employeeCount / summary.totalEmployees) * 100)
+                    : 0;
+
+                return (
+                  <div key={dept.name} className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-100 dark:border-slate-850">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                      <span>{dept.name}</span>
+                      <span className="text-indigo-600 dark:text-indigo-400">{dept.employeeCount} Members ({percentage}%)</span>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-indigo-600 h-full rounded-full transition-all duration-300"
+                        style={{ width: `${Math.max(percentage, 4)}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[9px] font-black text-rose-700 bg-rose-50 px-2 py-0.5 rounded-lg block uppercase">{item.role || 'Full-Time'}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Live Notification feed */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4 text-xs font-semibold">
-          <div className="flex items-center justify-between pb-3 border-b">
-            <h4 className="text-xs font-black text-slate-850 dark:text-slate-200 uppercase tracking-wider">HR Notifications feed</h4>
-          </div>
-          <div className="space-y-4 max-h-68 overflow-y-auto no-scrollbar">
-            {notifications.map((n) => (
-              <div key={n.id} className="flex gap-2.5 text-xs">
-                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0 animate-pulse"></div>
-                <div>
-                  <span className="font-bold text-slate-905 dark:text-white block">{n.title}</span>
-                  <p className="text-[10px] text-slate-450 dark:text-slate-400 mt-0.5 leading-relaxed">{n.message}</p>
+        {/* Operating Schedule & Work Policy */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">HR Operating Policy</h3>
+            <p className="text-xs text-slate-400 mb-4">Configured working days and shift rules</p>
+
+            <div className="space-y-3">
+              <div className="p-3 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30">
+                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">Standard Work Shift</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5 block">{data?.shiftTimings || '08:00 AM - 03:00 PM'}</span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-850">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Working Days</span>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {(data?.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']).map((day) => (
+                    <span key={day} className="text-[10px] font-bold px-2 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-md">
+                      {day.slice(0, 3)}
+                    </span>
+                  ))}
                 </div>
               </div>
-            ))}
+
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-850">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Multi-Tenant Status</span>
+                <div className="flex items-center gap-2 mt-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Isolated to {user?.schoolName || 'Current School'}</span>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <button
+            onClick={() => navigate('/hr/settings')}
+            className="w-full mt-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer text-center block"
+          >
+            Configure HR Policy & Rules
+          </button>
         </div>
       </div>
     </div>

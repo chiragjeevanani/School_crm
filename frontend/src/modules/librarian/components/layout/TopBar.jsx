@@ -2,123 +2,151 @@ import React, { useState } from 'react';
 import { useLibrarianAuth } from '../../context/LibrarianAuthContext';
 import { useLibrarianTheme } from '../../context/LibrarianThemeContext';
 import { useLibrarianNotifications } from '../../context/LibrarianNotificationContext';
-import { Menu, Search, Moon, Sun, Bell, LogOut, ChevronDown, CheckCheck, Trash2 } from 'lucide-react';
-import { cn } from '../../utils/cn';
+import {
+  Bell,
+  Search,
+  Sun,
+  Moon,
+  Menu,
+  CalendarDays,
+  Settings,
+  LogOut,
+  X,
+  Check,
+  BookOpen,
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const TopBar = ({ toggleSidebar, onSearchTrigger }) => {
   const { user, logout } = useLibrarianAuth();
   const { darkMode, toggleDarkMode } = useLibrarianTheme();
   const { notifications, unreadCount, markAllAsRead, markAsRead } = useLibrarianNotifications();
+  const navigate = useNavigate();
 
+  // Dropdown States
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const handleLogout = () => {
     logout();
+    navigate('/librarian/login');
   };
 
   return (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between sticky top-0 z-30">
-      {/* Mobile Toggle & Search */}
+    <header className="sticky top-0 z-35 flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 md:px-8 shadow-sm">
+      {/* Mobile Drawer Trigger & Search Indicator */}
       <div className="flex items-center gap-4">
         <button
           onClick={toggleSidebar}
-          className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden"
+          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 md:hidden"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="w-5 h-5" />
         </button>
 
-        {/* Search Input click to open command palette */}
-        <div 
-          onClick={onSearchTrigger}
-          className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-450 hover:text-slate-650 cursor-pointer select-none w-56 text-xs transition-colors"
-        >
-          <Search className="h-4 w-4" />
-          <span>Quick actions (⌘K)...</span>
-        </div>
-      </div>
-
-      {/* Action Icons */}
-      <div className="flex items-center gap-3">
-        {/* Mobile Search Button */}
         <button
           onClick={onSearchTrigger}
-          className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl sm:hidden"
+          className="hidden md:flex items-center gap-2 px-3.5 py-1.5 bg-slate-50 dark:bg-slate-950 text-slate-400 border border-slate-200 dark:border-slate-800 rounded-xl text-xs hover:border-slate-300 transition-colors w-64"
         >
-          <Search className="h-4.5 w-4.5" />
+          <Search className="w-3.5 h-3.5 shrink-0" />
+          <span className="flex-1 text-left">Search / Quick actions...</span>
+          <span className="text-[9px] font-bold bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">
+            Ctrl K
+          </span>
         </button>
+      </div>
+
+      {/* Right Actions Grid */}
+      <div className="flex items-center gap-4">
+        {/* Academic Session */}
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-bold">
+          <CalendarDays className="w-3.5 h-3.5" />
+          <span>Session: {user?.academicSession || '2024-2025'}</span>
+        </div>
 
         {/* Theme Toggle */}
         <button
           onClick={toggleDarkMode}
-          className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all duration-150"
+          className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 transition-colors"
+          aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          {darkMode ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+          {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
 
-        {/* Notifications Panel */}
+        {/* Notification Icon */}
         <div className="relative">
           <button
             onClick={() => {
               setShowNotifications(!showNotifications);
-              setShowProfile(false);
+              setShowProfileMenu(false);
             }}
-            className={cn(
-              "p-2 text-slate-550 rounded-xl relative hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors",
-              showNotifications ? "bg-slate-100 dark:bg-slate-800" : ""
-            )}
+            className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 transition-colors relative"
           >
-            <Bell className="h-4.5 w-4.5" />
+            <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-600 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-600 rounded-full ring-2 ring-white dark:ring-slate-900"></span>
             )}
           </button>
 
-          {/* Notifications Drawer */}
+          {/* Notifications Dropdown */}
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden animate-fadeIn">
-              <div className="px-4 py-3 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Alerts & Overdues ({unreadCount})</span>
+            <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-sm text-slate-800 dark:text-white">Notifications</h4>
+                  <p className="text-[11px] text-slate-500">
+                    {unreadCount > 0 ? `${unreadCount} unread alert${unreadCount > 1 ? 's' : ''}` : 'All caught up!'}
+                  </p>
+                </div>
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-2xs font-semibold text-amber-600 hover:text-amber-700 flex items-center gap-1"
+                    className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
                   >
-                    <CheckCheck className="h-3.5 w-3.5" />
-                    <span>Mark read</span>
+                    <Check className="w-3 h-3" /> Mark all read
                   </button>
                 )}
               </div>
-              <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto no-scrollbar">
-                {notifications.length > 0 ? (
-                  notifications.map((notif) => (
+
+              <div className="max-h-80 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800/50">
+                {notifications.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-slate-400">
+                    No active notifications.
+                  </div>
+                ) : (
+                  notifications.slice(0, 5).map((notif) => (
                     <div
                       key={notif.id}
                       onClick={() => markAsRead(notif.id)}
-                      className={cn(
-                        "p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850/50 transition-colors",
-                        !notif.read ? "bg-amber-50/15 dark:bg-amber-950/5" : ""
-                      )}
+                      className={`p-4 transition-colors cursor-pointer text-left ${
+                        notif.unread ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                      }`}
                     >
-                      <div className="flex justify-between items-start gap-1">
-                        <p className={cn(
-                          "text-xs font-bold",
-                          !notif.read ? "text-slate-900 dark:text-white" : "text-slate-650 dark:text-slate-400"
-                        )}>
-                          {notif.title}
-                        </p>
-                        <span className="text-4xs text-slate-400 font-semibold">{notif.time}</span>
+                      <div className="flex items-start gap-3">
+                        <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${notif.unread ? 'bg-indigo-600' : 'bg-transparent'}`} />
+                        <div>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">
+                            {notif.title}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            {notif.message}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-3xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                        {notif.message}
-                      </p>
                     </div>
                   ))
-                ) : (
-                  <div className="p-8 text-center text-xs text-slate-400">
-                    All caught up! No notifications.
-                  </div>
                 )}
+              </div>
+
+              <div className="p-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-center">
+                <button
+                  onClick={() => {
+                    navigate('/librarian/notifications');
+                    setShowNotifications(false);
+                  }}
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  View All Alerts →
+                </button>
               </div>
             </div>
           )}
@@ -128,32 +156,55 @@ export const TopBar = ({ toggleSidebar, onSearchTrigger }) => {
         <div className="relative">
           <button
             onClick={() => {
-              setShowProfile(!showProfile);
+              setShowProfileMenu(!showProfileMenu);
               setShowNotifications(false);
             }}
-            className="flex items-center gap-1.5 p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            className="flex items-center gap-3 p-1 pl-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
           >
-            <img
-              src={user?.photoUrl}
-              alt={user?.name}
-              className="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-700"
-            />
-            <ChevronDown className="h-3.5 w-3.5 text-slate-550 hidden md:block" />
+            <div className="text-right hidden sm:block">
+              <p className="text-xs font-bold text-slate-800 dark:text-white leading-tight">
+                {user?.name || 'Sanjay Kumar'}
+              </p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Head Librarian</p>
+            </div>
+            <div className="h-8 w-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm shadow-indigo-600/30">
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'L'}
+            </div>
           </button>
 
-          {showProfile && (
-            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden py-1.5 animate-fadeIn">
-              <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800">
-                <span className="block text-xs font-bold text-slate-850 dark:text-slate-200">{user?.name}</span>
-                <span className="block text-4xs text-slate-400 font-semibold uppercase tracking-wider">{user?.role}</span>
+          {/* Profile Flyout */}
+          {showProfileMenu && (
+            <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden py-1.5">
+              <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
+                <p className="text-xs font-bold text-slate-800 dark:text-white">{user?.name || 'Librarian'}</p>
+                <p className="text-[11px] text-slate-400 truncate">{user?.email || 'librarian@greenfield.edu'}</p>
+                <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold rounded-md">
+                  {user?.schoolName || 'School Library'}
+                </span>
               </div>
-              <button
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Sign Out</span>
-              </button>
+
+              <div className="py-1">
+                <button
+                  onClick={() => {
+                    navigate('/librarian/settings');
+                    setShowProfileMenu(false);
+                  }}
+                  className="w-full px-4 py-2 text-xs text-left text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5"
+                >
+                  <Settings className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Library Settings</span>
+                </button>
+              </div>
+
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-1">
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2 text-xs text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2.5 font-semibold"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -161,3 +212,4 @@ export const TopBar = ({ toggleSidebar, onSearchTrigger }) => {
     </header>
   );
 };
+export default TopBar;

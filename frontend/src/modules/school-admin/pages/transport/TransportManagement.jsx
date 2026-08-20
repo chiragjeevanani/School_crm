@@ -662,16 +662,6 @@ export const TransportManagement = () => {
         subtitle="Manage school bus fleets, driver assignments, route stops, student boarding subscriptions, daily roll calls, and vehicle maintenance."
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
-            {vehicles.length === 0 && (
-              <button
-                onClick={handleSeedDemo}
-                disabled={loading}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>Seed Demo Fleet</span>
-              </button>
-            )}
             <button
               onClick={handleOpenAssignModal}
               className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
@@ -681,7 +671,7 @@ export const TransportManagement = () => {
             </button>
             <button
               onClick={() => handleOpenRouteModal()}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>Create Route</span>

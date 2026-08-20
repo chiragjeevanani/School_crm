@@ -13,6 +13,7 @@ export const Badge = ({ children, variant = 'default', className }) => {
     warning: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/30',
     info: 'bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/40 dark:text-sky-400 dark:border-sky-900/30',
     secondary: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20',
+    indigo: 'bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-900/30',
     amber: 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
     cyan: 'bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-950/20 dark:text-cyan-400 dark:border-cyan-900/30',
     purple: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',

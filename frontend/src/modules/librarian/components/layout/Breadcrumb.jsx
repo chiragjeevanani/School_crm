@@ -12,7 +12,7 @@ export const Breadcrumb = () => {
     <nav className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-semibold mb-4 overflow-x-auto whitespace-nowrap py-1">
       <Link
         to="/librarian/dashboard"
-        className="flex items-center gap-1 text-slate-450 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+        className="flex items-center gap-1 text-slate-450 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
       >
         <Home className="h-3.5 w-3.5" />
       </Link>
@@ -34,7 +34,7 @@ export const Breadcrumb = () => {
             ) : (
               <Link
                 to={to}
-                className="text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 transition-colors max-w-[120px] truncate"
+                className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors max-w-[120px] truncate"
               >
                 {formattedName}
               </Link>

@@ -84,7 +84,7 @@ export const IssueSlip = ({ issue, onClose }) => {
           {/* Header */}
           <div className="text-center border-b border-dashed border-slate-400 dark:border-slate-700 pb-3 mb-4">
             <div className="flex justify-center mb-1">
-              <Library className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+              <Library className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div className="font-bold text-sm tracking-wide">GREENWOOD FUTURE SCHOOL</div>
             <div className="text-3xs uppercase tracking-wider text-slate-500 mt-0.5">Library Issue Receipt</div>
@@ -120,7 +120,7 @@ export const IssueSlip = ({ issue, onClose }) => {
             </div>
             <div className="flex">
               <span className="font-bold w-24 text-slate-500">Due Date:</span>
-              <span className="font-semibold text-amber-600 dark:text-amber-400">{formatDate(issue.dueDate)}</span>
+              <span className="font-semibold text-indigo-600 dark:text-indigo-400">{formatDate(issue.dueDate)}</span>
             </div>
           </div>
 
@@ -150,7 +150,7 @@ export const IssueSlip = ({ issue, onClose }) => {
         )}
         <button
           onClick={handlePrint}
-          className="h-10 px-4 text-sm font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-xl flex items-center gap-2 transition-all duration-150 shadow-xs"
+          className="h-10 px-4 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2 transition-all duration-150 shadow-xs"
         >
           <Printer className="h-4 w-4" />
           <span>Print Issue Receipt</span>

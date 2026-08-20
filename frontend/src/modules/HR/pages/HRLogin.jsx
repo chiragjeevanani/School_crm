@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHRAuth } from '../context/HRAuthContext';
-import { Users, Lock, User as UserIcon, AlertCircle } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle, Users, ArrowRight, ShieldCheck } from 'lucide-react';
+import BrandLogo from '../../../shared/ui/BrandLogo';
 
 export const HRLogin = () => {
   const { login } = useHRAuth();
@@ -12,20 +13,19 @@ export const HRLogin = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    setTimeout(() => {
-      const result = login(username, password);
+    try {
+      await login(username, password);
+      navigate('/hr/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Invalid HR login credentials');
+    } finally {
       setLoading(false);
-      if (result.success) {
-        navigate('/hr/dashboard');
-      } else {
-        setError(result.message);
-      }
-    }, 450);
+    }
   };
 
   return (
@@ -33,16 +33,16 @@ export const HRLogin = () => {
       <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-xl space-y-6">
         {/* Branding header */}
         <div className="flex flex-col items-center text-center space-y-2">
-          <div className="p-3 bg-rose-500/10 rounded-2xl text-rose-600 dark:text-rose-405">
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30">
             <Users className="w-10 h-10" />
           </div>
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white font-sans">Greenfield School</h2>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">HR & Admin Staff Desk</p>
+          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white font-sans">Greenfield Public School</h2>
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Human Resources Management Portal</p>
         </div>
 
         {/* Error notification */}
         {error && (
-          <div className="flex items-center gap-2.5 bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900/40 p-3.5 rounded-xl text-rose-650 dark:text-rose-455 text-xs font-semibold">
+          <div className="flex items-center gap-2.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 p-3.5 rounded-xl text-rose-700 dark:text-rose-400 text-xs font-semibold">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -51,22 +51,22 @@ export const HRLogin = () => {
         {/* Form fields */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-350">HR Username</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Email or Employee ID</label>
             <div className="relative">
               <UserIcon className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
               <input
                 type="text"
-                placeholder="hr"
+                placeholder="rohan.hr@greenfield.edu or HR-201"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                className="w-full bg-slate-50 dark:bg-slate-955 text-slate-905 dark:text-white pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-800 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none transition-colors"
+                className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-colors"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-350">HR Password</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">HR Portal Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
               <input
@@ -75,7 +75,7 @@ export const HRLogin = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full bg-slate-50 dark:bg-slate-955 text-slate-905 dark:text-white pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-800 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none transition-colors"
+                className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -83,16 +83,22 @@ export const HRLogin = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-rose-605 hover:bg-rose-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-rose-600/20 focus:outline-none transition-colors mt-2"
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 focus:outline-none transition-colors mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
           >
-            {loading ? 'Authenticating HR credentials...' : 'Sign In'}
+            {loading ? (
+              <span>Authenticating HR credentials...</span>
+            ) : (
+              <>
+                <span>Sign In to HRMS</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </form>
 
-        {/* Credentials Reminder */}
-        <div className="bg-slate-50 dark:bg-slate-955 p-3.5 border border-slate-100 dark:border-slate-850 rounded-2xl text-[11px] font-medium text-slate-550 dark:text-slate-400 text-center">
-          <p>Mock Credentials:</p>
-          <p className="font-bold text-slate-705 dark:text-slate-300 mt-1">Username: hr | Password: hr123</p>
+        <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+          <span>Role-Isolated Secure HR Access (JWT Authenticated)</span>
         </div>
       </div>
     </div>

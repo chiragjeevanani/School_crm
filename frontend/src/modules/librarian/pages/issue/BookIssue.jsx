@@ -1,307 +1,554 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { IssueSlip } from '../../components/ui/IssueSlip';
 import { useToast } from '../../components/ui/Toast';
-import { useAppStore } from '../../../../shared/store/useAppStore';
-import { Search, User, BookOpen, Calendar, CheckCircle2, ChevronRight, CornerDownLeft } from 'lucide-react';
+import { Search, User, BookOpen, Calendar, CheckCircle2, ChevronRight, RefreshCw, Copy, ShieldAlert } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { librarianApi } from '../../../../shared/api/client';
+import { formatDate } from '../../utils/formatters';
 
 export const BookIssue = () => {
   const toast = useToast();
-  const { store, issueBook } = useAppStore();
 
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [borrowers, setBorrowers] = useState([]);
+  const [books, setBooks] = useState([]);
+  const [copies, setCopies] = useState([]);
+  const [settings, setSettings] = useState(null);
+
   const [memberQuery, setMemberQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
-  
+
   const [bookQuery, setBookQuery] = useState('');
   const [selectedBook, setSelectedBook] = useState(null);
-  
+  const [selectedCopy, setSelectedCopy] = useState(null);
+
+  const [durationDays, setDurationDays] = useState(14);
   const [dueDate, setDueDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 14);
     return d.toISOString().split('T')[0];
   });
 
+  const [remarks, setRemarks] = useState('');
   const [issueSlipOpen, setIssueSlipOpen] = useState(false);
   const [createdIssue, setCreatedIssue] = useState(null);
 
-  const books = store.books || [];
-  const members = store.students.map(s => ({
-    id: s.id,
-    memberId: `LIB-${s.admissionNo?.slice(-4) || '101'}`,
-    memberName: s.name,
-    admissionNo: s.admissionNo,
-    memberType: 'Student',
-    class: s.class,
-    booksIssued: store.bookLoans.filter(l => l.studentId === s.id && l.status === 'Issued').length,
-    maxBooksAllowed: 4,
-    membershipStatus: s.status === 'Active' ? 'Active' : 'Suspended'
-  }));
+  const loadInitialData = async () => {
+    setLoading(true);
+    try {
+      const [borrowersRes, booksRes, settingsRes] = await Promise.allSettled([
+        librarianApi.borrowers(),
+        librarianApi.books({ status: 'AVAILABLE' }),
+        librarianApi.settings(),
+      ]);
 
-  // Search Members
-  const filteredMembers = members.filter(m => 
-    m.memberName.toLowerCase().includes(memberQuery.toLowerCase()) ||
-    m.memberId.toLowerCase().includes(memberQuery.toLowerCase()) ||
-    (m.admissionNo && m.admissionNo.toLowerCase().includes(memberQuery.toLowerCase()))
+      if (borrowersRes.status === 'fulfilled' && Array.isArray(borrowersRes.value?.data)) {
+        setBorrowers(borrowersRes.value.data);
+      }
+
+      if (booksRes.status === 'fulfilled' && Array.isArray(booksRes.value?.data)) {
+        setBooks(booksRes.value.data);
+      }
+
+      if (settingsRes.status === 'fulfilled' && settingsRes.value?.data) {
+        setSettings(settingsRes.value.data);
+        const days = settingsRes.value.data.defaultIssueDays || 14;
+        setDurationDays(days);
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        setDueDate(d.toISOString().split('T')[0]);
+      }
+    } catch {
+      toast.error('Failed to load circulation records');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  // Fetch available copies when book is selected
+  useEffect(() => {
+    if (!selectedBook) {
+      setCopies([]);
+      setSelectedCopy(null);
+      return;
+    }
+
+    const loadCopies = async () => {
+      try {
+        const res = await librarianApi.copies({
+          bookId: selectedBook.id,
+          status: 'AVAILABLE',
+        });
+        if (res?.success && Array.isArray(res.data)) {
+          setCopies(res.data);
+          if (res.data.length > 0) {
+            setSelectedCopy(res.data[0]);
+          }
+        }
+      } catch {
+        toast.error('Failed to load physical copies for this book');
+      }
+    };
+
+    loadCopies();
+  }, [selectedBook]);
+
+  const filteredMembers = borrowers.filter(
+    (m) =>
+      m.name.toLowerCase().includes(memberQuery.toLowerCase()) ||
+      (m.code && m.code.toLowerCase().includes(memberQuery.toLowerCase())) ||
+      (m.type && m.type.toLowerCase().includes(memberQuery.toLowerCase()))
   );
 
-  // Search Books
-  const filteredBooks = books.filter(b => 
-    b.title.toLowerCase().includes(bookQuery.toLowerCase()) ||
-    b.bookCode.toLowerCase().includes(bookQuery.toLowerCase()) ||
-    b.isbn.toLowerCase().includes(bookQuery.toLowerCase())
+  const filteredBooks = books.filter(
+    (b) =>
+      b.title.toLowerCase().includes(bookQuery.toLowerCase()) ||
+      (b.bookCode && b.bookCode.toLowerCase().includes(bookQuery.toLowerCase())) ||
+      (b.author && b.author.toLowerCase().includes(bookQuery.toLowerCase())) ||
+      (b.isbn && b.isbn.toLowerCase().includes(bookQuery.toLowerCase()))
   );
 
   const handleSelectMember = (member) => {
-    if (member.membershipStatus === 'Suspended') {
-      toast.error('Cannot issue book to a suspended member.');
-      return;
-    }
-    if (member.booksIssued >= member.maxBooksAllowed) {
-      toast.error(`Member has reached the limit of ${member.maxBooksAllowed} issued books.`);
-      return;
-    }
     setSelectedMember(member);
     setStep(2);
   };
 
   const handleSelectBook = (book) => {
     if (book.availableCopies <= 0) {
-      toast.error('This book is currently out of stock (0 available copies).');
+      toast.error(`"${book.title}" is out of stock. All copies are currently issued.`);
       return;
     }
     setSelectedBook(book);
     setStep(3);
   };
 
-  const handleConfirmIssue = () => {
-    const loan = issueBook(
-      selectedBook.id,
-      selectedMember.id,
-      selectedMember.memberName,
-      dueDate,
-      'Mrs. Nalini Sengupta (Librarian)'
-    );
-
-    setCreatedIssue({
-      id: loan?.id || `ISS-${Math.floor(Math.random() * 9000) + 1000}`,
-      bookTitle: selectedBook.title,
-      bookCode: selectedBook.bookCode,
-      memberName: selectedMember.memberName,
-      memberId: selectedMember.memberId,
-      issueDate: new Date().toISOString().split('T')[0],
-      dueDate: dueDate,
-      memberType: 'Student',
-      memberClass: selectedMember.class
-    });
-
-    toast.success(`Book "${selectedBook.title}" issued successfully! Stock decremented and student record synchronized.`);
-    setIssueSlipOpen(true);
+  const handleDurationChange = (days) => {
+    setDurationDays(days);
+    const d = new Date();
+    d.setDate(d.getDate() + Number(days));
+    setDueDate(d.toISOString().split('T')[0]);
   };
 
-  const handleReset = () => {
-    setStep(1);
-    setSelectedMember(null);
-    setSelectedBook(null);
-    setMemberQuery('');
-    setBookQuery('');
-    setCreatedIssue(null);
+  const handleConfirmIssue = async () => {
+    if (!selectedMember || !selectedBook) {
+      toast.error('Please select both a borrower and a book.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        bookId: selectedBook.id,
+        copyId: selectedCopy?.id,
+        borrowerRefId: selectedMember.id,
+        borrowerType: selectedMember.type,
+        borrowerName: selectedMember.name,
+        borrowerCode: selectedMember.code,
+        borrowerClass: selectedMember.class,
+        dueDate,
+        durationDays,
+        remarks,
+      };
+
+      const res = await librarianApi.issueBook(payload);
+      toast.success(`"${selectedBook.title}" issued successfully to ${selectedMember.name}!`);
+
+      setCreatedIssue({
+        ...res.data,
+        book: selectedBook,
+        member: selectedMember,
+        copy: selectedCopy,
+      });
+
+      setIssueSlipOpen(true);
+
+      // Reset wizard
+      setStep(1);
+      setSelectedMember(null);
+      setSelectedBook(null);
+      setSelectedCopy(null);
+      setRemarks('');
+      loadInitialData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Issue operation failed');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Issue Book Wizard"
-        subtitle="3-step circulation: Select Member → Scan Book/Barcode → Set Due Date & Issue."
+        title="Issue Book"
+        subtitle="3-step circulation wizard to assign available physical copies to verified school members."
+        actions={
+          <button
+            onClick={loadInitialData}
+            disabled={loading}
+            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300 transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        }
       />
 
-      {/* STEP INDICATOR */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { num: 1, title: 'Select Member', desc: selectedMember ? selectedMember.memberName : 'Find student' },
-          { num: 2, title: 'Select Book', desc: selectedBook ? selectedBook.title : 'Scan barcode' },
-          { num: 3, title: 'Confirm & Issue', desc: 'Set due date' }
-        ].map((s) => (
-          <div 
-            key={s.num}
-            className={cn(
-              "p-3.5 rounded-2xl border transition-all flex items-center gap-3",
-              step === s.num 
-                ? "border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20" 
-                : step > s.num
-                  ? "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50"
-                  : "border-slate-200 dark:border-slate-800 opacity-60"
-            )}
-          >
-            <div className={cn(
-              "w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0",
-              step === s.num ? "bg-emerald-600 text-white" : step > s.num ? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300" : "bg-slate-100 text-slate-400"
-            )}>
-              {step > s.num ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : s.num}
+      {/* Progress Wizard Tracker */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
+        <div className="flex justify-between items-center max-w-2xl mx-auto">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                'h-9 w-9 rounded-full flex items-center justify-center font-black text-xs transition-colors',
+                step >= 1 ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+              )}
+            >
+              1
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{s.title}</p>
-              <p className="text-[10px] text-slate-400 truncate">{s.desc}</p>
+            <div>
+              <span className="block text-xs font-bold text-slate-900 dark:text-white">Borrower</span>
+              <span className="block text-3xs text-slate-400">
+                {selectedMember ? selectedMember.name : 'Select Student/Staff'}
+              </span>
             </div>
           </div>
-        ))}
+
+          <ChevronRight className="h-4 w-4 text-slate-300 dark:text-slate-700" />
+
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                'h-9 w-9 rounded-full flex items-center justify-center font-black text-xs transition-colors',
+                step >= 2 ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+              )}
+            >
+              2
+            </div>
+            <div>
+              <span className="block text-xs font-bold text-slate-900 dark:text-white">Book & Copy</span>
+              <span className="block text-3xs text-slate-400">
+                {selectedBook ? selectedBook.title : 'Select Title'}
+              </span>
+            </div>
+          </div>
+
+          <ChevronRight className="h-4 w-4 text-slate-300 dark:text-slate-700" />
+
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                'h-9 w-9 rounded-full flex items-center justify-center font-black text-xs transition-colors',
+                step === 3 ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+              )}
+            >
+              3
+            </div>
+            <div>
+              <span className="block text-xs font-bold text-slate-900 dark:text-white">Confirm Loan</span>
+              <span className="block text-3xs text-slate-400">Due date & Issue</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* STEP 1: SELECT MEMBER */}
+      {/* Step 1: Member Selection */}
       {step === 1 && (
-        <div className="bg-white dark:bg-slate-900 border border-border rounded-3xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 pb-2">
-            <User className="w-5 h-5 text-emerald-600" />
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Step 1: Select Student Library Member</h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                Step 1: Select Eligible Borrower
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Choose a student, faculty member, or staff with active borrowing privileges.
+              </p>
+            </div>
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                value={memberQuery}
+                onChange={(e) => setMemberQuery(e.target.value)}
+                placeholder="Search borrower by name or code..."
+                className="w-full h-10 pl-10 pr-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+            </div>
           </div>
 
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-            <input
-              type="text"
-              placeholder="Search member by name, admission no, or Library Card ID..."
-              value={memberQuery}
-              onChange={(e) => setMemberQuery(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-950 pl-9 pr-4 py-2.5 rounded-xl border border-border text-xs focus:outline-none"
-            />
-          </div>
-
-          <div className="divide-y divide-border border border-border rounded-2xl overflow-hidden max-h-96 overflow-y-auto">
-            {filteredMembers.map((m) => (
-              <div 
-                key={m.id}
-                onClick={() => handleSelectMember(m)}
-                className="p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">{m.memberName}</span>
-                    <Badge variant={m.membershipStatus === 'Active' ? 'success' : 'danger'}>
-                      {m.membershipStatus}
-                    </Badge>
+          {loading ? (
+            <div className="py-12 text-center text-xs font-semibold text-slate-400 flex items-center justify-center gap-2">
+              <RefreshCw className="h-5 w-5 animate-spin text-indigo-600" />
+              <span>Fetching verified school members...</span>
+            </div>
+          ) : filteredMembers.length === 0 ? (
+            <div className="py-12 text-center text-xs font-semibold text-slate-400">
+              No eligible borrowers found matching "{memberQuery}".
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredMembers.slice(0, 12).map((member) => (
+                <div
+                  key={member.id}
+                  onClick={() => handleSelectMember(member)}
+                  className="p-4 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500/50 rounded-2xl cursor-pointer hover:shadow-xs transition-all flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-full bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
+                      <User className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 transition-colors">
+                        {member.name}
+                      </span>
+                      <div className="flex items-center gap-1.5 text-3xs text-slate-400 mt-0.5">
+                        <Badge variant="neutral">{member.type}</Badge>
+                        <span>•</span>
+                        <span>{member.code || 'ID: STU'}</span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    ID: {m.memberId} • Class {m.class} • Books Issued: {m.booksIssued}/{m.maxBooksAllowed}
-                  </p>
+                  <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
                 </div>
-                <button className="text-xs font-bold text-emerald-600 flex items-center gap-1 hover:underline">
-                  <span>Select</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* STEP 2: SELECT BOOK */}
+      {/* Step 2: Book & Physical Copy Selection */}
       {step === 2 && (
-        <div className="bg-white dark:bg-slate-900 border border-border rounded-3xl p-6 shadow-sm space-y-4">
-          <div className="flex justify-between items-center pb-2">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-emerald-600" />
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Step 2: Select Catalog Book</h3>
-            </div>
-            <button onClick={() => setStep(1)} className="text-xs text-slate-400 hover:text-slate-600">Change Member</button>
-          </div>
-
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-            <input
-              type="text"
-              placeholder="Search catalog by title, accession code, or ISBN..."
-              value={bookQuery}
-              onChange={(e) => setBookQuery(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-950 pl-9 pr-4 py-2.5 rounded-xl border border-border text-xs focus:outline-none"
-            />
-          </div>
-
-          <div className="divide-y divide-border border border-border rounded-2xl overflow-hidden max-h-96 overflow-y-auto">
-            {filteredBooks.map((b) => (
-              <div 
-                key={b.id}
-                onClick={() => handleSelectBook(b)}
-                className="p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">{b.title}</span>
-                    <Badge variant={b.availableCopies > 0 ? 'success' : 'danger'}>
-                      {b.availableCopies} Copies Available
-                    </Badge>
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    Code: {b.bookCode} • Author: {b.author} • Shelf: {b.location}
-                  </p>
-                </div>
-                <button className="text-xs font-bold text-emerald-600 flex items-center gap-1 hover:underline">
-                  <span>Select</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-3xs font-extrabold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded">
+                  Borrower: {selectedMember?.name} ({selectedMember?.type})
+                </span>
               </div>
-            ))}
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                Step 2: Select Book to Issue
+              </h3>
+              <p className="text-xs text-slate-500">Pick an in-stock title from the catalogue.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={bookQuery}
+                  onChange={(e) => setBookQuery(e.target.value)}
+                  placeholder="Search catalogue by title, author, code..."
+                  className="w-full h-10 pl-10 pr-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+              <button
+                onClick={() => setStep(1)}
+                className="h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-850"
+              >
+                Change Borrower
+              </button>
+            </div>
           </div>
+
+          {filteredBooks.length === 0 ? (
+            <div className="py-12 text-center text-xs font-semibold text-slate-400">
+              No available books matching "{bookQuery}".
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredBooks.map((b) => (
+                <div
+                  key={b.id}
+                  onClick={() => handleSelectBook(b)}
+                  className="p-4 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500/50 rounded-2xl cursor-pointer hover:shadow-xs transition-all flex items-start justify-between group"
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="h-12 w-9 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-lg flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                      <BookOpen className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 space-y-1">
+                      <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 transition-colors">
+                        {b.title}
+                      </span>
+                      <span className="block text-3xs text-slate-400">By {b.author}</span>
+                      <div className="flex items-center gap-2 pt-1">
+                        <Badge variant={b.availableCopies > 0 ? 'success' : 'danger'}>
+                          {b.availableCopies} Copies Available
+                        </Badge>
+                        <span className="text-3xs text-slate-400 font-mono">{b.bookCode}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all mt-1" />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* STEP 3: CONFIRM & ISSUE */}
+      {/* Step 3: Confirm Issue & Select Physical Copy */}
       {step === 3 && (
-        <div className="bg-white dark:bg-slate-900 border border-border rounded-3xl p-8 shadow-sm space-y-6 max-w-2xl mx-auto">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Step 3: Verify & Confirm Circulation Loan</h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 space-y-6 max-w-3xl mx-auto">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                Step 3: Finalize Loan Issue
+              </h3>
+              <p className="text-xs text-slate-500">
+                Confirm physical copy accession code and set return due date.
+              </p>
+            </div>
+            <button
+              onClick={() => setStep(2)}
+              className="text-xs font-bold text-indigo-600 hover:text-indigo-700"
+            >
+              Change Book
+            </button>
+          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-border">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Selected Student</span>
-              <h4 className="text-xs font-bold text-slate-900 dark:text-white mt-1">{selectedMember.memberName}</h4>
-              <p className="text-[10px] text-slate-400">Class {selectedMember.class} • {selectedMember.memberId}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Borrower Card */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+              <span className="text-3xs font-bold uppercase text-slate-400 tracking-wider block">Borrower Profile</span>
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{selectedMember?.name}</p>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <Badge variant="neutral">{selectedMember?.type}</Badge>
+                <span>Code: {selectedMember?.code || 'N/A'}</span>
+              </div>
             </div>
 
-            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-border">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Selected Book</span>
-              <h4 className="text-xs font-bold text-slate-900 dark:text-white mt-1">{selectedBook.title}</h4>
-              <p className="text-[10px] text-slate-400">Code: {selectedBook.bookCode} • Available: {selectedBook.availableCopies}</p>
+            {/* Book Card */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+              <span className="text-3xs font-bold uppercase text-slate-400 tracking-wider block">Selected Book</span>
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{selectedBook?.title}</p>
+              <p className="text-xs text-slate-500">By {selectedBook?.author}</p>
+            </div>
+          </div>
+
+          {/* Physical Copy Selector */}
+          <div className="space-y-2">
+            <label className="text-3xs font-bold text-slate-500 uppercase tracking-wider block">
+              Select Physical Copy (Accession #)
+            </label>
+            {copies.length > 0 ? (
+              <select
+                value={selectedCopy?.id || ''}
+                onChange={(e) => {
+                  const copy = copies.find((c) => c.id === e.target.value);
+                  setSelectedCopy(copy || null);
+                }}
+                className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              >
+                {copies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.accessionNumber} — Condition: {c.condition} ({c.rackNumber ? `Rack ${c.rackNumber}` : 'Shelf'})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/30 rounded-2xl text-xs text-indigo-700 dark:text-indigo-400">
+                Auto-assigned copy will be attached upon issue.
+              </div>
+            )}
+          </div>
+
+          {/* Loan Duration & Due Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-3xs font-bold text-slate-500 uppercase">Issue Duration (Days)</label>
+              <div className="flex gap-2">
+                {[7, 14, 21, 30].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => handleDurationChange(d)}
+                    className={cn(
+                      'flex-1 h-10 rounded-xl font-bold text-xs transition-colors',
+                      durationDays === d
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-300'
+                    )}
+                  >
+                    {d} Days
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-3xs font-bold text-slate-500 uppercase">Calculated Due Date</label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Mandatory Return Due Date *</label>
+            <label className="text-3xs font-bold text-slate-500 uppercase">Remarks / Notes (Optional)</label>
             <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-border bg-slate-50 dark:bg-slate-900 text-foreground"
+              type="text"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="e.g. Special exam preparation issue"
+              className="w-full h-10 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t border-border">
-            <button onClick={() => setStep(2)} className="text-xs font-semibold text-slate-400 hover:text-slate-600">Back</button>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <button
+              onClick={() => setStep(2)}
+              className="h-11 px-5 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-850"
+            >
+              Back
+            </button>
             <button
               onClick={handleConfirmIssue}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95"
+              disabled={submitting}
+              className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-indigo-900/10 disabled:opacity-50"
             >
-              Issue Book & Print Circulation Slip
+              {submitting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <span>Processing Issue...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>Confirm & Issue Book</span>
+                </>
+              )}
             </button>
           </div>
         </div>
       )}
 
-      {/* ISSUE SLIP MODAL */}
-      <Modal isOpen={issueSlipOpen} onClose={() => { setIssueSlipOpen(false); handleReset(); }} title="Circulation Issue Slip">
-        {createdIssue && (
-          <div className="space-y-4">
-            <IssueSlip issueData={createdIssue} />
-            <button
-              onClick={() => { setIssueSlipOpen(false); handleReset(); }}
-              className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-xs font-bold rounded-xl"
-            >
-              Done & Issue Another
-            </button>
-          </div>
-        )}
-      </Modal>
+      {/* Generated Issue Slip Modal */}
+      {createdIssue && (
+        <Modal
+          isOpen={issueSlipOpen}
+          onClose={() => setIssueSlipOpen(false)}
+          title="Library Circulation Issue Slip"
+          size="md"
+        >
+          <IssueSlip
+            issue={createdIssue}
+            onClose={() => setIssueSlipOpen(false)}
+          />
+        </Modal>
+      )}
     </div>
   );
 };

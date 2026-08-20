@@ -14,12 +14,23 @@ const libraryIssueSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    copyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'BookCopy',
+      default: null,
+      index: true,
+    },
     bookTitle: {
       type: String,
       required: true,
       trim: true,
     },
     bookCode: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    accessionNumber: {
       type: String,
       default: '',
       trim: true,
@@ -63,6 +74,25 @@ const libraryIssueSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    renewalCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    maxRenewals: {
+      type: Number,
+      default: 2,
+      min: 0,
+    },
+    renewedAt: {
+      type: Date,
+      default: null,
+    },
+    lastRenewedBy: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     status: {
       type: String,
       enum: ['ISSUED', 'RETURNED', 'OVERDUE', 'LOST'],
@@ -96,6 +126,7 @@ const libraryIssueSchema = new mongoose.Schema(
 libraryIssueSchema.index({ schoolId: 1, status: 1 });
 libraryIssueSchema.index({ schoolId: 1, borrowerRefId: 1, status: 1 });
 libraryIssueSchema.index({ schoolId: 1, dueDate: 1 });
+libraryIssueSchema.index({ schoolId: 1, copyId: 1 });
 
 libraryIssueSchema.methods.toPublicJSON = function toPublicJSON() {
   const now = new Date();
@@ -115,23 +146,30 @@ libraryIssueSchema.methods.toPublicJSON = function toPublicJSON() {
   return {
     id: this._id.toString(),
     schoolId: this.schoolId.toString(),
-    bookId: this.bookId.toString(),
+    bookId: this.bookId ? (this.bookId._id ? this.bookId._id.toString() : this.bookId.toString()) : '',
+    copyId: this.copyId ? (this.copyId._id ? this.copyId._id.toString() : this.copyId.toString()) : '',
     bookTitle: this.bookTitle,
     bookCode: this.bookCode,
+    accessionNumber: this.accessionNumber || '',
     borrowerType: this.borrowerType,
-    borrowerRefId: this.borrowerRefId.toString(),
+    borrowerRefId: this.borrowerRefId ? this.borrowerRefId.toString() : '',
     borrowerName: this.borrowerName,
     borrowerCode: this.borrowerCode,
     borrowerClass: this.borrowerClass,
     issueDate: this.issueDate,
     dueDate: this.dueDate,
     returnDate: this.returnDate,
+    renewalCount: this.renewalCount || 0,
+    maxRenewals: this.maxRenewals || 2,
+    canRenew: (this.renewalCount || 0) < (this.maxRenewals || 2) && currentStatus === 'ISSUED',
+    renewedAt: this.renewedAt,
+    lastRenewedBy: this.lastRenewedBy,
     status: currentStatus,
     overdueDays,
-    fineAmount: this.fineAmount,
-    fineStatus: this.fineStatus,
+    fineAmount: this.fineAmount || 0,
+    fineStatus: this.fineStatus || 'NONE',
     conditionOnReturn: this.conditionOnReturn,
-    remarks: this.remarks,
+    remarks: this.remarks || '',
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
   };

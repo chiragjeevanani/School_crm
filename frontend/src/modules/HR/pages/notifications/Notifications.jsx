@@ -1,53 +1,65 @@
 import React, { useState } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { useHRNotifications } from '../../context/HRNotificationContext';
-import { Badge } from '../../components/ui/Badge';
-import { Eye } from 'lucide-react';
+import { Bell, Check, Eye, Trash2 } from 'lucide-react';
 
 export const Notifications = () => {
-  const { notifications, unreadCount, markAllAsRead, markAsRead } = useHRNotifications();
+  const { notifications, unreadCount, markAllAsRead, markAsRead, clearAll } = useHRNotifications();
   const [filterType, setFilterType] = useState('ALL');
 
   const filtered = filterType === 'ALL'
     ? notifications
-    : notifications.filter(n => n.type === filterType);
+    : notifications.filter((n) => n.type === filterType);
 
   return (
     <div className="space-y-6 text-xs font-semibold">
-      <PageHeader 
-        title="Notifications Feed" 
-        subtitle="Access system updates, new leave application alerts, and document expiration triggers." 
+      <PageHeader
+        title="HR Notifications & System Feed"
+        subtitle="Access system updates, new leave application alerts, and staff event notices."
         actions={
-          unreadCount > 0 && (
-            <button
-              onClick={markAllAsRead}
-              className="flex items-center gap-1.5 px-3.5 py-2 border rounded-xl hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-500 font-bold"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Mark all read</span>
-            </button>
-          )
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Mark All Read</span>
+              </button>
+            )}
+            {notifications.length > 0 && (
+              <button
+                onClick={clearAll}
+                className="flex items-center gap-1.5 px-3.5 py-2 border border-rose-200 dark:border-rose-900/40 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 font-bold cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Clear Feed</span>
+              </button>
+            )}
+          </div>
         }
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Filter bar */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-3xl p-4 shadow-sm space-y-1.5 shrink-0 text-left">
-          <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block px-2 pb-1 border-b">Filter Alerts</span>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-xs space-y-1.5 shrink-0 text-left">
+          <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block px-2 pb-1 border-b border-slate-100 dark:border-slate-800">
+            Filter Alerts
+          </span>
           {[
-            { id: 'ALL', label: 'All Alerts' },
-            { id: 'Leave Update', label: 'Leave Requests' },
-            { id: 'Document Expiry', label: 'Document Expiries' },
-            { id: 'Payroll Notification', label: 'Payroll Updates' },
-            { id: 'Joining Alert', label: 'Staff Joinings' }
+            { id: 'ALL', label: `All Alerts (${notifications.length})` },
+            { id: 'info', label: 'Info & Notice' },
+            { id: 'leave', label: 'Leave Requests' },
+            { id: 'payroll', label: 'Payroll Alerts' },
+            { id: 'attendance', label: 'Attendance' },
           ].map((cat) => (
             <button
               key={cat.id}
               onClick={() => setFilterType(cat.id)}
-              className={`w-full px-3 py-2 rounded-xl text-left transition-all ${
-                filterType === cat.id 
-                  ? 'bg-rose-50 dark:bg-rose-955/20 text-rose-600 dark:text-rose-450 font-bold' 
-                  : 'hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-655'
+              className={`w-full px-3 py-2 rounded-xl text-left transition-all cursor-pointer ${
+                filterType === cat.id
+                  ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-bold'
+                  : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
               }`}
             >
               {cat.label}
@@ -56,31 +68,40 @@ export const Notifications = () => {
         </div>
 
         {/* List Feed */}
-        <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-3.5">
-          <div className="divide-y divide-slate-100 dark:divide-slate-850/50 space-y-3.5 text-left">
-            {filtered.map((n) => (
-              <div 
-                key={n.id} 
-                onClick={() => markAsRead(n.id)}
-                className={`pt-3.5 flex items-start justify-between gap-4 cursor-pointer hover:bg-slate-50/20 rounded-lg p-2 ${!n.read ? 'bg-rose-500/5' : ''}`}
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-slate-905 dark:text-white text-xs">{n.title}</span>
-                    <Badge variant={n.type === 'Leave Update' ? 'warning' : 'danger'}>
-                      {n.type}
-                    </Badge>
+        <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs space-y-3.5">
+          {filtered.length === 0 ? (
+            <div className="py-16 text-center text-slate-400 space-y-2">
+              <Bell className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-700" />
+              <p>No notifications in your feed.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 space-y-3 text-left">
+              {filtered.map((n) => (
+                <div
+                  key={n.id}
+                  onClick={() => markAsRead(n.id)}
+                  className={`pt-3.5 first:pt-0 flex items-start gap-3.5 p-3 rounded-2xl transition-colors cursor-pointer ${
+                    !n.read
+                      ? 'bg-indigo-50/40 dark:bg-indigo-950/20'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                  }`}
+                >
+                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 mt-1 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        {n.title}
+                      </h4>
+                      <span className="text-[10px] text-slate-400 shrink-0">
+                        {n.timestamp ? new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{n.message}</p>
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">{n.message}</p>
-                  <span className="text-[9px] text-slate-400 block pt-1">{n.time}</span>
                 </div>
-              </div>
-            ))}
-
-            {filtered.length === 0 && (
-              <p className="text-center py-12 text-slate-400">No matching notifications in this category.</p>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

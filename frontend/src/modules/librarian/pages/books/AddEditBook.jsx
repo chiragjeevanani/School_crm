@@ -100,7 +100,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
               <div className={cn(
                 "h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 border",
                 isActive 
-                  ? "bg-amber-600 border-amber-600 text-white shadow-xs" 
+                  ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" 
                   : isCompleted 
                     ? "bg-emerald-500 border-emerald-500 text-white" 
                     : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-850 text-slate-450"
@@ -109,7 +109,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
               </div>
               <span className={cn(
                 "text-4xs font-bold uppercase tracking-wider mt-1.5 hidden sm:block",
-                isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-400"
+                isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"
               )}>
                 {title}
               </span>
@@ -129,7 +129,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="e.g. A Brief History of Time"
               />
             </div>
@@ -140,7 +140,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="author"
                 value={formData.author}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="e.g. Stephen Hawking"
               />
             </div>
@@ -151,7 +151,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="publisher"
                 value={formData.publisher}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="e.g. Bantam Books"
               />
             </div>
@@ -162,7 +162,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="publicationYear"
                 value={formData.publicationYear}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div className="space-y-1.5">
@@ -172,7 +172,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="edition"
                 value={formData.edition}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="e.g. 10th Anniversary"
               />
             </div>
@@ -183,7 +183,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="language"
                 value={formData.language}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
@@ -197,7 +197,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="Science">Science</option>
                 <option value="Mathematics">Mathematics</option>
@@ -214,7 +214,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="subject"
                 value={formData.subject}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="e.g. Physics"
               />
             </div>
@@ -225,7 +225,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="rackNumber"
                 value={formData.rackNumber}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="e.g. R-04"
               />
             </div>
@@ -236,7 +236,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="shelfNumber"
                 value={formData.shelfNumber}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="e.g. S-12"
               />
             </div>
@@ -252,7 +252,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="bookCost"
                 value={formData.bookCost}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div className="space-y-1.5">
@@ -262,7 +262,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="totalCopies"
                 value={formData.totalCopies}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 min="1"
               />
             </div>
@@ -273,7 +273,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="supplier"
                 value={formData.supplier}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="e.g. Oxford Press India"
               />
             </div>
@@ -284,7 +284,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="purchaseDate"
                 value={formData.purchaseDate}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
@@ -299,7 +299,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="isbn"
                 value={formData.isbn}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="e.g. 978-0-553-38016-3"
               />
             </div>
@@ -310,7 +310,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
                 name="barcode"
                 value={formData.barcode}
                 onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Leave blank to auto-use ISBN without hyphens"
               />
             </div>
@@ -337,14 +337,14 @@ export const AddEditBook = ({ book, onSuccess, onCancel }) => {
         {step < 4 ? (
           <button
             onClick={handleNext}
-            className="h-10 px-4 text-sm font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition-all duration-150"
+            className="h-10 px-4 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all duration-150"
           >
             Continue
           </button>
         ) : (
           <button
             onClick={handleSubmit}
-            className="h-10 px-4 text-sm font-semibold bg-amber-650 hover:bg-amber-700 text-white rounded-xl transition-all duration-150 shadow-xs"
+            className="h-10 px-4 text-sm font-semibold bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl transition-all duration-150 shadow-xs"
           >
             Save Book Record
           </button>

@@ -96,7 +96,7 @@ export const BarcodeDisplay = ({ value, label }) => {
 
       <button
         onClick={handlePrint}
-        className="h-9 px-4 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-xl flex items-center gap-2 transition-all duration-150 shadow-xs"
+        className="h-9 px-4 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2 transition-all duration-150 shadow-xs"
       >
         <Printer className="h-4 w-4" />
         <span>Print Barcode Label</span>

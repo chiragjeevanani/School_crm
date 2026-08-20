@@ -93,6 +93,9 @@ const DEFAULT_STAFF_USERS = [
   },
 ];
 
+import { Department } from './models/Department.js';
+import { Designation } from './models/Designation.js';
+
 export async function seedStaffUsers() {
   const schools = await School.find({}).select('_id name contact');
   const defaultPasswordHash = await bcrypt.hash('Password@123', 10);
@@ -134,6 +137,57 @@ export async function seedStaffUsers() {
       } else if (!existingUser.basicSalary) {
         existingUser.basicSalary = staff.basicSalary;
         await existingUser.save();
+      }
+    }
+
+    // Seed Standard Departments if none exist
+    const existingDeptCount = await Department.countDocuments({ schoolId: school._id });
+    if (existingDeptCount === 0) {
+      const standardDepts = [
+        { name: 'Academic & Faculty', code: 'ACAD', description: 'Teaching faculty, subject coordinators and curriculum staff.' },
+        { name: 'Human Resources & Admin', code: 'HRMS', description: 'Talent management, compliance, welfare, and office admin.' },
+        { name: 'Finance & Accounts', code: 'FACC', description: 'Fee billing, ledger accounting, audits, and taxation.' },
+        { name: 'Library & Information Resource', code: 'LIBR', description: 'Cataloging, book circulation, archives, and digital LMS.' },
+        { name: 'Transport & Logistics', code: 'TRAN', description: 'Fleet maintenance, bus routes, GPS monitoring, and safety.' },
+      ];
+
+      for (const d of standardDepts) {
+        const createdDept = await Department.create({
+          schoolId: school._id,
+          name: d.name,
+          code: d.code,
+          description: d.description,
+          status: 'ACTIVE',
+        });
+
+        // Add standard designations for this department
+        if (d.code === 'ACAD') {
+          await Designation.create([
+            { schoolId: school._id, title: 'Senior Teacher', departmentId: createdDept._id, departmentName: d.name, level: 3 },
+            { schoolId: school._id, title: 'Assistant Teacher', departmentId: createdDept._id, departmentName: d.name, level: 2 },
+            { schoolId: school._id, title: 'Head of Faculty', departmentId: createdDept._id, departmentName: d.name, level: 4 },
+          ]);
+        } else if (d.code === 'HRMS') {
+          await Designation.create([
+            { schoolId: school._id, title: 'HR & Operations Lead', departmentId: createdDept._id, departmentName: d.name, level: 3 },
+            { schoolId: school._id, title: 'Admin Executive', departmentId: createdDept._id, departmentName: d.name, level: 2 },
+          ]);
+        } else if (d.code === 'FACC') {
+          await Designation.create([
+            { schoolId: school._id, title: 'Senior Accounts Officer', departmentId: createdDept._id, departmentName: d.name, level: 3 },
+            { schoolId: school._id, title: 'Cashier & Billing Clerk', departmentId: createdDept._id, departmentName: d.name, level: 1 },
+          ]);
+        } else if (d.code === 'LIBR') {
+          await Designation.create([
+            { schoolId: school._id, title: 'Chief Librarian', departmentId: createdDept._id, departmentName: d.name, level: 3 },
+            { schoolId: school._id, title: 'Assistant Librarian', departmentId: createdDept._id, departmentName: d.name, level: 1 },
+          ]);
+        } else if (d.code === 'TRAN') {
+          await Designation.create([
+            { schoolId: school._id, title: 'Transport Fleet In-Charge', departmentId: createdDept._id, departmentName: d.name, level: 3 },
+            { schoolId: school._id, title: 'Route Supervisor', departmentId: createdDept._id, departmentName: d.name, level: 2 },
+          ]);
+        }
       }
     }
   }
