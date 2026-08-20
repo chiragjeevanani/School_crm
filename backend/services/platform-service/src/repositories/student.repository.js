@@ -4,6 +4,7 @@ import { StudentEnrollment } from '../models/StudentEnrollment.js';
 import { AcademicYear } from '../models/AcademicYear.js';
 import { SchoolClass } from '../models/SchoolClass.js';
 import { Section } from '../models/Section.js';
+import { escapeRegex } from '../../../shared/sanitize.js';
 
 function toObjectId(id) {
   return new mongoose.Types.ObjectId(id);
@@ -14,12 +15,13 @@ export class StudentRepository {
     const query = { schoolId: toObjectId(schoolId) };
     if (status) query.status = status;
     if (search) {
+      const safe = escapeRegex(search);
       query.$or = [
-        { admissionNumber: { $regex: search, $options: 'i' } },
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { parentName: { $regex: search, $options: 'i' } },
+        { admissionNumber: { $regex: safe, $options: 'i' } },
+        { firstName: { $regex: safe, $options: 'i' } },
+        { lastName: { $regex: safe, $options: 'i' } },
+        { email: { $regex: safe, $options: 'i' } },
+        { parentName: { $regex: safe, $options: 'i' } },
       ];
     }
 
@@ -29,7 +31,7 @@ export class StudentRepository {
       if (academicYearId) enrollmentQuery.academicYearId = academicYearId;
       if (classId) enrollmentQuery.classId = classId;
       if (sectionId) enrollmentQuery.sectionId = sectionId;
-      const enrollments = await StudentEnrollment.find(enrollmentQuery).select('studentId');
+      const enrollments = await StudentEnrollment.find(enrollmentQuery).select('studentId').lean();
       studentIds = [...new Set(enrollments.map((item) => item.studentId.toString()))];
       if (!studentIds.length) return [];
       query._id = { $in: studentIds };
@@ -102,12 +104,27 @@ export class StudentRepository {
     return AcademicYear.findOne({ _id: id, schoolId: toObjectId(schoolId) });
   }
 
+  findYearsByIds(schoolId, ids = []) {
+    if (!ids.length) return Promise.resolve([]);
+    return AcademicYear.find({ _id: { $in: ids }, schoolId: toObjectId(schoolId) });
+  }
+
   findClassById(schoolId, id) {
     return SchoolClass.findOne({ _id: id, schoolId: toObjectId(schoolId) });
   }
 
+  findClassesByIds(schoolId, ids = []) {
+    if (!ids.length) return Promise.resolve([]);
+    return SchoolClass.find({ _id: { $in: ids }, schoolId: toObjectId(schoolId) });
+  }
+
   findSectionById(schoolId, id) {
     return Section.findOne({ _id: id, schoolId: toObjectId(schoolId) });
+  }
+
+  findSectionsByIds(schoolId, ids = []) {
+    if (!ids.length) return Promise.resolve([]);
+    return Section.find({ _id: { $in: ids }, schoolId: toObjectId(schoolId) });
   }
 }
 

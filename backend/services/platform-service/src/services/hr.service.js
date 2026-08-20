@@ -319,6 +319,11 @@ class HRService {
         passwordHash = await bcrypt.hash(payload.password, 10);
       }
 
+      let normalizedRole = (payload.role || 'HR').toUpperCase();
+      if (!['TEACHER', 'LIBRARIAN', 'HR', 'ACCOUNTANT', 'TRANSPORT'].includes(normalizedRole)) {
+        normalizedRole = 'HR';
+      }
+
       const user = await SchoolUser.create({
         schoolId,
         employeeId,
@@ -330,7 +335,7 @@ class HRService {
         gender: payload.gender || 'MALE',
         department: payload.department || 'Administration',
         designation: payload.designation || 'Staff',
-        role: payload.role || 'HR',
+        role: normalizedRole,
         joiningDate: payload.joiningDate ? new Date(payload.joiningDate) : new Date(),
         basicSalary: Number(payload.basicSalary) || 0,
         status: payload.status || 'ACTIVE',

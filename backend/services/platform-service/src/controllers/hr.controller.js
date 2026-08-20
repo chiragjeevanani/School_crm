@@ -191,9 +191,18 @@ export async function getEmployee(req, res, next) {
   }
 }
 
+import { collectSchoolUserUploadFiles } from '../middleware/uploadSchoolUser.js';
+
 export async function createEmployee(req, res, next) {
   try {
-    const data = await hrService.createEmployee(schoolId(req), req.body);
+    const files = req.files ? collectSchoolUserUploadFiles(req) : {};
+    const payload = { ...req.body };
+    if (files.photo) payload.photo = files.photo;
+    if (files.documents?.length) {
+      payload.documents = [...(Array.isArray(payload.documents) ? payload.documents : []), ...files.documents];
+    }
+
+    const data = await hrService.createEmployee(schoolId(req), payload);
     res.status(201).json({
       success: true,
       data,
@@ -206,7 +215,14 @@ export async function createEmployee(req, res, next) {
 
 export async function updateEmployee(req, res, next) {
   try {
-    const data = await hrService.updateEmployee(schoolId(req), req.params.id, req.body);
+    const files = req.files ? collectSchoolUserUploadFiles(req) : {};
+    const payload = { ...req.body };
+    if (files.photo) payload.photo = files.photo;
+    if (files.documents?.length) {
+      payload.documents = [...(Array.isArray(payload.documents) ? payload.documents : []), ...files.documents];
+    }
+
+    const data = await hrService.updateEmployee(schoolId(req), req.params.id, payload);
     res.json({
       success: true,
       data,

@@ -99,9 +99,9 @@ export class StudentService {
     const sectionIds = [...new Set(enrollments.map((item) => item.sectionId?.toString()).filter(Boolean))];
 
     const [years, classes, sections] = await Promise.all([
-      Promise.all(yearIds.map((id) => studentRepository.findYearById(schoolId, id))),
-      Promise.all(classIds.map((id) => studentRepository.findClassById(schoolId, id))),
-      Promise.all(sectionIds.map((id) => studentRepository.findSectionById(schoolId, id))),
+      studentRepository.findYearsByIds(schoolId, yearIds),
+      studentRepository.findClassesByIds(schoolId, classIds),
+      studentRepository.findSectionsByIds(schoolId, sectionIds),
     ]);
 
     const yearMap = new Map(years.filter(Boolean).map((item) => [item._id.toString(), item.toPublicJSON()]));

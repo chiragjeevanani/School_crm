@@ -1,4 +1,5 @@
 import { SchoolUser } from '../models/SchoolUser.js';
+import { escapeRegex } from '../../../shared/sanitize.js';
 
 class UserRepository {
   async findUserById(schoolId, id) {
@@ -35,7 +36,8 @@ class UserRepository {
     }
 
     if (query.search?.trim()) {
-      const regex = new RegExp(query.search.trim(), 'i');
+      const safe = escapeRegex(query.search.trim());
+      const regex = new RegExp(safe, 'i');
       filter.$or = [
         { name: regex },
         { firstName: regex },

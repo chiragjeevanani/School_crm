@@ -9,6 +9,7 @@ import { Teacher } from '../models/Teacher.js';
 import { SchoolUser } from '../models/SchoolUser.js';
 import { bookCopyRepository } from './bookCopy.repository.js';
 import { libraryTransactionRepository } from './libraryTransaction.repository.js';
+import { escapeRegex } from '../../../shared/sanitize.js';
 
 function toObjectId(id) {
   if (!id) return null;
@@ -38,7 +39,8 @@ class LibraryRepository {
     }
 
     if (query.search?.trim()) {
-      const regex = new RegExp(query.search.trim(), 'i');
+      const safe = escapeRegex(query.search.trim());
+      const regex = new RegExp(safe, 'i');
       filter.$or = [
         { title: regex },
         { author: regex },

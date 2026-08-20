@@ -5,6 +5,7 @@ import { FeeStructureItem } from '../models/FeeStructureItem.js';
 import { StudentFeeAssignment } from '../models/StudentFeeAssignment.js';
 import { FeeInvoice } from '../models/FeeInvoice.js';
 import { FeePayment } from '../models/FeePayment.js';
+import { escapeRegex } from '../../../shared/sanitize.js';
 
 function toObjectId(id) {
   return new mongoose.Types.ObjectId(id);
@@ -15,9 +16,10 @@ export class FeeRepository {
   listHeads(schoolId, { search, category, status, page = 1, limit = 50 } = {}) {
     const query = { schoolId: toObjectId(schoolId) };
     if (search) {
+      const safe = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { code: { $regex: search, $options: 'i' } },
+        { name: { $regex: safe, $options: 'i' } },
+        { code: { $regex: safe, $options: 'i' } },
       ];
     }
     if (category) query.category = category;

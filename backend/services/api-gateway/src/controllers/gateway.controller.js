@@ -1,11 +1,45 @@
 import { env } from '../config/env.js';
 import { createServiceProxy } from '../middleware/proxy.js';
 
-export function healthCheck(req, res) {
+export async function healthCheck(req, res) {
   res.json({
     success: true,
     service: 'api-gateway',
-    message: 'School CRM gateway is running',
+    status: 'HEALTHY',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+  });
+}
+
+export async function readyCheck(req, res) {
+  const checkService = async (url) => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      const resp = await fetch(`${url}/health`, { signal: controller.signal });
+      clearTimeout(timeout);
+      return resp.ok ? 'UP' : 'DOWN';
+    } catch {
+      return 'DOWN';
+    }
+  };
+
+  const [authStatus, platformStatus] = await Promise.all([
+    checkService(env.authServiceUrl),
+    checkService(env.platformServiceUrl),
+  ]);
+
+  const isReady = authStatus === 'UP' && platformStatus === 'UP';
+
+  res.status(isReady ? 200 : 503).json({
+    success: isReady,
+    status: isReady ? 'READY' : 'DEGRADED',
+    services: {
+      auth: authStatus,
+      platform: platformStatus,
+    },
+    timestamp: new Date().toISOString(),
   });
 }
 

@@ -9,7 +9,20 @@ export async function connectDB(uri) {
 
   try {
     await mongoose.connect(uri, {
+      maxPoolSize: 50,
+      minPoolSize: 10,
+      socketTimeoutMS: 45000,
       serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
+      heartbeatFrequencyMS: 10000,
+    });
+
+    mongoose.connection.on('error', (err) => {
+      console.error('MongoDB connection error:', err.message);
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      console.warn('MongoDB disconnected. Reconnecting...');
     });
   } catch (error) {
     if (error.message?.includes('bad auth') || error.message?.includes('Authentication failed')) {

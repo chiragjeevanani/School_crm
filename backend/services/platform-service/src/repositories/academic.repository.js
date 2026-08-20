@@ -7,6 +7,7 @@ import { Subject } from '../models/Subject.js';
 import { SectionSubject } from '../models/SectionSubject.js';
 import { Teacher } from '../models/Teacher.js';
 import { StudentEnrollment } from '../models/StudentEnrollment.js';
+import { escapeRegex } from '../../../shared/sanitize.js';
 
 function toObjectId(id) {
   return new mongoose.Types.ObjectId(id);
@@ -17,9 +18,10 @@ export class AcademicRepository {
   listYears(schoolId, { search, status, page = 1, limit = 20 } = {}) {
     const query = { schoolId: toObjectId(schoolId) };
     if (search) {
+      const safe = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { code: { $regex: search, $options: 'i' } },
+        { name: { $regex: safe, $options: 'i' } },
+        { code: { $regex: safe, $options: 'i' } },
       ];
     }
     if (status) query.status = status;
@@ -57,9 +59,10 @@ export class AcademicRepository {
   listClasses(schoolId, { search, status, page = 1, limit = 50 } = {}) {
     const query = { schoolId: toObjectId(schoolId) };
     if (search) {
+      const safe = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { code: { $regex: search, $options: 'i' } },
+        { name: { $regex: safe, $options: 'i' } },
+        { code: { $regex: safe, $options: 'i' } },
       ];
     }
     if (status) query.status = status;
@@ -74,6 +77,11 @@ export class AcademicRepository {
 
   findClassById(schoolId, id) {
     return SchoolClass.findOne({ _id: id, schoolId: toObjectId(schoolId) });
+  }
+
+  findClassesByIds(schoolId, ids = []) {
+    if (!ids.length) return Promise.resolve([]);
+    return SchoolClass.find({ _id: { $in: ids }, schoolId: toObjectId(schoolId) });
   }
 
   createClass(payload) {
@@ -156,9 +164,10 @@ export class AcademicRepository {
   listSubjects(schoolId, { search, status, page = 1, limit = 50 } = {}) {
     const query = { schoolId: toObjectId(schoolId) };
     if (search) {
+      const safe = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { code: { $regex: search, $options: 'i' } },
+        { name: { $regex: safe, $options: 'i' } },
+        { code: { $regex: safe, $options: 'i' } },
       ];
     }
     if (status) query.status = status;
@@ -246,15 +255,12 @@ export class AcademicRepository {
   listTeachers(schoolId, { search, status } = {}) {
     const query = { schoolId: toObjectId(schoolId) };
     if (search) {
+      const safe = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { mobileNumber: { $regex: search, $options: 'i' } },
-        { employeeId: { $regex: search, $options: 'i' } },
-        { department: { $regex: search, $options: 'i' } },
-        { designation: { $regex: search, $options: 'i' } },
+        { name: { $regex: safe, $options: 'i' } },
+        { email: { $regex: safe, $options: 'i' } },
+        { phone: { $regex: safe, $options: 'i' } },
+        { teacherId: { $regex: safe, $options: 'i' } },
       ];
     }
     if (status) query.status = status;
@@ -263,6 +269,11 @@ export class AcademicRepository {
 
   findTeacherById(schoolId, id) {
     return Teacher.findOne({ _id: id, schoolId: toObjectId(schoolId) });
+  }
+
+  findTeachersByIds(schoolId, ids = []) {
+    if (!ids.length) return Promise.resolve([]);
+    return Teacher.find({ _id: { $in: ids }, schoolId: toObjectId(schoolId) });
   }
 
   createTeacher(payload) {
@@ -280,23 +291,12 @@ export class AcademicRepository {
     return Teacher.findOneAndDelete({ _id: id, schoolId: toObjectId(schoolId) });
   }
 
-  // Counts
-  countSectionsForYear(schoolId, academicYearId) {
-    return Section.countDocuments({ schoolId: toObjectId(schoolId), academicYearId });
-  }
-
+  // Counts and Optimizations
   countSectionsForClass(schoolId, academicYearId, classId) {
     return Section.countDocuments({
       schoolId: toObjectId(schoolId),
       academicYearId,
       classId,
-    });
-  }
-
-  countYearClasses(schoolId, academicYearId) {
-    return AcademicYearClass.countDocuments({
-      schoolId: toObjectId(schoolId),
-      academicYearId,
       status: 'ACTIVE',
     });
   }
@@ -315,6 +315,75 @@ export class AcademicRepository {
     if (filters.academicYearId) query.academicYearId = filters.academicYearId;
     if (filters.classId) query.classId = filters.classId;
     return SectionSubject.countDocuments(query);
+  }
+
+  // Batch Aggregations to eliminate N+1 queries
+  async countSectionsByClassMap(schoolId, academicYearId) {
+    const results = await Section.aggregate([
+      { $match: { schoolId: toObjectId(schoolId), academicYearId: toObjectId(academicYearId), status: 'ACTIVE' } },
+      { $group: { _id: '$classId', count: { $sum: 1 } } },
+    ]);
+    const map = new Map();
+    results.forEach((r) => {
+      if (r._id) map.set(r._id.toString(), r.count);
+    });
+    return map;
+  }
+
+  async countEnrollmentsByClassMap(schoolId, academicYearId) {
+    const results = await StudentEnrollment.aggregate([
+      { $match: { schoolId: toObjectId(schoolId), academicYearId: toObjectId(academicYearId), status: 'ACTIVE' } },
+      { $group: { _id: '$classId', count: { $sum: 1 } } },
+    ]);
+    const map = new Map();
+    results.forEach((r) => {
+      if (r._id) map.set(r._id.toString(), r.count);
+    });
+    return map;
+  }
+
+  async countSectionSubjectsByClassMap(schoolId, academicYearId) {
+    const results = await SectionSubject.aggregate([
+      { $match: { schoolId: toObjectId(schoolId), academicYearId: toObjectId(academicYearId), status: 'ACTIVE' } },
+      { $group: { _id: '$classId', count: { $sum: 1 } } },
+    ]);
+    const map = new Map();
+    results.forEach((r) => {
+      if (r._id) map.set(r._id.toString(), r.count);
+    });
+    return map;
+  }
+
+  async countEnrollmentsBySectionMap(schoolId, sectionIds = []) {
+    const match = { schoolId: toObjectId(schoolId), status: 'ACTIVE' };
+    if (sectionIds.length) {
+      match.sectionId = { $in: sectionIds.map(toObjectId) };
+    }
+    const results = await StudentEnrollment.aggregate([
+      { $match: match },
+      { $group: { _id: '$sectionId', count: { $sum: 1 } } },
+    ]);
+    const map = new Map();
+    results.forEach((r) => {
+      if (r._id) map.set(r._id.toString(), r.count);
+    });
+    return map;
+  }
+
+  async countSectionSubjectsBySectionMap(schoolId, sectionIds = []) {
+    const match = { schoolId: toObjectId(schoolId), status: 'ACTIVE' };
+    if (sectionIds.length) {
+      match.sectionId = { $in: sectionIds.map(toObjectId) };
+    }
+    const results = await SectionSubject.aggregate([
+      { $match: match },
+      { $group: { _id: '$sectionId', count: { $sum: 1 } } },
+    ]);
+    const map = new Map();
+    results.forEach((r) => {
+      if (r._id) map.set(r._id.toString(), r.count);
+    });
+    return map;
   }
 
   hasDependentRecords(schoolId, academicYearId) {

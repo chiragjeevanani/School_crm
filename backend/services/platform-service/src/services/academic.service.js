@@ -568,29 +568,34 @@ export class AcademicService {
   async listYearClasses(schoolId, academicYearId) {
     await assertYear(schoolId, academicYearId);
     const mappings = await academicRepository.listYearClasses(schoolId, academicYearId);
-    const data = await Promise.all(
-      mappings.map(async (mapping) => {
-        const cls = await academicRepository.findClassById(schoolId, mapping.classId);
-        const sections = await academicRepository.countSectionsForClass(
-          schoolId,
-          academicYearId,
-          mapping.classId
-        );
-        const students = await academicRepository.countEnrollments(schoolId, {
-          academicYearId,
-          classId: mapping.classId,
-        });
-        const subjectAssignments = await academicRepository.countSectionSubjects(schoolId, {
-          academicYearId,
-          classId: mapping.classId,
-        });
-        return {
-          ...mapping.toPublicJSON(),
-          class: cls ? cls.toPublicJSON() : null,
-          counts: { sections, students, subjectAssignments },
-        };
-      })
-    );
+    if (!mappings.length) return [];
+
+    const classIds = mappings.map((m) => m.classId);
+
+    // Fetch classes and aggregate counts concurrently in 4 queries instead of 60+ queries
+    const [classes, sectionCountsMap, studentCountsMap, subjectCountsMap] = await Promise.all([
+      academicRepository.findClassesByIds(schoolId, classIds),
+      academicRepository.countSectionsByClassMap(schoolId, academicYearId),
+      academicRepository.countEnrollmentsByClassMap(schoolId, academicYearId),
+      academicRepository.countSectionSubjectsByClassMap(schoolId, academicYearId),
+    ]);
+
+    const classMap = new Map(classes.map((c) => [c._id.toString(), c.toPublicJSON()]));
+
+    const data = mappings.map((mapping) => {
+      const cId = mapping.classId.toString();
+      const cls = classMap.get(cId) || null;
+      return {
+        ...mapping.toPublicJSON(),
+        class: cls,
+        counts: {
+          sections: sectionCountsMap.get(cId) || 0,
+          students: studentCountsMap.get(cId) || 0,
+          subjectAssignments: subjectCountsMap.get(cId) || 0,
+        },
+      };
+    });
+
     return data.sort((a, b) => (a.class?.numericOrder || 0) - (b.class?.numericOrder || 0));
   }
 
@@ -632,24 +637,33 @@ export class AcademicService {
     if (filters.classId) await assertClass(schoolId, filters.classId);
 
     const sections = await academicRepository.listSections(schoolId, filters);
-    const data = await Promise.all(
-      sections.map(async (section) => {
-        const json = section.toPublicJSON();
-        const [students, subjects, classTeacher] = await Promise.all([
-          academicRepository.countEnrollments(schoolId, { sectionId: section._id }),
-          academicRepository.countSectionSubjects(schoolId, { sectionId: section._id }),
-          section.classTeacherId
-            ? academicRepository.findTeacherById(schoolId, section.classTeacherId)
-            : null,
-        ]);
-        return {
-          ...json,
-          classTeacher: classTeacher ? classTeacher.toPublicJSON() : null,
-          counts: { students, subjects },
-        };
-      })
-    );
-    return data;
+    if (!sections.length) return [];
+
+    const sectionIds = sections.map((s) => s._id);
+    const teacherIds = [...new Set(sections.map((s) => s.classTeacherId).filter(Boolean))];
+
+    // Concurrently aggregate counts and teacher records in 3 queries instead of 90+ queries
+    const [studentCountsMap, subjectCountsMap, teachers] = await Promise.all([
+      academicRepository.countEnrollmentsBySectionMap(schoolId, sectionIds),
+      academicRepository.countSectionSubjectsBySectionMap(schoolId, sectionIds),
+      academicRepository.findTeachersByIds(schoolId, teacherIds),
+    ]);
+
+    const teacherMap = new Map(teachers.map((t) => [t._id.toString(), t.toPublicJSON()]));
+
+    return sections.map((section) => {
+      const sId = section._id.toString();
+      const tId = section.classTeacherId ? section.classTeacherId.toString() : null;
+      const classTeacher = tId ? teacherMap.get(tId) || null : null;
+      return {
+        ...section.toPublicJSON(),
+        classTeacher,
+        counts: {
+          students: studentCountsMap.get(sId) || 0,
+          subjects: subjectCountsMap.get(sId) || 0,
+        },
+      };
+    });
   }
 
   async getSection(schoolId, id) {

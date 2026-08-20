@@ -630,9 +630,9 @@ router.post('/school-portal/hr/announcements', requireHR, hrCreateAnnouncement);
 
 // Employees
 router.get('/school-portal/hr/employees', requireHR, hrListEmployees);
-router.post('/school-portal/hr/employees', requireHR, hrCreateEmployee);
+router.post('/school-portal/hr/employees', requireHR, uploadSchoolUserFiles, convertSchoolUserImages, hrCreateEmployee);
 router.get('/school-portal/hr/employees/:id', requireHR, hrGetEmployee);
-router.patch('/school-portal/hr/employees/:id', requireHR, hrUpdateEmployee);
+router.patch('/school-portal/hr/employees/:id', requireHR, uploadSchoolUserFiles, convertSchoolUserImages, hrUpdateEmployee);
 router.patch('/school-portal/hr/employees/:id/status', requireHR, hrUpdateEmployeeStatus);
 router.delete('/school-portal/hr/employees/:id', requireHR, hrDeleteEmployee);
 

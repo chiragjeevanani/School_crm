@@ -4,19 +4,23 @@ export function notFoundHandler(req, res) {
   res.status(404).json({
     success: false,
     message: `Route not found: ${req.method} ${req.originalUrl}`,
+    code: 'NOT_FOUND',
   });
 }
 
 export function errorHandler(err, req, res, next) {
   const statusCode = err.statusCode || 500;
-  const message = err.isOperational ? err.message : 'Internal server error';
+  const isProd = env.nodeEnv === 'production';
+  const message = err.isOperational ? err.message : isProd ? 'Internal server error' : (err.message || 'Internal server error');
+  const code = err.code || (statusCode === 404 ? 'NOT_FOUND' : statusCode === 401 ? 'UNAUTHORIZED' : statusCode === 403 ? 'FORBIDDEN' : 'SERVER_ERROR');
 
   if (env.nodeEnv !== 'test') {
-    console.error(err);
+    console.error(`[Auth Error] [${req.method} ${req.originalUrl}]:`, err.message || err);
   }
 
   res.status(statusCode).json({
     success: false,
     message,
+    code,
   });
 }

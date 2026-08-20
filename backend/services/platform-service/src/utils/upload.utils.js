@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
+import { AppError } from '../../../shared/AppError.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,7 +58,11 @@ export function deleteUploadedFile(publicPath) {
   const filePath = resolveUploadPath(publicPath);
   if (!filePath) return;
   if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
+    try {
+      fs.unlinkSync(filePath);
+    } catch {
+      // Ignore deletion failure
+    }
   }
 }
 
@@ -73,29 +78,97 @@ export function listMulterFiles(files) {
 export function deleteMulterFiles(files) {
   for (const file of listMulterFiles(files)) {
     if (file?.path && fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
+      try {
+        fs.unlinkSync(file.path);
+      } catch {
+        // Ignore deletion failure
+      }
     }
   }
 }
 
-export async function convertUploadedImageToWebp(file) {
+/**
+ * Universal Image-to-WebP Converter
+ * Converts any uploaded image (JPEG, PNG, GIF, BMP, TIFF, SVG, etc.) to optimized WebP.
+ *
+ * @param {Object} file - Multer file object
+ * @param {Object} [options] - Sharp optimization options
+ * @returns {Promise<Object>} - Updated Multer file object with .webp extension and mime
+ */
+export async function convertUploadedImageToWebp(file, options = {}) {
   if (!file?.path) return file;
+
   const parsed = path.parse(file.path);
-  const destPath = path.join(parsed.dir, `${parsed.name}.webp`);
+  const tempDestPath = path.join(parsed.dir, `${parsed.name}-optimized.webp`);
+  const finalDestPath = path.join(parsed.dir, `${parsed.name}.webp`);
 
   try {
-    await sharp(file.path, { failOn: 'none' }).rotate().webp({ quality: 82 }).toFile(destPath);
-  } catch {
+    const image = sharp(file.path, { failOn: 'none' }).rotate(); // Auto-orient based on EXIF
+
+    // Resize if excessive (e.g. > 2000px width/height) to save storage & bandwidth
+    const metadata = await image.metadata();
+    if (metadata.width > 2048 || metadata.height > 2048) {
+      image.resize({
+        width: metadata.width > 2048 ? 2048 : undefined,
+        height: metadata.height > 2048 ? 2048 : undefined,
+        fit: 'inside',
+        withoutEnlargement: true,
+      });
+    }
+
+    // Convert to WebP with balanced quality and compression
+    await image
+      .webp({
+        quality: options.quality || 82,
+        effort: 4,
+        lossless: false,
+      })
+      .toFile(tempDestPath);
+
+    // Remove original uploaded file
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+
+    // Rename optimized WebP to final destination
+    if (tempDestPath !== finalDestPath) {
+      if (fs.existsSync(finalDestPath)) {
+        fs.unlinkSync(finalDestPath);
+      }
+      fs.renameSync(tempDestPath, finalDestPath);
+    }
+
+    // Update Multer file reference
+    file.filename = `${parsed.name}.webp`;
+    file.path = finalDestPath;
+    file.mimetype = 'image/webp';
+    return file;
+  } catch (error) {
+    if (fs.existsSync(tempDestPath)) fs.unlinkSync(tempDestPath);
     if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-    throw new Error('Invalid image file');
+    throw new AppError(`Failed to process and convert image to WebP: ${error.message}`, 400);
   }
+}
 
-  if (path.resolve(file.path) !== path.resolve(destPath) && fs.existsSync(file.path)) {
-    fs.unlinkSync(file.path);
+/**
+ * Universal Express Middleware to automatically convert ALL uploaded images
+ * in req.file or req.files to WebP format.
+ */
+export async function convertAllUploadedImagesToWebp(req, res, next) {
+  try {
+    const files = [];
+    if (req.file) files.push(req.file);
+    if (req.files) files.push(...listMulterFiles(req.files));
+
+    for (const file of files) {
+      if (file?.mimetype?.startsWith('image/') || /\.(jpg|jpeg|png|gif|bmp|webp|tiff|svg)$/i.test(file?.originalname || '')) {
+        await convertUploadedImageToWebp(file);
+      }
+    }
+    next();
+  } catch (error) {
+    if (req.file) deleteMulterFiles(req.file);
+    if (req.files) deleteMulterFiles(req.files);
+    next(error);
   }
-
-  file.filename = `${parsed.name}.webp`;
-  file.path = destPath;
-  file.mimetype = 'image/webp';
-  return file;
 }
