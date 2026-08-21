@@ -3,6 +3,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { IssueSlip } from '../../components/ui/IssueSlip';
+import { SkeletonList } from '../../components/ui/SkeletonLoader';
 import { useToast } from '../../components/ui/Toast';
 import { Search, User, BookOpen, Calendar, CheckCircle2, ChevronRight, RefreshCw, Copy, ShieldAlert } from 'lucide-react';
 import { cn } from '../../utils/cn';
@@ -18,7 +19,6 @@ export const BookIssue = () => {
 
   const [borrowers, setBorrowers] = useState([]);
   const [books, setBooks] = useState([]);
-  const [copies, setCopies] = useState([]);
   const [settings, setSettings] = useState(null);
 
   const [memberQuery, setMemberQuery] = useState('');
@@ -26,7 +26,6 @@ export const BookIssue = () => {
 
   const [bookQuery, setBookQuery] = useState('');
   const [selectedBook, setSelectedBook] = useState(null);
-  const [selectedCopy, setSelectedCopy] = useState(null);
 
   const [durationDays, setDurationDays] = useState(14);
   const [dueDate, setDueDate] = useState(() => {
@@ -75,34 +74,6 @@ export const BookIssue = () => {
     loadInitialData();
   }, []);
 
-  // Fetch available copies when book is selected
-  useEffect(() => {
-    if (!selectedBook) {
-      setCopies([]);
-      setSelectedCopy(null);
-      return;
-    }
-
-    const loadCopies = async () => {
-      try {
-        const res = await librarianApi.copies({
-          bookId: selectedBook.id,
-          status: 'AVAILABLE',
-        });
-        if (res?.success && Array.isArray(res.data)) {
-          setCopies(res.data);
-          if (res.data.length > 0) {
-            setSelectedCopy(res.data[0]);
-          }
-        }
-      } catch {
-        toast.error('Failed to load physical copies for this book');
-      }
-    };
-
-    loadCopies();
-  }, [selectedBook]);
-
   const filteredMembers = borrowers.filter(
     (m) =>
       m.name.toLowerCase().includes(memberQuery.toLowerCase()) ||
@@ -149,7 +120,6 @@ export const BookIssue = () => {
     try {
       const payload = {
         bookId: selectedBook.id,
-        copyId: selectedCopy?.id,
         borrowerRefId: selectedMember.id,
         borrowerType: selectedMember.type,
         borrowerName: selectedMember.name,
@@ -167,7 +137,6 @@ export const BookIssue = () => {
         ...res.data,
         book: selectedBook,
         member: selectedMember,
-        copy: selectedCopy,
       });
 
       setIssueSlipOpen(true);
@@ -176,7 +145,6 @@ export const BookIssue = () => {
       setStep(1);
       setSelectedMember(null);
       setSelectedBook(null);
-      setSelectedCopy(null);
       setRemarks('');
       loadInitialData();
     } catch (err) {
@@ -285,10 +253,7 @@ export const BookIssue = () => {
           </div>
 
           {loading ? (
-            <div className="py-12 text-center text-xs font-semibold text-slate-400 flex items-center justify-center gap-2">
-              <RefreshCw className="h-5 w-5 animate-spin text-indigo-600" />
-              <span>Fetching verified school members...</span>
-            </div>
+            <SkeletonList count={6} />
           ) : filteredMembers.length === 0 ? (
             <div className="py-12 text-center text-xs font-semibold text-slate-400">
               No eligible borrowers found matching "{memberQuery}".
@@ -405,7 +370,7 @@ export const BookIssue = () => {
                 Step 3: Finalize Loan Issue
               </h3>
               <p className="text-xs text-slate-500">
-                Confirm physical copy accession code and set return due date.
+                Set the issue duration and confirm the loan.
               </p>
             </div>
             <button
@@ -433,33 +398,6 @@ export const BookIssue = () => {
               <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{selectedBook?.title}</p>
               <p className="text-xs text-slate-500">By {selectedBook?.author}</p>
             </div>
-          </div>
-
-          {/* Physical Copy Selector */}
-          <div className="space-y-2">
-            <label className="text-3xs font-bold text-slate-500 uppercase tracking-wider block">
-              Select Physical Copy (Accession #)
-            </label>
-            {copies.length > 0 ? (
-              <select
-                value={selectedCopy?.id || ''}
-                onChange={(e) => {
-                  const copy = copies.find((c) => c.id === e.target.value);
-                  setSelectedCopy(copy || null);
-                }}
-                className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              >
-                {copies.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.accessionNumber} — Condition: {c.condition} ({c.rackNumber ? `Rack ${c.rackNumber}` : 'Shelf'})
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/30 rounded-2xl text-xs text-indigo-700 dark:text-indigo-400">
-                Auto-assigned copy will be attached upon issue.
-              </div>
-            )}
           </div>
 
           {/* Loan Duration & Due Date */}

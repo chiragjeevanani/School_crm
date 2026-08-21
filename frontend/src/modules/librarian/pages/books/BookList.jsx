@@ -6,7 +6,8 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { AddEditBook } from './AddEditBook';
-import { Plus, LayoutGrid, List, Trash2, Eye, Edit, RefreshCw } from 'lucide-react';
+import { SkeletonCard, SkeletonTable } from '../../components/ui/SkeletonLoader';
+import { Plus, LayoutGrid, List, Trash2, Eye, Edit, RefreshCw, Power } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { librarianApi } from '../../../../shared/api/client';
 import { useToast } from '../../components/ui/Toast';
@@ -70,6 +71,17 @@ export const BookList = () => {
     setWizardOpen(true);
   };
 
+  const handleToggleStatus = async (book) => {
+    const nextActive = !(book.isActive !== false);
+    try {
+      await librarianApi.updateBook(book.id, { isActive: nextActive });
+      toast.success(`"${book.title}" marked ${nextActive ? 'active' : 'inactive'}`);
+      fetchBooks();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to update book status');
+    }
+  };
+
   const confirmDelete = async () => {
     if (!bookToDelete) return;
     setActionLoading(true);
@@ -112,15 +124,6 @@ export const BookList = () => {
       render: (val) => <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold text-3xs rounded-md">{val}</span>,
     },
     {
-      title: 'Location',
-      key: 'rackNumber',
-      render: (val, row) => (
-        <span className="text-xs text-slate-600 dark:text-slate-400">
-          {val ? `Rack ${val}` : '—'} {row.shelfNumber ? `, Shelf ${row.shelfNumber}` : ''}
-        </span>
-      ),
-    },
-    {
       title: 'Available Copies',
       key: 'availableCopies',
       sortable: true,
@@ -130,7 +133,18 @@ export const BookList = () => {
         </Badge>
       ),
     },
-    { title: 'Price', key: 'price', render: (val) => `₹${val || 0}` },
+    {
+      title: 'Status',
+      key: 'isActive',
+      sortable: true,
+      render: (val, row) => (
+        <button onClick={() => handleToggleStatus(row)} title={val !== false ? 'Click to deactivate' : 'Click to activate'}>
+          <Badge variant={val !== false ? 'default' : 'warning'} className="cursor-pointer">
+            {val !== false ? 'Active' : 'Inactive'}
+          </Badge>
+        </button>
+      ),
+    },
     {
       title: 'Actions',
       key: 'actions',
@@ -149,6 +163,13 @@ export const BookList = () => {
             className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg transition-colors"
           >
             <Edit className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleToggleStatus(row)}
+            title={row.isActive !== false ? 'Deactivate Book' : 'Activate Book'}
+            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 rounded-lg transition-colors"
+          >
+            <Power className="h-4 w-4" />
           </button>
           <button
             onClick={() => {
@@ -222,10 +243,15 @@ export const BookList = () => {
       />
 
       {loading ? (
-        <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
-          <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
-          <span>Loading book catalogue from database...</span>
-        </div>
+        viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, idx) => (
+              <SkeletonCard key={idx} />
+            ))}
+          </div>
+        ) : (
+          <SkeletonTable rows={8} columns={6} />
+        )
       ) : books.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-4">
           <div className="inline-flex p-4 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-2xl">
@@ -256,6 +282,11 @@ export const BookList = () => {
               book={book}
               onView={(b) => navigate(`/librarian/books/${b.id}`)}
               onEdit={handleEditClick}
+              onToggleStatus={handleToggleStatus}
+              onDelete={(b) => {
+                setBookToDelete(b);
+                setDeleteModalOpen(true);
+              }}
             />
           ))}
         </div>

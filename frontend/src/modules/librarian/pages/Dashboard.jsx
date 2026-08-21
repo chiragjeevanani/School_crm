@@ -1,28 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useLibrarianAuth } from '../context/LibrarianAuthContext';
-import { 
-  BookOpen, 
-  BookCopy, 
-  FileCheck, 
-  FileX, 
-  Receipt, 
-  Bookmark, 
+import {
+  BookOpen,
+  BookCopy,
+  FileCheck,
+  FileX,
+  Receipt,
+  Bookmark,
   AlertTriangle,
   ArrowRight,
   PlusCircle,
-  Search,
-  CalendarDays,
+  Library,
   FileText,
   RefreshCw,
-  Clock,
-  Layers,
-  CheckCircle2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { StatCard } from '../components/ui/StatCard';
 import { AreaChart } from '../components/ui/Charts/AreaChart';
 import { BarChart } from '../components/ui/Charts/BarChart';
 import { PieChart } from '../components/ui/Charts/PieChart';
+import { DashboardSkeleton } from '../components/ui/SkeletonLoader';
 import { formatDate, formatCurrency, formatDateTime } from '../utils/formatters';
 import { librarianApi } from '../../../shared/api/client';
 import { Badge } from '../components/ui/Badge';
@@ -32,6 +29,7 @@ export const Dashboard = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     totalTitles: 0,
     totalCopies: 0,
@@ -51,8 +49,9 @@ export const Dashboard = () => {
   const [issueTrendData, setIssueTrendData] = useState([]);
   const [fineTrendData, setFineTrendData] = useState([]);
 
-  const loadDashboardData = async () => {
-    setLoading(true);
+  const loadDashboardData = async (isSilent = false) => {
+    if (isSilent) setRefreshing(true);
+    else setLoading(true);
     try {
       const [statsRes, catRes, txRes, trendRes, fineRes] = await Promise.allSettled([
         librarianApi.stats(),
@@ -105,6 +104,7 @@ export const Dashboard = () => {
       // Handled via settled
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -112,62 +112,97 @@ export const Dashboard = () => {
     loadDashboardData();
   }, []);
 
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
+
   const quickActions = [
     { name: 'Add New Book', icon: PlusCircle, path: '/librarian/books/add', color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' },
     { name: 'Issue Book', icon: FileCheck, path: '/librarian/issue', color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' },
     { name: 'Return Book', icon: FileX, path: '/librarian/return', color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' },
-    { name: 'Renew Book', icon: RefreshCw, path: '/librarian/renew', color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' },
     { name: 'Reservations', icon: Bookmark, path: '/librarian/reservations', color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' },
     { name: 'View Reports', icon: FileText, path: '/librarian/reports', color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header Profile Section */}
-      <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-800 rounded-3xl p-6 md:p-8 text-white flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-md shadow-indigo-900/10">
+      {/* Page Welcome & Library Profile Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl bg-white/10 backdrop-blur-xs border-2 border-white/20 flex items-center justify-center font-black text-2xl text-white shrink-0 shadow-inner">
-            {user?.name ? user.name.charAt(0).toUpperCase() : 'L'}
+          <div className="p-4 bg-indigo-500/10 rounded-2xl text-indigo-600 dark:text-indigo-400">
+            <Library className="w-8 h-8" />
           </div>
-          <div className="space-y-1">
-            <h2 className="text-xl md:text-2xl font-black tracking-tight">Welcome back, {user?.name || 'Sanjay Kumar'}!</h2>
-            <p className="text-xs text-indigo-100 font-semibold flex items-center gap-1.5 opacity-90">
-              <span>{user?.schoolName || 'Greenfield Public School'}</span>
-              <span className="h-1 w-1 bg-white/40 rounded-full" />
-              <span>Session {user?.academicSession || '2024-2025'}</span>
-              <span className="h-1 w-1 bg-white/40 rounded-full" />
-              <span className="bg-white/15 px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold">Head Librarian</span>
-            </p>
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight">
+                {user?.schoolName || 'Greenfield Public School'} Library
+              </h1>
+              <Badge variant="success">Active</Badge>
+            </div>
+            <p className="text-xs font-semibold text-slate-400 mt-1">{formatDate(new Date())} • Welcome back, {user?.name || 'Librarian'}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xs px-3.5 py-2 rounded-xl border border-white/15">
-            <CalendarDays className="h-4 w-4 text-indigo-200" />
-            <span className="text-xs font-bold font-mono uppercase tracking-wider">{formatDate(new Date())}</span>
-          </div>
+
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs font-bold text-slate-600 dark:text-slate-400 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl">
+            Session: <strong>{user?.academicSession || '2024-2025'}</strong>
+          </span>
           <button
-            onClick={loadDashboardData}
-            title="Refresh Dashboard"
-            disabled={loading}
-            className="p-2 bg-white/10 hover:bg-white/20 rounded-xl border border-white/15 text-white transition-colors"
+            onClick={() => loadDashboardData(true)}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/50 dark:hover:bg-indigo-950 text-xs font-bold rounded-xl transition-all"
+            title="Refresh Live Metrics"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <span>Sync Live</span>
           </button>
         </div>
       </div>
 
-      {/* Grid statistics (10 Stats) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <StatCard title="Total Titles" value={stats.totalTitles} icon={BookOpen} />
-        <StatCard title="Total Copies" value={stats.totalCopies} icon={BookCopy} />
-        <StatCard title="Available Copies" value={stats.availableCopies} icon={BookCopy} />
-        <StatCard title="Active Issued" value={stats.issuedCopies} icon={FileCheck} />
-        <StatCard title="Overdue Books" value={stats.overdueCount} icon={AlertTriangle} />
-        <StatCard title="Today's Issues" value={stats.todayIssues} icon={FileCheck} />
-        <StatCard title="Today's Returns" value={stats.todayReturns} icon={FileX} />
-        <StatCard title="Today's Fine" value={formatCurrency(stats.todayFineCollected)} icon={Receipt} />
-        <StatCard title="Pending Fines" value={formatCurrency(stats.totalPendingFines)} icon={Receipt} />
-        <StatCard title="Pending Queue" value={stats.pendingReservations} icon={Bookmark} />
+      {/* KPI Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <StatCard
+          title="Total Titles"
+          value={stats.totalTitles}
+          icon={BookOpen}
+          subtitle={`${stats.totalCopies} physical copies`}
+          onClick={() => navigate('/librarian/books')}
+        />
+        <StatCard
+          title="Available Copies"
+          value={stats.availableCopies}
+          icon={BookCopy}
+          subtitle="Ready to issue"
+          onClick={() => navigate('/librarian/books')}
+        />
+        <StatCard
+          title="Active Issued"
+          value={stats.issuedCopies}
+          icon={FileCheck}
+          subtitle={`${stats.todayIssues} issued today`}
+          onClick={() => navigate('/librarian/issued')}
+        />
+        <StatCard
+          title="Overdue Books"
+          value={stats.overdueCount}
+          icon={AlertTriangle}
+          subtitle={`${stats.todayReturns} returned today`}
+          onClick={() => navigate('/librarian/overdue')}
+        />
+        <StatCard
+          title="Pending Fines"
+          value={formatCurrency(stats.totalPendingFines)}
+          icon={Receipt}
+          subtitle={`${formatCurrency(stats.todayFineCollected)} collected today`}
+          onClick={() => navigate('/librarian/fines/pending')}
+        />
+        <StatCard
+          title="Reservation Queue"
+          value={stats.pendingReservations}
+          icon={Bookmark}
+          subtitle="Pending requests"
+          onClick={() => navigate('/librarian/reservations/pending')}
+        />
       </div>
 
       {/* Quick Actions Panel */}

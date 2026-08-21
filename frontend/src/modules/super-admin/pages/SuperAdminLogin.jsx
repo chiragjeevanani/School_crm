@@ -59,7 +59,7 @@ export default function SuperAdminLogin() {
   };
 
   return (
-    <div className="h-dvh overflow-hidden bg-slate-950 text-slate-100 lg:grid lg:grid-cols-2">
+    <div className="dark h-dvh overflow-hidden bg-slate-950 text-slate-100 lg:grid lg:grid-cols-2">
       <section className="relative hidden h-full items-center justify-center overflow-hidden px-10 lg:flex">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(79,70,229,0.22),_transparent_58%)]" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_rgba(14,165,233,0.10),_transparent_48%)]" />

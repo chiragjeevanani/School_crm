@@ -34,6 +34,11 @@ const libraryBookSchema = new mongoose.Schema(
       trim: true,
       default: 'GENERAL',
     },
+    subject: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     publisher: {
       type: String,
       default: '',
@@ -101,6 +106,11 @@ const libraryBookSchema = new mongoose.Schema(
       default: 'AVAILABLE',
       index: true,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
   },
   { timestamps: true }
 );
@@ -123,6 +133,7 @@ libraryBookSchema.methods.toPublicJSON = function toPublicJSON(extraStats = null
     isbn: this.isbn,
     bookCode: this.bookCode || `BK-${this._id.toString().slice(-4).toUpperCase()}`,
     category: this.category,
+    subject: this.subject || '',
     publisher: this.publisher,
     edition: this.edition,
     publicationYear: this.publicationYear,
@@ -137,6 +148,7 @@ libraryBookSchema.methods.toPublicJSON = function toPublicJSON(extraStats = null
     price: this.price,
     description: this.description,
     status: availableCopies > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK',
+    isActive: this.isActive !== false,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
   };

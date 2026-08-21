@@ -292,6 +292,21 @@ export class AcademicRepository {
   }
 
   // Counts and Optimizations
+  countYearClasses(schoolId, academicYearId) {
+    return AcademicYearClass.countDocuments({
+      schoolId: toObjectId(schoolId),
+      academicYearId: toObjectId(academicYearId),
+    });
+  }
+
+  countSectionsForYear(schoolId, academicYearId) {
+    return Section.countDocuments({
+      schoolId: toObjectId(schoolId),
+      academicYearId: toObjectId(academicYearId),
+      status: 'ACTIVE',
+    });
+  }
+
   countSectionsForClass(schoolId, academicYearId, classId) {
     return Section.countDocuments({
       schoolId: toObjectId(schoolId),

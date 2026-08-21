@@ -5,9 +5,11 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Tabs } from '../../components/ui/Tabs';
+import { IssueSlip } from '../../components/ui/IssueSlip';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 import { useToast } from '../../components/ui/Toast';
 import { formatDate } from '../../utils/formatters';
-import { Bookmark, Plus, RefreshCw, CheckCircle2, XCircle, Ban, Hourglass } from 'lucide-react';
+import { Bookmark, Plus, RefreshCw, CheckCircle2, XCircle, Ban, Hourglass, BookCheck } from 'lucide-react';
 import { librarianApi } from '../../../../shared/api/client';
 
 export const BookReservation = () => {
@@ -26,6 +28,9 @@ export const BookReservation = () => {
     borrowerRefId: '',
     remarks: '',
   });
+
+  const [createdIssue, setCreatedIssue] = useState(null);
+  const [issueSlipOpen, setIssueSlipOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState(() => {
     if (location.pathname.includes('/pending')) return 'PENDING';
@@ -129,6 +134,21 @@ export const BookReservation = () => {
     }
   };
 
+  const handleFulfill = async (resv) => {
+    setActionLoading(true);
+    try {
+      const res = await librarianApi.fulfillReservation(resv.id);
+      toast.success(`"${resv.bookTitle}" issued to ${resv.borrowerName}!`);
+      setCreatedIssue(res.data);
+      setIssueSlipOpen(true);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to issue reserved book');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleCancel = async (resv) => {
     if (!window.confirm(`Are you sure you want to cancel reservation for "${resv.borrowerName}"?`)) return;
 
@@ -221,14 +241,25 @@ export const BookReservation = () => {
             </>
           )}
           {row.status === 'APPROVED' && (
-            <button
-              onClick={() => handleCancel(row)}
-              disabled={actionLoading}
-              title="Cancel Reservation"
-              className="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
-            >
-              <Ban className="h-4 w-4" />
-            </button>
+            <>
+              <button
+                onClick={() => handleFulfill(row)}
+                disabled={actionLoading}
+                title="Issue Book to Reserving Borrower"
+                className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-3xs font-bold rounded-lg transition-colors flex items-center gap-1"
+              >
+                <BookCheck className="h-3.5 w-3.5" />
+                <span>Issue Now</span>
+              </button>
+              <button
+                onClick={() => handleCancel(row)}
+                disabled={actionLoading}
+                title="Cancel Reservation"
+                className="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
+              >
+                <Ban className="h-4 w-4" />
+              </button>
+            </>
           )}
         </div>
       ),
@@ -265,10 +296,7 @@ export const BookReservation = () => {
       <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
       {loading ? (
-        <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
-          <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
-          <span>Loading reservation queues from database...</span>
-        </div>
+        <SkeletonTable rows={8} columns={6} />
       ) : reservations.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
           <Bookmark className="h-8 w-8 mx-auto text-slate-400" />
@@ -360,6 +388,18 @@ export const BookReservation = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Issue Slip Modal (on fulfilling a reservation) */}
+      {createdIssue && (
+        <Modal
+          isOpen={issueSlipOpen}
+          onClose={() => setIssueSlipOpen(false)}
+          title="Library Circulation Issue Slip"
+          size="md"
+        >
+          <IssueSlip issue={createdIssue} onClose={() => setIssueSlipOpen(false)} />
+        </Modal>
+      )}
     </div>
   );
 };

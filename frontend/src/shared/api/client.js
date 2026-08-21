@@ -397,6 +397,9 @@ export const librarianApi = {
   // Stats & Aggregations
   stats: () => librarianClient.get('/platform/school-portal/library/stats').then((r) => r.data),
   categories: () => librarianClient.get('/platform/school-portal/library/categories').then((r) => r.data),
+  createCategory: (payload) => librarianClient.post('/platform/school-portal/library/categories', payload).then((r) => r.data),
+  updateCategory: (id, payload) => librarianClient.patch(`/platform/school-portal/library/categories/${id}`, payload).then((r) => r.data),
+  deleteCategory: (id) => librarianClient.delete(`/platform/school-portal/library/categories/${id}`).then((r) => r.data),
   authors: () => librarianClient.get('/platform/school-portal/library/authors').then((r) => r.data),
   publishers: () => librarianClient.get('/platform/school-portal/library/publishers').then((r) => r.data),
   borrowers: (params) => librarianClient.get('/platform/school-portal/library/borrowers', { params }).then((r) => r.data),
@@ -418,7 +421,12 @@ export const librarianApi = {
   issues: (params) => librarianClient.get('/platform/school-portal/library/issues', { params }).then((r) => r.data),
   issueBook: (payload) => librarianClient.post('/platform/school-portal/library/issues', payload).then((r) => r.data),
   returnBook: (id, payload) => librarianClient.post(`/platform/school-portal/library/issues/${id}/return`, payload).then((r) => r.data),
-  renewBook: (id) => librarianClient.post(`/platform/school-portal/library/issues/${id}/renew`).then((r) => r.data),
+  renewBook: (id, payload) => librarianClient.post(`/platform/school-portal/library/issues/${id}/renew`, payload).then((r) => r.data),
+  updateFineStatus: (id, fineStatus) => librarianClient.patch(`/platform/school-portal/library/issues/${id}/fine`, { fineStatus }).then((r) => r.data),
+
+  // Profile
+  getProfile: () => librarianClient.get('/platform/school-portal/profile').then((r) => r.data),
+  updateProfile: (payload) => librarianClient.patch('/platform/school-portal/profile', payload).then((r) => r.data),
 
   // Reservations
   reservations: (params) => librarianClient.get('/platform/school-portal/library/reservations', { params }).then((r) => r.data),
@@ -426,6 +434,7 @@ export const librarianApi = {
   approveReservation: (id) => librarianClient.patch(`/platform/school-portal/library/reservations/${id}/approve`).then((r) => r.data),
   rejectReservation: (id, reason) => librarianClient.patch(`/platform/school-portal/library/reservations/${id}/reject`, { reason }).then((r) => r.data),
   cancelReservation: (id) => librarianClient.patch(`/platform/school-portal/library/reservations/${id}/cancel`).then((r) => r.data),
+  fulfillReservation: (id, payload) => librarianClient.post(`/platform/school-portal/library/reservations/${id}/fulfill`, payload).then((r) => r.data),
 
   // Transactions Audit Trail
   transactions: (params) => librarianClient.get('/platform/school-portal/library/transactions', { params }).then((r) => r.data),

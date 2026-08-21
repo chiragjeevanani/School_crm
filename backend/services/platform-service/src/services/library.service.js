@@ -4,6 +4,28 @@ import { librarySettingsRepository } from '../repositories/librarySettings.repos
 import { bookCopyRepository } from '../repositories/bookCopy.repository.js';
 import { libraryReservationRepository } from '../repositories/libraryReservation.repository.js';
 import { libraryTransactionRepository } from '../repositories/libraryTransaction.repository.js';
+import { libraryCategoryRepository } from '../repositories/libraryCategory.repository.js';
+
+const DEFAULT_LIBRARY_CATEGORIES = [
+  'Science',
+  'Mathematics',
+  'Literature',
+  'History',
+  'Technology',
+  'Fiction',
+  'Biography',
+  'Self-Help',
+  'Textbook',
+  'General',
+];
+
+function ensureStatus(value) {
+  const status = (value || '').toUpperCase();
+  if (status !== 'ACTIVE' && status !== 'INACTIVE') {
+    throw new AppError('Status must be either ACTIVE or INACTIVE', 400);
+  }
+  return status;
+}
 
 function requireText(value, label) {
   const text = typeof value === 'string' ? value.trim() : '';
@@ -24,16 +46,29 @@ class LibraryService {
 
   async updateSettings(schoolId, payload = {}) {
     const updates = {};
+    // Issue Rules
+    if (payload.maxBooksStudent !== undefined) updates.maxBooksStudent = Math.max(1, Number(payload.maxBooksStudent) || 3);
+    if (payload.maxBooksTeacher !== undefined) updates.maxBooksTeacher = Math.max(1, Number(payload.maxBooksTeacher) || 5);
+    if (payload.issueDaysStudent !== undefined) updates.issueDaysStudent = Math.max(1, Number(payload.issueDaysStudent) || 14);
+    if (payload.issueDaysTeacher !== undefined) updates.issueDaysTeacher = Math.max(1, Number(payload.issueDaysTeacher) || 30);
+
+    // Fine Rules
+    if (payload.fineEnabled !== undefined) updates.fineEnabled = Boolean(payload.fineEnabled);
     if (payload.finePerDay !== undefined) updates.finePerDay = Math.max(0, Number(payload.finePerDay) || 0);
     if (payload.maxFineAmount !== undefined) updates.maxFineAmount = Math.max(0, Number(payload.maxFineAmount) || 0);
-    if (payload.gracePeriodDays !== undefined) updates.gracePeriodDays = Math.max(0, Number(payload.gracePeriodDays) || 0);
-    if (payload.defaultIssueDays !== undefined) updates.defaultIssueDays = Math.max(1, Number(payload.defaultIssueDays) || 14);
+
+    // Renewal Rules
     if (payload.allowRenewal !== undefined) updates.allowRenewal = Boolean(payload.allowRenewal);
     if (payload.maxRenewals !== undefined) updates.maxRenewals = Math.max(0, Number(payload.maxRenewals) || 0);
     if (payload.renewalPeriodDays !== undefined) updates.renewalPeriodDays = Math.max(1, Number(payload.renewalPeriodDays) || 14);
-    if (payload.maxBooksStudent !== undefined) updates.maxBooksStudent = Math.max(1, Number(payload.maxBooksStudent) || 3);
-    if (payload.maxBooksTeacher !== undefined) updates.maxBooksTeacher = Math.max(1, Number(payload.maxBooksTeacher) || 5);
-    if (payload.lostBookFineMultiplier !== undefined) updates.lostBookFineMultiplier = Math.max(1, Number(payload.lostBookFineMultiplier) || 1.5);
+
+    // Return Rules
+    if (payload.gracePeriodDays !== undefined) updates.gracePeriodDays = Math.max(0, Number(payload.gracePeriodDays) || 0);
+    if (payload.blockIssueOnOverdue !== undefined) updates.blockIssueOnOverdue = Boolean(payload.blockIssueOnOverdue);
+
+    // Lost / Damaged Charges
+    if (payload.lostBookFineMultiplier !== undefined) updates.lostBookFineMultiplier = Math.max(0, Number(payload.lostBookFineMultiplier) || 0);
+    if (payload.damagedBookFineMultiplier !== undefined) updates.damagedBookFineMultiplier = Math.max(0, Number(payload.damagedBookFineMultiplier) || 0);
 
     const updated = await librarySettingsRepository.updateSettings(schoolId, updates);
     return updated.toPublicJSON();
@@ -68,6 +103,7 @@ class LibraryService {
       isbn: optionalText(payload.isbn),
       bookCode: optionalText(payload.bookCode),
       category: category.toUpperCase(),
+      subject: optionalText(payload.subject),
       publisher: optionalText(payload.publisher),
       edition: optionalText(payload.edition),
       publicationYear: Number(payload.publicationYear) || null,
@@ -96,6 +132,7 @@ class LibraryService {
     if (payload.isbn !== undefined) updates.isbn = optionalText(payload.isbn);
     if (payload.bookCode !== undefined) updates.bookCode = optionalText(payload.bookCode);
     if (payload.category) updates.category = payload.category.trim().toUpperCase();
+    if (payload.subject !== undefined) updates.subject = optionalText(payload.subject);
     if (payload.publisher !== undefined) updates.publisher = optionalText(payload.publisher);
     if (payload.edition !== undefined) updates.edition = optionalText(payload.edition);
     if (payload.publicationYear !== undefined) updates.publicationYear = Number(payload.publicationYear) || null;
@@ -106,6 +143,7 @@ class LibraryService {
     if (payload.shelfNumber !== undefined) updates.shelfNumber = optionalText(payload.shelfNumber);
     if (payload.price !== undefined) updates.price = Math.max(0, Number(payload.price) || 0);
     if (payload.description !== undefined) updates.description = optionalText(payload.description);
+    if (payload.isActive !== undefined) updates.isActive = Boolean(payload.isActive);
 
     const updated = await libraryRepository.updateBook(schoolId, id, updates);
     return updated;
@@ -130,9 +168,90 @@ class LibraryService {
     return { message: 'Library book and copies deleted successfully' };
   }
 
-  // Aggregations
+  // Categories CRUD (active/inactive managed entities, book stats merged in)
   async getCategories(schoolId) {
-    return libraryRepository.getCategories(schoolId);
+    let categories = await libraryCategoryRepository.listCategories(schoolId);
+    const statsMap = await libraryCategoryRepository.getBookStatsByCategory(schoolId);
+
+    // Seed the default catalogue set the very first time a school has no categories
+    // and no books either, so the "Add Book" dropdown isn't empty on day one.
+    if (categories.length === 0 && Object.keys(statsMap).length === 0) {
+      for (const name of DEFAULT_LIBRARY_CATEGORIES) {
+        await libraryCategoryRepository.createCategory({ schoolId, name, status: 'ACTIVE' });
+      }
+      categories = await libraryCategoryRepository.listCategories(schoolId);
+    }
+
+    // Auto-adopt any legacy free-text book category that doesn't have a managed entity yet
+    const existingNames = new Set(categories.map((c) => c.name.toUpperCase()));
+    const orphanNames = Object.keys(statsMap).filter((name) => name && !existingNames.has(name));
+    if (orphanNames.length > 0) {
+      for (const name of orphanNames) {
+        await libraryCategoryRepository.createCategory({ schoolId, name, status: 'ACTIVE' });
+      }
+      categories = await libraryCategoryRepository.listCategories(schoolId);
+    }
+
+    return categories
+      .map((cat) => cat.toPublicJSON(statsMap[cat.name.toUpperCase()]))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async createCategory(schoolId, payload = {}) {
+    const name = requireText(payload.name, 'Category name');
+    const existing = await libraryCategoryRepository.findByName(schoolId, name);
+    if (existing) throw new AppError('A category with this name already exists', 409);
+
+    const status = payload.status !== undefined ? ensureStatus(payload.status) : 'ACTIVE';
+    const created = await libraryCategoryRepository.createCategory({
+      schoolId,
+      name,
+      description: optionalText(payload.description),
+      status,
+    });
+    return created.toPublicJSON();
+  }
+
+  async updateCategory(schoolId, id, payload = {}) {
+    const category = await libraryCategoryRepository.findById(schoolId, id);
+    if (!category) throw new AppError('Category not found', 404);
+
+    const updates = {};
+    if (payload.name !== undefined) {
+      const name = requireText(payload.name, 'Category name');
+      const existing = await libraryCategoryRepository.findByName(schoolId, name, id);
+      if (existing) throw new AppError('A category with this name already exists', 409);
+      updates.name = name;
+    }
+    if (payload.description !== undefined) updates.description = optionalText(payload.description);
+    if (payload.status !== undefined) updates.status = ensureStatus(payload.status);
+
+    const updated = await libraryCategoryRepository.updateCategory(schoolId, id, updates);
+
+    // Keep existing catalogued books in sync when a category is renamed
+    if (updates.name && updates.name.toUpperCase() !== category.name.toUpperCase()) {
+      await libraryCategoryRepository.renameBooksCategory(schoolId, category.name, updates.name);
+    }
+
+    const statsMap = await libraryCategoryRepository.getBookStatsByCategory(schoolId);
+    return updated.toPublicJSON(statsMap[updated.name.toUpperCase()]);
+  }
+
+  async deleteCategory(schoolId, id) {
+    const category = await libraryCategoryRepository.findById(schoolId, id);
+    if (!category) throw new AppError('Category not found', 404);
+
+    const statsMap = await libraryCategoryRepository.getBookStatsByCategory(schoolId);
+    const stats = statsMap[category.name.toUpperCase()];
+    if (stats && stats.count > 0) {
+      throw new AppError(
+        `Cannot delete category: ${stats.count} book(s) are currently tagged under "${category.name}". Deactivate it instead, or reassign those books first.`,
+        400
+      );
+    }
+
+    await libraryCategoryRepository.deleteCategory(schoolId, id);
+    return { message: 'Category deleted successfully' };
   }
 
   async getAuthors(schoolId) {
@@ -286,9 +405,24 @@ class LibraryService {
       );
     }
 
+    // 4b. Block new issues if borrower has any overdue books (policy-controlled)
+    if (settings.blockIssueOnOverdue) {
+      const overdueIssues = await libraryRepository.listIssues(schoolId, {
+        borrowerRefId,
+        status: 'OVERDUE',
+      });
+      if (overdueIssues.total > 0) {
+        throw new AppError(
+          `Cannot issue a new book: borrower has ${overdueIssues.total} overdue book(s). Please return or clear overdue items first.`,
+          400
+        );
+      }
+    }
+
     // 5. Due Date calculation
     const issueDate = payload.issueDate ? new Date(payload.issueDate) : new Date();
-    const durationDays = Number(payload.durationDays) || settings.defaultIssueDays || 14;
+    const defaultDurationDays = borrowerType === 'TEACHER' ? (settings.issueDaysTeacher || 30) : (settings.issueDaysStudent || 14);
+    const durationDays = Number(payload.durationDays) || defaultDurationDays;
     let dueDate = payload.dueDate ? new Date(payload.dueDate) : null;
     if (!dueDate || isNaN(dueDate.getTime())) {
       dueDate = new Date(issueDate);
@@ -326,21 +460,33 @@ class LibraryService {
 
     const settings = await librarySettingsRepository.getSettings(schoolId);
     const returnDate = payload.returnDate ? new Date(payload.returnDate) : new Date();
+    const conditionOnReturn = payload.conditionOnReturn || 'GOOD';
 
     let fineAmount = Number(payload.fineAmount);
     if (isNaN(fineAmount) || fineAmount < 0) {
-      // Calculate fine from DB settings
-      const dueDate = new Date(issue.dueDate);
-      const graceDays = settings.gracePeriodDays || 0;
-      const effectiveDueDate = new Date(dueDate.getTime() + graceDays * 24 * 60 * 60 * 1000);
-
-      if (returnDate > effectiveDueDate) {
-        const diffTime = Math.max(0, returnDate - dueDate);
-        const overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        const calculatedFine = overdueDays * (settings.finePerDay ?? 5);
-        fineAmount = Math.min(calculatedFine, settings.maxFineAmount ?? 500);
-      } else {
+      if (conditionOnReturn === 'LOST' || conditionOnReturn === 'DAMAGED') {
+        // Replacement/damage charge, calculated off the book's catalog price
+        const bookPrice = Number(issue.bookId?.price) || 0;
+        const multiplier = conditionOnReturn === 'LOST'
+          ? (settings.lostBookFineMultiplier ?? 1.5)
+          : (settings.damagedBookFineMultiplier ?? 0.5);
+        fineAmount = Math.round(bookPrice * multiplier);
+      } else if (!settings.fineEnabled) {
         fineAmount = 0;
+      } else {
+        // Calculate overdue fine from DB settings
+        const dueDate = new Date(issue.dueDate);
+        const graceDays = settings.gracePeriodDays || 0;
+        const effectiveDueDate = new Date(dueDate.getTime() + graceDays * 24 * 60 * 60 * 1000);
+
+        if (returnDate > effectiveDueDate) {
+          const diffTime = Math.max(0, returnDate - dueDate);
+          const overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          const calculatedFine = overdueDays * (settings.finePerDay ?? 5);
+          fineAmount = Math.min(calculatedFine, settings.maxFineAmount ?? 500);
+        } else {
+          fineAmount = 0;
+        }
       }
     }
 
@@ -350,14 +496,14 @@ class LibraryService {
       returnDate,
       fineAmount,
       fineStatus,
-      conditionOnReturn: payload.conditionOnReturn || 'GOOD',
+      conditionOnReturn,
       remarks: payload.remarks,
     }, performedBy);
 
     return updated.toPublicJSON();
   }
 
-  async renewBook(schoolId, issueId, performedBy = 'Librarian') {
+  async renewBook(schoolId, issueId, payload = {}, performedBy = 'Librarian') {
     const issue = await libraryRepository.findIssueById(schoolId, issueId);
     if (!issue) throw new AppError('Loan record not found', 404);
     if (issue.status === 'RETURNED') throw new AppError('Cannot renew an already returned book', 400);
@@ -372,8 +518,27 @@ class LibraryService {
       throw new AppError(`Maximum renewal limit (${maxRenewals}) reached for this book issue. Please return the book.`, 400);
     }
 
-    const extendDays = settings.renewalPeriodDays || 14;
+    const extendDays = Number(payload.durationDays) > 0 ? Number(payload.durationDays) : (settings.renewalPeriodDays || 14);
     const updated = await libraryRepository.renewIssue(schoolId, issueId, extendDays, performedBy);
+    return updated.toPublicJSON();
+  }
+
+  async updateFineStatus(schoolId, issueId, fineStatus) {
+    const status = (fineStatus || '').toUpperCase();
+    if (!['PAID', 'WAIVED'].includes(status)) {
+      throw new AppError('Fine status must be PAID or WAIVED', 400);
+    }
+
+    const issue = await libraryRepository.findIssueById(schoolId, issueId);
+    if (!issue) throw new AppError('Library loan record not found', 404);
+    if (!issue.fineAmount || issue.fineAmount <= 0) {
+      throw new AppError('This loan record has no fine amount to settle', 400);
+    }
+    if (issue.fineStatus !== 'PENDING') {
+      throw new AppError(`Cannot update fine status: it is already "${issue.fineStatus}".`, 400);
+    }
+
+    const updated = await libraryRepository.updateFineStatus(schoolId, issueId, status);
     return updated.toPublicJSON();
   }
 
@@ -430,9 +595,10 @@ class LibraryService {
       throw new AppError(`Cannot approve reservation with status "${reservation.status}". Only PENDING reservations can be approved.`, 400);
     }
 
-    // Available copy check
+    // Find and hold a specific copy for this reservation so it can't be issued to anyone else
+    const bookId = reservation.bookId._id || reservation.bookId;
     const availableCopies = await bookCopyRepository.listCopies(schoolId, {
-      bookId: reservation.bookId._id || reservation.bookId,
+      bookId,
       status: 'AVAILABLE',
       limit: 1,
     });
@@ -441,12 +607,72 @@ class LibraryService {
       throw new AppError(`Cannot approve reservation: No copies of "${reservation.bookId?.title || 'Book'}" are currently available in the library.`, 400);
     }
 
+    const heldCopy = availableCopies.items[0];
+    await bookCopyRepository.updateCopy(schoolId, heldCopy._id, { status: 'RESERVED' });
+
     const updated = await libraryReservationRepository.updateStatus(schoolId, id, 'APPROVED', {
       approvedAt: new Date(),
+      copyId: heldCopy._id,
       remarks: `Approved by ${performedBy}`,
     });
 
     return updated.toPublicJSON();
+  }
+
+  async fulfillReservation(schoolId, id, payload = {}, performedBy = 'Librarian') {
+    const reservation = await libraryReservationRepository.findById(schoolId, id);
+    if (!reservation) throw new AppError('Reservation request not found', 404);
+    if (reservation.status !== 'APPROVED') {
+      throw new AppError(`Only approved reservations can be issued. Current status: "${reservation.status}".`, 400);
+    }
+
+    const bookId = reservation.bookId._id ? reservation.bookId._id.toString() : reservation.bookId.toString();
+    const bookRes = await libraryRepository.findBookById(schoolId, bookId);
+    if (!bookRes || !bookRes.book) throw new AppError('Reserved book no longer exists in the catalog', 404);
+
+    // Use the copy that was held at approval time; fall back to any available copy if the hold was lost
+    let selectedCopy = reservation.copyId
+      ? await bookCopyRepository.findCopyById(schoolId, reservation.copyId)
+      : null;
+    if (!selectedCopy || selectedCopy.status !== 'RESERVED') {
+      const availableCopies = await bookCopyRepository.listCopies(schoolId, { bookId, status: 'AVAILABLE', limit: 1 });
+      if (!availableCopies.items.length) {
+        throw new AppError(`No copies of "${bookRes.book.title}" are currently available to fulfill this reservation.`, 400);
+      }
+      selectedCopy = availableCopies.items[0];
+    }
+
+    const settings = await librarySettingsRepository.getSettings(schoolId);
+    const issueDate = new Date();
+    const defaultDurationDays = reservation.borrowerType === 'TEACHER' ? (settings.issueDaysTeacher || 30) : (settings.issueDaysStudent || 14);
+    const durationDays = Number(payload.durationDays) || defaultDurationDays;
+    const dueDate = new Date(issueDate);
+    dueDate.setDate(dueDate.getDate() + durationDays);
+
+    const issue = await libraryRepository.createIssue({
+      schoolId,
+      bookId,
+      copyId: selectedCopy._id,
+      bookTitle: bookRes.book.title,
+      bookCode: bookRes.book.bookCode || `BK-${bookRes.book._id.toString().slice(-4).toUpperCase()}`,
+      accessionNumber: selectedCopy.accessionNumber,
+      borrowerType: reservation.borrowerType,
+      borrowerRefId: reservation.borrowerRefId,
+      borrowerName: reservation.borrowerName,
+      borrowerCode: reservation.borrowerCode,
+      borrowerClass: reservation.borrowerClass,
+      issueDate,
+      dueDate,
+      maxRenewals: settings.maxRenewals ?? 2,
+      status: 'ISSUED',
+      remarks: `Fulfilled from reservation ${reservation._id}`,
+    }, performedBy);
+
+    await libraryReservationRepository.updateStatus(schoolId, id, 'FULFILLED', {
+      fulfilledAt: new Date(),
+    });
+
+    return issue.toPublicJSON();
   }
 
   async rejectReservation(schoolId, id, reason = '') {
@@ -468,6 +694,11 @@ class LibraryService {
     if (!reservation) throw new AppError('Reservation request not found', 404);
     if (reservation.status === 'FULFILLED' || reservation.status === 'CANCELLED') {
       throw new AppError(`Cannot cancel a reservation that is already ${reservation.status}.`, 400);
+    }
+
+    // Release the copy that was held for this reservation, if any
+    if (reservation.copyId) {
+      await bookCopyRepository.updateCopy(schoolId, reservation.copyId, { status: 'AVAILABLE' });
     }
 
     const updated = await libraryReservationRepository.updateStatus(schoolId, id, 'CANCELLED', {

@@ -154,6 +154,47 @@ export async function librarianLogin(req, res, next) {
 }
 
 // ----------------------------------------------------
+// Librarian Profile (personal details)
+// ----------------------------------------------------
+export async function getLibrarianProfile(req, res, next) {
+  try {
+    const userId = req.user?.sub || req.user?.userId;
+    const user = await SchoolUser.findById(userId);
+    if (!user) throw new AppError('Librarian account not found', 404);
+    res.json({ success: true, data: user.toPublicJSON() });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateLibrarianProfile(req, res, next) {
+  try {
+    const userId = req.user?.sub || req.user?.userId;
+    const user = await SchoolUser.findById(userId);
+    if (!user) throw new AppError('Librarian account not found', 404);
+
+    const { firstName, lastName, phone, gender } = req.body || {};
+
+    if (firstName !== undefined) {
+      const trimmed = firstName.trim();
+      if (!trimmed) throw new AppError('First name is required', 400);
+      user.firstName = trimmed;
+    }
+    if (lastName !== undefined) user.lastName = lastName.trim();
+    if (phone !== undefined) user.phone = phone.trim();
+    if (gender !== undefined && ['MALE', 'FEMALE', 'OTHER'].includes(gender.toUpperCase())) {
+      user.gender = gender.toUpperCase();
+    }
+    user.name = `${user.firstName} ${user.lastName}`.trim();
+
+    await user.save();
+    res.json({ success: true, message: 'Profile updated successfully', data: user.toPublicJSON() });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ----------------------------------------------------
 // Settings
 // ----------------------------------------------------
 export async function getLibrarySettings(req, res, next) {
@@ -194,6 +235,33 @@ export async function getCategories(req, res, next) {
   try {
     const data = await libraryService.getCategories(schoolId(req));
     res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createCategory(req, res, next) {
+  try {
+    const data = await libraryService.createCategory(schoolId(req), req.body);
+    res.status(201).json({ success: true, message: 'Category created successfully', data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateCategory(req, res, next) {
+  try {
+    const data = await libraryService.updateCategory(schoolId(req), req.params.id, req.body);
+    res.json({ success: true, message: 'Category updated successfully', data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteCategory(req, res, next) {
+  try {
+    const result = await libraryService.deleteCategory(schoolId(req), req.params.id);
+    res.json({ success: true, message: result.message });
   } catch (error) {
     next(error);
   }
@@ -383,10 +451,23 @@ export async function returnBook(req, res, next) {
 
 export async function renewBook(req, res, next) {
   try {
-    const data = await libraryService.renewBook(schoolId(req), req.params.id, performedBy(req));
+    const data = await libraryService.renewBook(schoolId(req), req.params.id, req.body, performedBy(req));
     res.json({
       success: true,
       message: 'Book loan renewed successfully',
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateFineStatus(req, res, next) {
+  try {
+    const data = await libraryService.updateFineStatus(schoolId(req), req.params.id, req.body?.fineStatus);
+    res.json({
+      success: true,
+      message: 'Fine status updated successfully',
       data,
     });
   } catch (error) {
@@ -464,6 +545,19 @@ export async function cancelReservation(req, res, next) {
     res.json({
       success: true,
       message: 'Book reservation cancelled',
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function fulfillReservation(req, res, next) {
+  try {
+    const data = await libraryService.fulfillReservation(schoolId(req), req.params.id, req.body, performedBy(req));
+    res.status(201).json({
+      success: true,
+      message: 'Reserved book issued successfully',
       data,
     });
   } catch (error) {

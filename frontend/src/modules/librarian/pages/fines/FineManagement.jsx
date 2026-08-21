@@ -5,9 +5,10 @@ import { StatCard } from '../../components/ui/StatCard';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { Tabs } from '../../components/ui/Tabs';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 import { useToast } from '../../components/ui/Toast';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { Receipt, Coins, Sliders, RefreshCw, CheckCircle2, ShieldAlert, Save } from 'lucide-react';
+import { Receipt, Coins, Sliders, RefreshCw, CheckCircle2, HandCoins, Ban } from 'lucide-react';
 import { librarianApi } from '../../../../shared/api/client';
 
 export const FineManagement = () => {
@@ -15,9 +16,7 @@ export const FineManagement = () => {
   const location = useLocation();
 
   const [activeTab, setActiveTab] = useState(() => {
-    if (location.pathname.includes('/pending')) return 'pending';
     if (location.pathname.includes('/collected')) return 'collected';
-    if (location.pathname.includes('/rules')) return 'rules';
     return 'pending';
   });
 
@@ -30,7 +29,7 @@ export const FineManagement = () => {
     lostBookFineMultiplier: 1.5,
   });
   const [loading, setLoading] = useState(true);
-  const [savingSettings, setSavingSettings] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -64,26 +63,20 @@ export const FineManagement = () => {
   }, []);
 
   useEffect(() => {
-    if (location.pathname.includes('/pending')) setActiveTab('pending');
-    else if (location.pathname.includes('/collected')) setActiveTab('collected');
-    else if (location.pathname.includes('/rules')) setActiveTab('rules');
+    if (location.pathname.includes('/collected')) setActiveTab('collected');
+    else setActiveTab('pending');
   }, [location.pathname]);
 
-  const handleSaveSettings = async (e) => {
-    e.preventDefault();
-    setSavingSettings(true);
+  const handleUpdateFineStatus = async (issue, fineStatus) => {
+    setActionLoadingId(issue.id);
     try {
-      await librarianApi.updateSettings({
-        finePerDay: Number(settings.finePerDay) || 0,
-        maxFineAmount: Number(settings.maxFineAmount) || 0,
-        gracePeriodDays: Number(settings.gracePeriodDays) || 0,
-        lostBookFineMultiplier: Number(settings.lostBookFineMultiplier) || 1.5,
-      });
-      toast.success('Library fine rules and policies saved to database successfully!');
+      await librarianApi.updateFineStatus(issue.id, fineStatus);
+      toast.success(fineStatus === 'PAID' ? `Fine of ${formatCurrency(issue.fineAmount)} collected from ${issue.borrowerName}` : `Fine for ${issue.borrowerName} waived`);
+      fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Failed to update rules');
+      toast.error(err.response?.data?.message || err.message || 'Failed to update fine status');
     } finally {
-      setSavingSettings(false);
+      setActionLoadingId(null);
     }
   };
 
@@ -93,7 +86,6 @@ export const FineManagement = () => {
   const tabs = [
     { id: 'pending', label: 'Pending Fines', count: pendingFines.length },
     { id: 'collected', label: 'Collected Fines', count: collectedFines.length },
-    { id: 'rules', label: 'Fine Rules & Rates' },
   ];
 
   const columns = [
@@ -137,13 +129,43 @@ export const FineManagement = () => {
         </Badge>
       ),
     },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, row) => {
+        if (row.fineStatus !== 'PENDING') return null;
+        const isProcessing = actionLoadingId === row.id;
+        return (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => handleUpdateFineStatus(row, 'PAID')}
+              disabled={isProcessing}
+              title="Collect Payment"
+              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 text-3xs font-bold rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+            >
+              <HandCoins className="h-3.5 w-3.5" />
+              <span>Collect</span>
+            </button>
+            <button
+              onClick={() => handleUpdateFineStatus(row, 'WAIVED')}
+              disabled={isProcessing}
+              title="Waive Fine"
+              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-3xs font-bold rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+            >
+              <Ban className="h-3.5 w-3.5" />
+              <span>Waive</span>
+            </button>
+          </div>
+        );
+      },
+    },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Fines & Penalties Management"
-        subtitle="Manage overdue fine collections, outstanding student dues, and customize penalty calculation rates."
+        subtitle="Collect or waive outstanding student dues. Fine rates are configured under Settings > Rules & Fines."
         actions={
           <button
             onClick={fetchData}
@@ -178,10 +200,7 @@ export const FineManagement = () => {
       <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
       {loading ? (
-        <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
-          <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
-          <span>Loading fines audit records...</span>
-        </div>
+        <SkeletonTable rows={8} columns={6} />
       ) : activeTab === 'pending' ? (
         pendingFines.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
@@ -202,109 +221,23 @@ export const FineManagement = () => {
             />
           </div>
         )
-      ) : activeTab === 'collected' ? (
-        collectedFines.length === 0 ? (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
-            <Receipt className="h-8 w-8 mx-auto text-slate-400" />
-            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">No Fine Collections Yet</h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Fine collections recorded upon overdue book returns will appear here.
-            </p>
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
-            <DataTable
-              columns={columns}
-              data={collectedFines}
-              searchPlaceholder="Search collected fines..."
-              searchKeys={['borrowerName', 'bookTitle']}
-              csvFilename="collected_fines.csv"
-            />
-          </div>
-        )
+      ) : collectedFines.length === 0 ? (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
+          <Receipt className="h-8 w-8 mx-auto text-slate-400" />
+          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">No Fine Collections Yet</h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            Fine collections recorded upon overdue book returns will appear here.
+          </p>
+        </div>
       ) : (
-        /* Fine Rules Tab */
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 max-w-2xl">
-          <form onSubmit={handleSaveSettings} className="space-y-6">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                Fine Calculation Policy & Rates
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                These settings directly govern the automatic fine calculation when overdue books are returned.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-3xs font-extrabold uppercase tracking-wider text-slate-500">
-                  Daily Overdue Fine Rate (₹ / Day) *
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  required
-                  value={settings.finePerDay}
-                  onChange={(e) => setSettings({ ...settings, finePerDay: e.target.value })}
-                  className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-3xs font-extrabold uppercase tracking-wider text-slate-500">
-                  Maximum Fine Cap (₹) *
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  required
-                  value={settings.maxFineAmount}
-                  onChange={(e) => setSettings({ ...settings, maxFineAmount: e.target.value })}
-                  className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-3xs font-extrabold uppercase tracking-wider text-slate-500">
-                  Grace Period (Days Before Fine Starts)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={settings.gracePeriodDays}
-                  onChange={(e) => setSettings({ ...settings, gracePeriodDays: e.target.value })}
-                  className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-3xs font-extrabold uppercase tracking-wider text-slate-500">
-                  Lost Book Cost Multiplier
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="1"
-                  value={settings.lostBookFineMultiplier}
-                  onChange={(e) => setSettings({ ...settings, lostBookFineMultiplier: e.target.value })}
-                  className="w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
-              <button
-                type="submit"
-                disabled={savingSettings}
-                className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-indigo-900/10 disabled:opacity-50"
-              >
-                <Save className="h-4 w-4" />
-                <span>{savingSettings ? 'Saving Policy...' : 'Save Fine Policy Rules'}</span>
-              </button>
-            </div>
-          </form>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
+          <DataTable
+            columns={columns}
+            data={collectedFines}
+            searchPlaceholder="Search collected fines..."
+            searchKeys={['borrowerName', 'bookTitle']}
+            csvFilename="collected_fines.csv"
+          />
         </div>
       )}
     </div>

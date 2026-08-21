@@ -19,16 +19,20 @@ class LibrarySettingsRepository {
       // Create default settings for this school
       settings = await LibrarySettings.create({
         schoolId: schoolObjId,
+        maxBooksStudent: 3,
+        maxBooksTeacher: 5,
+        issueDaysStudent: 14,
+        issueDaysTeacher: 30,
+        fineEnabled: true,
         finePerDay: 5,
         maxFineAmount: 500,
-        gracePeriodDays: 0,
-        defaultIssueDays: 14,
         allowRenewal: true,
         maxRenewals: 2,
         renewalPeriodDays: 14,
-        maxBooksStudent: 3,
-        maxBooksTeacher: 5,
+        gracePeriodDays: 0,
+        blockIssueOnOverdue: true,
         lostBookFineMultiplier: 1.5,
+        damagedBookFineMultiplier: 0.5,
       });
     }
     return settings;

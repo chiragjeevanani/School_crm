@@ -14,6 +14,11 @@ const libraryReservationSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    copyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'BookCopy',
+      default: null,
+    },
     borrowerRefId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
@@ -89,6 +94,7 @@ libraryReservationSchema.methods.toPublicJSON = function toPublicJSON() {
     id: this._id.toString(),
     schoolId: this.schoolId.toString(),
     bookId: this.bookId ? (this.bookId._id ? this.bookId._id.toString() : this.bookId.toString()) : '',
+    copyId: this.copyId ? this.copyId.toString() : '',
     bookTitle: this.bookId?.title || '',
     bookAuthor: this.bookId?.author || '',
     bookCategory: this.bookId?.category || '',

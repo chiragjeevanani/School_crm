@@ -9,6 +9,33 @@ const librarySettingsSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    // Issue Rules
+    maxBooksStudent: {
+      type: Number,
+      default: 3,
+      min: 1,
+    },
+    maxBooksTeacher: {
+      type: Number,
+      default: 5,
+      min: 1,
+    },
+    issueDaysStudent: {
+      type: Number,
+      default: 14,
+      min: 1,
+    },
+    issueDaysTeacher: {
+      type: Number,
+      default: 30,
+      min: 1,
+    },
+
+    // Fine Rules
+    fineEnabled: {
+      type: Boolean,
+      default: true,
+    },
     finePerDay: {
       type: Number,
       default: 5,
@@ -19,16 +46,8 @@ const librarySettingsSchema = new mongoose.Schema(
       default: 500,
       min: 0,
     },
-    gracePeriodDays: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    defaultIssueDays: {
-      type: Number,
-      default: 14,
-      min: 1,
-    },
+
+    // Renewal Rules
     allowRenewal: {
       type: Boolean,
       default: true,
@@ -43,20 +62,33 @@ const librarySettingsSchema = new mongoose.Schema(
       default: 14,
       min: 1,
     },
-    maxBooksStudent: {
+
+    // Return Rules
+    gracePeriodDays: {
       type: Number,
-      default: 3,
-      min: 1,
+      default: 0,
+      min: 0,
     },
-    maxBooksTeacher: {
-      type: Number,
-      default: 5,
-      min: 1,
+    blockIssueOnOverdue: {
+      type: Boolean,
+      default: true,
     },
+
+    // Lost / Damaged Charges (multiplier applied to the book's catalog price)
     lostBookFineMultiplier: {
       type: Number,
       default: 1.5,
-      min: 1,
+      min: 0,
+    },
+    damagedBookFineMultiplier: {
+      type: Number,
+      default: 0.5,
+      min: 0,
+    },
+
+    demoDataSeeded: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }
@@ -66,16 +98,20 @@ librarySettingsSchema.methods.toPublicJSON = function toPublicJSON() {
   return {
     id: this._id.toString(),
     schoolId: this.schoolId.toString(),
+    maxBooksStudent: this.maxBooksStudent ?? 3,
+    maxBooksTeacher: this.maxBooksTeacher ?? 5,
+    issueDaysStudent: this.issueDaysStudent ?? 14,
+    issueDaysTeacher: this.issueDaysTeacher ?? 30,
+    fineEnabled: this.fineEnabled ?? true,
     finePerDay: this.finePerDay ?? 5,
     maxFineAmount: this.maxFineAmount ?? 500,
-    gracePeriodDays: this.gracePeriodDays ?? 0,
-    defaultIssueDays: this.defaultIssueDays ?? 14,
     allowRenewal: this.allowRenewal ?? true,
     maxRenewals: this.maxRenewals ?? 2,
     renewalPeriodDays: this.renewalPeriodDays ?? 14,
-    maxBooksStudent: this.maxBooksStudent ?? 3,
-    maxBooksTeacher: this.maxBooksTeacher ?? 5,
+    gracePeriodDays: this.gracePeriodDays ?? 0,
+    blockIssueOnOverdue: this.blockIssueOnOverdue ?? true,
     lostBookFineMultiplier: this.lostBookFineMultiplier ?? 1.5,
+    damagedBookFineMultiplier: this.damagedBookFineMultiplier ?? 0.5,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
   };

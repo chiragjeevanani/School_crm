@@ -1,355 +1,248 @@
-import React, { useState } from 'react';
-import { cn } from '../../utils/cn';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '../../components/ui/Toast';
+import { librarianApi } from '../../../../shared/api/client';
 
-export const AddEditBook = ({ book, onSuccess, onCancel }) => {
+const inputClass = 'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed';
+const labelClass = 'mb-1 block text-xs font-bold text-slate-500 dark:text-slate-400';
+
+const FALLBACK_CATEGORIES = [
+  'Science', 'Mathematics', 'Literature', 'History', 'Technology',
+  'Fiction', 'Biography', 'Self-Help', 'Textbook', 'General',
+];
+
+export const AddEditBook = ({ book, onSuccess, onCancel, isLoading }) => {
   const toast = useToast();
-  const [step, setStep] = useState(1);
-  
+  const [categoryOptions, setCategoryOptions] = useState(FALLBACK_CATEGORIES);
+
   const [formData, setFormData] = useState({
-    id: book?.id || `BK-0${Math.floor(Math.random() * 900) + 100}`,
-    bookCode: book?.bookCode || `GFS-BK-${Math.floor(Math.random() * 900) + 100}`,
     title: book?.title || '',
-    author: book?.author || '',
     publisher: book?.publisher || '',
-    publicationYear: book?.publicationYear || 2026,
-    edition: book?.edition || '1st',
+    author: book?.author || '',
+    publicationYear: book?.publicationYear || new Date().getFullYear(),
+    edition: book?.edition || '',
     language: book?.language || 'English',
-    category: book?.category || 'Science',
+    category: book?.category || '',
     subject: book?.subject || '',
-    rackNumber: book?.rackNumber || '',
-    shelfNumber: book?.shelfNumber || '',
-    bookCost: book?.bookCost || 0,
-    purchaseDate: book?.purchaseDate || new Date().toISOString().split('T')[0],
-    supplier: book?.supplier || '',
+    price: book?.price ?? 0,
     totalCopies: book?.totalCopies || 1,
-    availableCopies: book?.availableCopies || 1,
-    isbn: book?.isbn || '',
-    barcode: book?.barcode || ''
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    librarianApi.categories().then((res) => {
+      if (cancelled) return;
+      if (res?.success && Array.isArray(res.data)) {
+        const activeNames = res.data.filter((c) => c.status === 'ACTIVE').map((c) => c.name);
+        // Keep the book's current category selectable even if it was since deactivated
+        if (book?.category && !activeNames.some((n) => n.toUpperCase() === book.category.toUpperCase())) {
+          activeNames.push(book.category);
+        }
+        if (activeNames.length > 0) {
+          setCategoryOptions(activeNames);
+          setFormData((prev) => {
+            const currentVal = prev.category || book?.category;
+            const matched = activeNames.find((n) => n.toUpperCase() === (currentVal || '').toUpperCase());
+            return { ...prev, category: matched || activeNames[0] };
+          });
+          return;
+        }
+      }
+
+      // Fallback if no active categories or API fails
+      setFormData((prev) => {
+        if (prev.category) return prev;
+        return { ...prev, category: book?.category || FALLBACK_CATEGORIES[0] || 'Fiction' };
+      });
+    }).catch(() => {
+      if (cancelled) return;
+      setFormData((prev) => {
+        if (prev.category) return prev;
+        return { ...prev, category: book?.category || FALLBACK_CATEGORIES[0] || 'Fiction' };
+      });
+    });
+    return () => { cancelled = true; };
+  }, [book?.category]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: name === 'bookCost' || name === 'totalCopies' || name === 'publicationYear' ? Number(value) : value 
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'price' || name === 'totalCopies' || name === 'publicationYear'
+        ? Number(value)
+        : value,
     }));
-  };
-
-  const handleNext = () => {
-    // Basic validation
-    if (step === 1) {
-      if (!formData.title.trim() || !formData.author.trim() || !formData.publisher.trim()) {
-        toast.error('Please fill in title, author, and publisher.');
-        return;
-      }
-    }
-    if (step === 2) {
-      if (!formData.category.trim() || !formData.rackNumber.trim() || !formData.shelfNumber.trim()) {
-        toast.error('Please specify category, rack number, and shelf number.');
-        return;
-      }
-    }
-    if (step === 3) {
-      if (formData.bookCost <= 0 || formData.totalCopies <= 0) {
-        toast.error('Please enter valid cost and copies quantity.');
-        return;
-      }
-    }
-    setStep(s => s + 1);
-  };
-
-  const handleBack = () => {
-    setStep(s => Math.max(s - 1, 1));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.isbn.trim()) {
-      toast.error('Please enter the ISBN code.');
+    if (!formData.title.trim() || !formData.author.trim() || !formData.publisher.trim() || !formData.category.trim()) {
+      toast.error('Please fill in all required fields marked with *');
       return;
     }
-    // Auto-generate barcode from ISBN if empty
-    const finalData = {
-      ...formData,
-      barcode: formData.barcode.trim() || formData.isbn.replace(/[- ]/g, ''),
-      availableCopies: book ? formData.availableCopies : formData.totalCopies
-    };
-    
-    toast.success(book ? 'Book catalog updated successfully!' : 'New book registered successfully!');
-    onSuccess(finalData);
+    if (formData.price <= 0) {
+      toast.error('Please enter a valid Book Cost.');
+      return;
+    }
+    if (!book && formData.totalCopies <= 0) {
+      toast.error('Please enter a valid quantity of copies.');
+      return;
+    }
+
+    onSuccess(formData);
   };
 
-  const stepTitles = [
-    'Basic Details',
-    'Classification & Location',
-    'Acquisition Details',
-    'Identifiers'
-  ];
-
   return (
-    <div className="space-y-6">
-      {/* Step Indicators */}
-      <div className="flex justify-between items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-4">
-        {stepTitles.map((title, idx) => {
-          const index = idx + 1;
-          const isActive = index === step;
-          const isCompleted = index < step;
-          return (
-            <div key={title} className="flex-1 flex flex-col items-center text-center">
-              <div className={cn(
-                "h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 border",
-                isActive 
-                  ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" 
-                  : isCompleted 
-                    ? "bg-emerald-500 border-emerald-500 text-white" 
-                    : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-850 text-slate-450"
-              )}>
-                {index}
-              </div>
-              <span className={cn(
-                "text-4xs font-bold uppercase tracking-wider mt-1.5 hidden sm:block",
-                isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"
-              )}>
-                {title}
-              </span>
-            </div>
-          );
-        })}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="col-span-2">
+          <label className={labelClass}>Book Title *</label>
+          <input
+            type="text"
+            name="title"
+            value={formData.title}
+            onChange={handleChange}
+            className={inputClass}
+            placeholder="e.g. A Brief History of Time"
+            required
+          />
+        </div>
+
+        <div>
+          <label className={labelClass}>Publisher *</label>
+          <input
+            type="text"
+            name="publisher"
+            value={formData.publisher}
+            onChange={handleChange}
+            className={inputClass}
+            placeholder="e.g. Bantam Books"
+            required
+          />
+        </div>
+
+        <div>
+          <label className={labelClass}>Author Name *</label>
+          <input
+            type="text"
+            name="author"
+            value={formData.author}
+            onChange={handleChange}
+            className={inputClass}
+            placeholder="e.g. Stephen Hawking"
+            required
+          />
+        </div>
+
+        <div>
+          <label className={labelClass}>Publication Year</label>
+          <input
+            type="number"
+            name="publicationYear"
+            value={formData.publicationYear}
+            onChange={handleChange}
+            className={inputClass}
+          />
+        </div>
+
+        <div>
+          <label className={labelClass}>Edition</label>
+          <input
+            type="text"
+            name="edition"
+            value={formData.edition}
+            onChange={handleChange}
+            className={inputClass}
+            placeholder="e.g. 10th Anniversary"
+          />
+        </div>
+
+        <div>
+          <label className={labelClass}>Language</label>
+          <input
+            type="text"
+            name="language"
+            value={formData.language}
+            onChange={handleChange}
+            className={inputClass}
+          />
+        </div>
+
+        <div>
+          <label className={labelClass}>Category *</label>
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            className={inputClass}
+            required
+          >
+            {categoryOptions.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className={labelClass}>Subject</label>
+          <input
+            type="text"
+            name="subject"
+            value={formData.subject}
+            onChange={handleChange}
+            className={inputClass}
+            placeholder="e.g. Physics"
+          />
+        </div>
+
+        <div>
+          <label className={labelClass}>Book Cost (INR) *</label>
+          <input
+            type="number"
+            name="price"
+            value={formData.price}
+            onChange={handleChange}
+            className={inputClass}
+            min="0"
+            required
+          />
+        </div>
+
+        <div>
+          <label className={labelClass}>Quantity Copies {!book && '*'}</label>
+          <input
+            type="number"
+            name="totalCopies"
+            value={formData.totalCopies}
+            onChange={handleChange}
+            className={inputClass}
+            min="1"
+            disabled={Boolean(book)}
+            required={!book}
+          />
+          {book && (
+            <p className="mt-1 text-3xs text-slate-400">Manage individual copies from the Book Copies page.</p>
+          )}
+        </div>
       </div>
 
-      {/* Forms steps inputs container */}
-      <div className="space-y-4">
-        {step === 1 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5 col-span-2">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Book Title <span className="text-rose-500">*</span></label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="e.g. A Brief History of Time"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Author Name <span className="text-rose-500">*</span></label>
-              <input
-                type="text"
-                name="author"
-                value={formData.author}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. Stephen Hawking"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Publisher <span className="text-rose-500">*</span></label>
-              <input
-                type="text"
-                name="publisher"
-                value={formData.publisher}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. Bantam Books"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Publication Year</label>
-              <input
-                type="number"
-                name="publicationYear"
-                value={formData.publicationYear}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Edition</label>
-              <input
-                type="text"
-                name="edition"
-                value={formData.edition}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. 10th Anniversary"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Language</label>
-              <input
-                type="text"
-                name="language"
-                value={formData.language}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Category <span className="text-rose-500">*</span></label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="Science">Science</option>
-                <option value="Mathematics">Mathematics</option>
-                <option value="Literature">Literature</option>
-                <option value="History">History</option>
-                <option value="Technology">Technology</option>
-                <option value="Fiction">Fiction</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Subject</label>
-              <input
-                type="text"
-                name="subject"
-                value={formData.subject}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. Physics"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Rack Number <span className="text-rose-500">*</span></label>
-              <input
-                type="text"
-                name="rackNumber"
-                value={formData.rackNumber}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. R-04"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Shelf Number <span className="text-rose-500">*</span></label>
-              <input
-                type="text"
-                name="shelfNumber"
-                value={formData.shelfNumber}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. S-12"
-              />
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Book Cost (INR) <span className="text-rose-500">*</span></label>
-              <input
-                type="number"
-                name="bookCost"
-                value={formData.bookCost}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Quantity Copies <span className="text-rose-500">*</span></label>
-              <input
-                type="number"
-                name="totalCopies"
-                value={formData.totalCopies}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                min="1"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Supplier Name</label>
-              <input
-                type="text"
-                name="supplier"
-                value={formData.supplier}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. Oxford Press India"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Purchase Date</label>
-              <input
-                type="date"
-                name="purchaseDate"
-                value={formData.purchaseDate}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5 col-span-2">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">ISBN Code <span className="text-rose-500">*</span></label>
-              <input
-                type="text"
-                name="isbn"
-                value={formData.isbn}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. 978-0-553-38016-3"
-              />
-            </div>
-            <div className="space-y-1.5 col-span-2">
-              <label className="text-2xs font-bold text-slate-550 dark:text-slate-400">Custom Barcode Value (Optional)</label>
-              <input
-                type="text"
-                name="barcode"
-                value={formData.barcode}
-                onChange={handleChange}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Leave blank to auto-use ISBN without hyphens"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Wizards control actions */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-850">
+      <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
         <button
+          type="button"
           onClick={onCancel}
-          className="h-10 px-4 text-sm font-semibold border border-slate-205 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-colors"
+          className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
         >
           Cancel
         </button>
-        {step > 1 && (
-          <button
-            onClick={handleBack}
-            className="h-10 px-4 text-sm font-semibold border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-colors"
-          >
-            Back
-          </button>
-        )}
-        {step < 4 ? (
-          <button
-            onClick={handleNext}
-            className="h-10 px-4 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all duration-150"
-          >
-            Continue
-          </button>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            className="h-10 px-4 text-sm font-semibold bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl transition-all duration-150 shadow-xs"
-          >
-            Save Book Record
-          </button>
-        )}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-xs font-bold text-white transition-all duration-150 shadow-xs disabled:opacity-60"
+        >
+          {isLoading ? 'Saving...' : book ? 'Update Book' : 'Save Book'}
+        </button>
       </div>
-    </div>
+    </form>
   );
 };
+
+export default AddEditBook;

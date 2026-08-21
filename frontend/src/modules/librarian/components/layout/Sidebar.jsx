@@ -3,7 +3,9 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { NAVIGATION_ITEMS } from '../../utils/constants';
 import { useLibrarianAuth } from '../../context/LibrarianAuthContext';
 import { cn } from '../../utils/cn';
-import { LogOut, ChevronLeft, ChevronRight, ChevronDown, BookOpen } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import BrandLogo from '../../../../shared/ui/BrandLogo';
+import { UserAvatar } from '../ui/UserAvatar';
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed, isOpen, toggleSidebar }) => {
   const { logout, user } = useLibrarianAuth();
@@ -53,9 +55,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isOpen, toggleSidebar }) 
         )}
       >
         <div className={cn('flex min-w-0 items-center', isCollapsed ? 'justify-center' : 'gap-2.5')}>
-          <div className="h-8 w-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm shadow-indigo-600/25">
-            <BookOpen className="h-4 w-4" />
-          </div>
+          <BrandLogo className="h-8 w-8 shrink-0" />
           {!isCollapsed && (
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900 dark:text-white leading-tight">
@@ -141,6 +141,14 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isOpen, toggleSidebar }) 
               location.pathname === child.path || location.pathname.startsWith(`${child.path}/`)
           );
 
+          // When sibling paths share a prefix (e.g. /reservations and /reservations/pending),
+          // only the longest (most specific) match should be highlighted, not both.
+          const bestMatchPath = item.children.reduce((best, child) => {
+            const isMatch = location.pathname === child.path || location.pathname.startsWith(`${child.path}/`);
+            if (!isMatch) return best;
+            return !best || child.path.length > best.length ? child.path : best;
+          }, null);
+
           return (
             <div key={item.title} className="space-y-1">
               <button
@@ -183,9 +191,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isOpen, toggleSidebar }) 
                 <div className="space-y-0.5 pl-3 pr-1 py-1 rounded-xl bg-slate-50/60 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-850/50 ml-2">
                   {item.children.map((child) => {
                     const ChildIcon = child.icon;
-                    const isChildActive =
-                      location.pathname === child.path ||
-                      location.pathname.startsWith(`${child.path}/`);
+                    const isChildActive = child.path === bestMatchPath;
 
                     return (
                       <NavLink
@@ -237,9 +243,11 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isOpen, toggleSidebar }) 
               isCollapsed ? 'justify-center' : 'gap-2.5'
             )}
           >
-            <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-xs shrink-0">
-              {user.name ? user.name.charAt(0).toUpperCase() : 'L'}
-            </div>
+            <UserAvatar
+              src={user.photoUrl}
+              name={user.name}
+              className="h-8 w-8 rounded-full text-xs shrink-0"
+            />
             {!isCollapsed && (
               <>
                 <div className="min-w-0 flex-1">

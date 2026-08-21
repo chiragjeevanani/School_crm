@@ -7,6 +7,7 @@ import { Badge } from '../../components/ui/Badge';
 import { AreaChart } from '../../components/ui/Charts/AreaChart';
 import { BarChart } from '../../components/ui/Charts/BarChart';
 import { PieChart } from '../../components/ui/Charts/PieChart';
+import { SkeletonStatCard, SkeletonTable } from '../../components/ui/SkeletonLoader';
 import { exportToCSV } from '../../utils/exportHelpers';
 import { Download, RefreshCw, FileText, TrendingUp, BookOpen, AlertTriangle, Receipt, RotateCcw } from 'lucide-react';
 import { librarianApi } from '../../../../shared/api/client';
@@ -185,9 +186,15 @@ export const Reports = () => {
       <Tabs tabs={reportTabs} activeTab={activeTab} onChange={setActiveTab} />
 
       {loading ? (
-        <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
-          <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
-          <span>Computing report aggregation from database...</span>
+        <div className="space-y-6">
+          {activeTab === 'inventory' && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <SkeletonStatCard key={idx} />
+              ))}
+            </div>
+          )}
+          <SkeletonTable rows={8} columns={6} />
         </div>
       ) : (
         <div className="space-y-6">

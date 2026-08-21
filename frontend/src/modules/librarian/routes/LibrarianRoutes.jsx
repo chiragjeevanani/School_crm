@@ -10,7 +10,6 @@ import { Publishers } from '../pages/books/Publishers';
 import { BookCopies } from '../pages/books/BookCopies';
 import { BookIssue } from '../pages/issue/BookIssue';
 import { BookReturn } from '../pages/return/BookReturn';
-import { RenewBook } from '../pages/issue/RenewBook';
 import { IssuedBooks } from '../pages/issue/IssuedBooks';
 import { OverdueBooks } from '../pages/issue/OverdueBooks';
 import { MemberManagement } from '../pages/members/MemberManagement';
@@ -43,7 +42,6 @@ export const LibrarianRoutes = () => {
       {/* 3. Issue & Return */}
       <Route path="issue" element={<BookIssue />} />
       <Route path="return" element={<BookReturn />} />
-      <Route path="renew" element={<RenewBook />} />
       <Route path="issued" element={<IssuedBooks />} />
       <Route path="overdue" element={<OverdueBooks />} />
 
@@ -62,14 +60,11 @@ export const LibrarianRoutes = () => {
       <Route path="fines" element={<FineManagement />} />
       <Route path="fines/pending" element={<FineManagement />} />
       <Route path="fines/collected" element={<FineManagement />} />
-      <Route path="fines/rules" element={<FineManagement />} />
 
       {/* 7. Transactions */}
       <Route path="transactions" element={<TransactionHistory />} />
       <Route path="transactions/issues" element={<TransactionHistory />} />
       <Route path="transactions/returns" element={<TransactionHistory />} />
-      <Route path="transactions/renewals" element={<TransactionHistory />} />
-      <Route path="transactions/lost-damaged" element={<TransactionHistory />} />
       <Route path="audit" element={<TransactionHistory />} />
 
       {/* 8. Reports */}
@@ -81,8 +76,8 @@ export const LibrarianRoutes = () => {
 
       {/* 10. Settings */}
       <Route path="settings" element={<Settings />} />
+      <Route path="settings/profile" element={<Settings />} />
       <Route path="settings/rules" element={<Settings />} />
-      <Route path="settings/fines" element={<Settings />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="dashboard" replace />} />

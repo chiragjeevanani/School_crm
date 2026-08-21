@@ -95,7 +95,7 @@ export const ReturnReceipt = ({ returnRecord, onClose }) => {
             </div>
             <div className="flex">
               <span className="font-bold w-24 text-slate-500">Member:</span>
-              <span className="font-semibold">{returnRecord.memberName} ({returnRecord.memberId})</span>
+              <span className="font-semibold">{returnRecord.borrowerName} ({returnRecord.borrowerCode})</span>
             </div>
             <div className="flex">
               <span className="font-bold w-24 text-slate-500">Book Code:</span>

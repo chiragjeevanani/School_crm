@@ -3,6 +3,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 import { Copy, Plus, RefreshCw, Trash2, Edit, CheckCircle, AlertTriangle } from 'lucide-react';
 import { librarianApi } from '../../../../shared/api/client';
 import { useToast } from '../../components/ui/Toast';
@@ -258,10 +259,7 @@ export const BookCopies = () => {
       />
 
       {loading ? (
-        <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
-          <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
-          <span>Loading physical inventory from database...</span>
-        </div>
+        <SkeletonTable rows={8} columns={7} />
       ) : copies.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
           <Copy className="h-8 w-8 mx-auto text-slate-400" />
@@ -296,13 +294,13 @@ export const BookCopies = () => {
       >
         <form onSubmit={handleSaveCopy} className="space-y-4">
           {!editingCopy && (
-            <div className="space-y-1">
-              <label className="text-3xs font-bold text-slate-500 uppercase">Select Book Title *</label>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-550 dark:text-slate-400">Select Book Title *</label>
               <select
                 required
                 value={formData.bookId}
                 onChange={(e) => setFormData({ ...formData, bookId: e.target.value })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white transition-all duration-150"
               >
                 <option value="">-- Choose Catalogue Title --</option>
                 {books.map((b) => (
@@ -314,59 +312,59 @@ export const BookCopies = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-3xs font-bold text-slate-500 uppercase">Accession Number</label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-550 dark:text-slate-400">Accession Number</label>
               <input
                 type="text"
                 value={formData.accessionNumber}
                 onChange={(e) => setFormData({ ...formData, accessionNumber: e.target.value })}
                 placeholder="Leave blank to auto-generate"
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white transition-all duration-150"
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-3xs font-bold text-slate-500 uppercase">Barcode Value</label>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-550 dark:text-slate-400">Barcode Value</label>
               <input
                 type="text"
                 value={formData.barcode}
                 onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
                 placeholder="Barcode scanner ID"
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white transition-all duration-150"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-3xs font-bold text-slate-500 uppercase">Rack Location</label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-550 dark:text-slate-400">Rack Location</label>
               <input
                 type="text"
                 value={formData.rackNumber}
                 onChange={(e) => setFormData({ ...formData, rackNumber: e.target.value })}
                 placeholder="e.g. R-03"
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white transition-all duration-150"
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-3xs font-bold text-slate-500 uppercase">Shelf Location</label>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-550 dark:text-slate-400">Shelf Location</label>
               <input
                 type="text"
                 value={formData.shelfNumber}
                 onChange={(e) => setFormData({ ...formData, shelfNumber: e.target.value })}
                 placeholder="e.g. S-01"
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white transition-all duration-150"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-3xs font-bold text-slate-500 uppercase">Physical Condition</label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-550 dark:text-slate-400">Physical Condition</label>
               <select
                 value={formData.condition}
                 onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white transition-all duration-150"
               >
                 <option value="NEW">New</option>
                 <option value="GOOD">Good</option>
@@ -374,44 +372,44 @@ export const BookCopies = () => {
                 <option value="POOR">Poor</option>
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="text-3xs font-bold text-slate-500 uppercase">Acquisition Price (₹)</label>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-550 dark:text-slate-400">Acquisition Price (₹)</label>
               <input
                 type="number"
                 min="0"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white transition-all duration-150"
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-3xs font-bold text-slate-500 uppercase">Remarks</label>
+          <div>
+            <label className="mb-1 block text-xs font-bold text-slate-550 dark:text-slate-400">Remarks</label>
             <textarea
               rows="2"
               value={formData.remarks}
               onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
               placeholder="Condition notes or donation details"
-              className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="w-full px-3.5 py-2.5 border border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950 rounded-xl text-sm outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 dark:text-white transition-all duration-150"
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={() => {
                 setAddModalOpen(false);
                 setEditingCopy(null);
               }}
-              className="px-4 py-2 text-xs font-semibold border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-850"
+              className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors disabled:opacity-50"
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-xs font-bold text-white transition-all duration-150 shadow-xs disabled:opacity-60"
             >
               {submitting ? 'Saving...' : editingCopy ? 'Update Copy' : 'Register Copy'}
             </button>

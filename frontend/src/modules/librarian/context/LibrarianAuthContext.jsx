@@ -51,8 +51,16 @@ export const LibrarianAuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUser = (partial) => {
+    setUser((prev) => {
+      const next = { ...prev, ...partial };
+      localStorage.setItem('librarian_user', JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <LibrarianAuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: Boolean(user) }}>
+    <LibrarianAuthContext.Provider value={{ user, loading, login, logout, updateUser, isAuthenticated: Boolean(user) }}>
       {!loading && children}
     </LibrarianAuthContext.Provider>
   );
