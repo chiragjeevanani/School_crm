@@ -4,6 +4,7 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { ReturnReceipt } from '../../components/ui/ReturnReceipt';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 import { useToast } from '../../components/ui/Toast';
 import { formatDate, formatCurrency } from '../../utils/formatters';
 import { Undo, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -164,7 +165,7 @@ export const BookReturn = () => {
         const isOverdue = new Date(row.dueDate) < new Date();
         return (
           <Badge variant={isOverdue ? 'danger' : 'warning'}>
-            {isOverdue ? `Overdue (${row.overdueDays || 1}d)` : 'Active Loan'}
+            {isOverdue ? `Overdue (${row.overdueDays || 1}d)` : 'Active'}
           </Badge>
         );
       },
@@ -201,10 +202,7 @@ export const BookReturn = () => {
       />
 
       {loading ? (
-        <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
-          <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
-          <span>Loading active loan registry from database...</span>
-        </div>
+        <SkeletonTable rows={8} columns={6} />
       ) : loans.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
           <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500" />
@@ -330,7 +328,7 @@ export const BookReturn = () => {
           size="md"
         >
           <ReturnReceipt
-            receipt={createdReceipt}
+            returnRecord={createdReceipt}
             onClose={() => setReceiptOpen(false)}
           />
         </Modal>

@@ -5,6 +5,7 @@ import { LibraryIssue } from '../models/LibraryIssue.js';
 import { LibraryReservation } from '../models/LibraryReservation.js';
 import { LibraryTransaction } from '../models/LibraryTransaction.js';
 import { Student } from '../models/Student.js';
+import { StudentEnrollment } from '../models/StudentEnrollment.js';
 import { Teacher } from '../models/Teacher.js';
 import { SchoolUser } from '../models/SchoolUser.js';
 import { bookCopyRepository } from './bookCopy.repository.js';
@@ -36,6 +37,12 @@ class LibraryRepository {
       } else if (query.status === 'OUT_OF_STOCK') {
         filter.availableCopies = { $lte: 0 };
       }
+    }
+
+    if (query.isActive === 'true') {
+      filter.isActive = { $ne: false };
+    } else if (query.isActive === 'false') {
+      filter.isActive = false;
     }
 
     if (query.search?.trim()) {
@@ -277,6 +284,14 @@ class LibraryRepository {
     return LibraryIssue.findOne({ schoolId: toObjectId(schoolId), _id: toObjectId(id) })
       .populate('bookId', 'title author category isbn bookCode price')
       .populate('copyId');
+  }
+
+  async updateFineStatus(schoolId, issueId, fineStatus) {
+    return LibraryIssue.findOneAndUpdate(
+      { schoolId: toObjectId(schoolId), _id: toObjectId(issueId) },
+      { $set: { fineStatus } },
+      { new: true, runValidators: true }
+    ).populate('bookId', 'title author category isbn bookCode price');
   }
 
   async createIssue(payload, performedBy = 'Librarian') {
@@ -554,38 +569,74 @@ class LibraryRepository {
     const [students, teachers, staff] = await Promise.all([
       Student.find({ schoolId: schoolObjId, status: 'ACTIVE' })
         .select('_id admissionNumber enrollmentId firstName lastName rollNumber')
+        .sort({ firstName: 1, lastName: 1 })
         .lean(),
       Teacher.find({ schoolId: schoolObjId, status: 'ACTIVE' })
-        .select('_id employeeId personalDetails employmentDetails')
+        .select('_id employeeId name firstName lastName department designation')
+        .sort({ name: 1 })
         .lean(),
       SchoolUser.find({ schoolId: schoolObjId, status: 'ACTIVE' })
         .select('_id employeeId name firstName lastName email role department designation')
+        .sort({ name: 1 })
         .lean(),
     ]);
 
-    const formattedStudents = (students || []).map((s) => ({
-      id: s._id.toString(),
-      type: 'STUDENT',
-      name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'Student',
-      code: s.admissionNumber || s.enrollmentId || 'STU',
-      class: s.rollNumber ? `Roll #${s.rollNumber}` : 'Student',
-    }));
+    // Batch populate active student enrollment class & section
+    const studentIds = (students || []).map((s) => s._id);
+    const enrollments = studentIds.length
+      ? await StudentEnrollment.find({
+          schoolId: schoolObjId,
+          studentId: { $in: studentIds },
+          status: 'ACTIVE',
+        })
+          .populate('classId', 'name')
+          .populate('sectionId', 'name')
+          .lean()
+      : [];
 
-    const formattedTeachers = (teachers || []).map((t) => ({
-      id: t._id.toString(),
-      type: 'TEACHER',
-      name: `${t.personalDetails?.firstName || ''} ${t.personalDetails?.lastName || ''}`.trim() || 'Teacher',
-      code: t.employeeId || 'TCH',
-      class: t.employmentDetails?.department || 'Faculty',
-    }));
+    const enrollmentMap = {};
+    for (const enr of enrollments) {
+      const className = enr.classId?.name || '';
+      const sectionName = enr.sectionId?.name || '';
+      const classDisplay = [className, sectionName].filter(Boolean).join(' - ');
+      enrollmentMap[enr.studentId.toString()] = {
+        classDisplay: classDisplay || (enr.rollNumber ? `Roll #${enr.rollNumber}` : 'Student'),
+        rollNumber: enr.rollNumber,
+      };
+    }
 
-    const formattedStaff = (staff || []).map((st) => ({
-      id: st._id.toString(),
-      type: 'STAFF',
-      name: st.name || `${st.firstName || ''} ${st.lastName || ''}`.trim() || 'Staff',
-      code: st.employeeId || 'STAFF',
-      class: st.designation || st.department || st.role || 'Staff',
-    }));
+    const formattedStudents = (students || []).map((s) => {
+      const enr = enrollmentMap[s._id.toString()];
+      return {
+        id: s._id.toString(),
+        type: 'STUDENT',
+        name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'Student',
+        code: s.admissionNumber || s.enrollmentId || 'STU',
+        class: enr?.classDisplay || (s.rollNumber ? `Roll #${s.rollNumber}` : 'Student'),
+      };
+    });
+
+    const formattedTeachers = (teachers || []).map((t) => {
+      const fullName = t.name || `${t.firstName || ''} ${t.lastName || ''}`.trim() || 'Teacher';
+      return {
+        id: t._id.toString(),
+        type: 'TEACHER',
+        name: fullName,
+        code: t.employeeId || 'TCH',
+        class: t.designation || t.department || 'Faculty',
+      };
+    });
+
+    const teacherEmployeeIds = new Set(formattedTeachers.map((t) => t.code).filter(Boolean));
+    const formattedStaff = (staff || [])
+      .filter((st) => !teacherEmployeeIds.has(st.employeeId))
+      .map((st) => ({
+        id: st._id.toString(),
+        type: st.role === 'TEACHER' ? 'TEACHER' : 'STAFF',
+        name: st.name || `${st.firstName || ''} ${st.lastName || ''}`.trim() || 'Staff',
+        code: st.employeeId || 'STAFF',
+        class: st.designation || st.department || st.role || 'Staff',
+      }));
 
     return [...formattedStudents, ...formattedTeachers, ...formattedStaff];
   }

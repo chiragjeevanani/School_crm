@@ -15,7 +15,8 @@ export const PrincipalAuthProvider = ({ children }) => {
   }, []);
 
   const login = (username, password) => {
-    if (username.toLowerCase() === 'principal' && password === 'principal123') {
+    const lowerUser = username.toLowerCase();
+    if ((lowerUser === 'principal' || lowerUser === 'principal@greenfield.edu') && password === 'principal123') {
       const mockUser = {
         id: 'PRN-001',
         name: 'Dr. S. Chatterjee',

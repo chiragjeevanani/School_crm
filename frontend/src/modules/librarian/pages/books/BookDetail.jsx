@@ -5,8 +5,9 @@ import { Badge } from '../../components/ui/Badge';
 import { BarcodeDisplay } from '../../components/ui/BarcodeDisplay';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
+import { DetailPageSkeleton } from '../../components/ui/SkeletonLoader';
 import { formatDate, formatCurrency } from '../../utils/formatters';
-import { BookOpen, User, ArrowLeft, Tag, MapPin, Layers, Copy, Plus, RefreshCw, Trash2, CheckCircle2 } from 'lucide-react';
+import { BookOpen, User, ArrowLeft, Tag, MapPin, Layers, Copy, Plus, RefreshCw, Trash2, CheckCircle2, Power, Edit } from 'lucide-react';
 import { librarianApi } from '../../../../shared/api/client';
 import { useToast } from '../../components/ui/Toast';
 
@@ -99,6 +100,17 @@ export const BookDetail = () => {
     }
   };
 
+  const handleToggleStatus = async () => {
+    const nextActive = !(book.isActive !== false);
+    try {
+      await librarianApi.updateBook(book.id, { isActive: nextActive });
+      toast.success(`"${book.title}" marked ${nextActive ? 'active' : 'inactive'}`);
+      fetchBookData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to update book status');
+    }
+  };
+
   const handleDeleteCopy = async (copyId) => {
     if (!window.confirm('Are you sure you want to delete this physical copy?')) return;
     try {
@@ -111,12 +123,7 @@ export const BookDetail = () => {
   };
 
   if (loading) {
-    return (
-      <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
-        <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
-        <span>Loading book details from database...</span>
-      </div>
-    );
+    return <DetailPageSkeleton />;
   }
 
   if (!book) {
@@ -187,7 +194,7 @@ export const BookDetail = () => {
     { title: 'Accession #', key: 'accessionNumber' },
     { title: 'Issue Date', key: 'issueDate', render: (val) => formatDate(val) },
     { title: 'Due Date', key: 'dueDate', render: (val) => formatDate(val) },
-    { title: 'Return Date', key: 'returnDate', render: (val) => (val ? formatDate(val) : 'Active Loan') },
+    { title: 'Return Date', key: 'returnDate', render: (val) => (val ? formatDate(val) : 'Active') },
     {
       title: 'Status',
       key: 'status',
@@ -233,13 +240,22 @@ export const BookDetail = () => {
           <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Book Profile</span>
         </div>
 
-        <button
-          onClick={() => setAddCopyOpen(true)}
-          className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shadow-xs"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Add Physical Copy</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleToggleStatus}
+            className="h-9 px-4 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl flex items-center gap-2 transition-all"
+          >
+            <Power className="h-4 w-4" />
+            <span>{book.isActive !== false ? 'Deactivate' : 'Activate'}</span>
+          </button>
+          <button
+            onClick={() => setAddCopyOpen(true)}
+            className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shadow-xs"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Physical Copy</span>
+          </button>
+        </div>
       </div>
 
       {/* Book Summary Card */}
@@ -255,6 +271,9 @@ export const BookDetail = () => {
               {book.availableCopies} / {book.totalCopies} Copies Available
             </Badge>
             <Badge variant="indigo">{book.category}</Badge>
+            <Badge variant={book.isActive !== false ? 'default' : 'warning'}>
+              {book.isActive !== false ? 'Active' : 'Inactive'}
+            </Badge>
             <span className="text-3xs font-bold text-slate-400 font-mono">Code: {book.bookCode}</span>
           </div>
 
@@ -300,6 +319,9 @@ export const BookDetail = () => {
                   <span className="font-semibold text-slate-400">Category:</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{book.category}</span>
 
+                  <span className="font-semibold text-slate-400">Subject:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{book.subject || '—'}</span>
+
                   <span className="font-semibold text-slate-400">Publisher:</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{book.publisher || '—'}</span>
 
@@ -311,6 +333,9 @@ export const BookDetail = () => {
 
                   <span className="font-semibold text-slate-400">Pages:</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{book.pages || '—'}</span>
+
+                  <span className="font-semibold text-slate-400">Added On:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{formatDate(book.createdAt)}</span>
                 </div>
               </div>
 

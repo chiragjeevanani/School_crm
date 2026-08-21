@@ -110,3 +110,14 @@
   padding: 12px 8px !important;
   border-radius: 8px !important;
 }
+
+/* Custom Autocomplete / Autofill styling for Dark Mode inputs */
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover, 
+.dark input:-webkit-autofill:focus, 
+.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #090d16 inset !important; /* bg-slate-950 */
+  -webkit-text-fill-color: #f8fafc !important;               /* text-slate-100 */
+  transition: background-color 5000s ease-in-out 0s;
+}
+

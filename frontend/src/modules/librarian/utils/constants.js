@@ -1,11 +1,7 @@
 import {
   LayoutDashboard,
   BookOpen,
-  PlusCircle,
   FolderTree,
-  UserCheck,
-  Building,
-  Copy,
   ArrowLeftRight,
   FileCheck,
   FileX,
@@ -13,6 +9,7 @@ import {
   Clock,
   AlertTriangle,
   Users,
+  User,
   GraduationCap,
   Briefcase,
   Bookmark,
@@ -42,12 +39,8 @@ export const NAVIGATION_ITEMS = [
     title: 'Books',
     icon: BookOpen,
     children: [
-      { title: 'All Books', path: '/librarian/books', icon: BookOpen },
-      { title: 'Add Book', path: '/librarian/books/add', icon: PlusCircle },
       { title: 'Categories', path: '/librarian/books/categories', icon: FolderTree },
-      { title: 'Authors', path: '/librarian/books/authors', icon: UserCheck },
-      { title: 'Publishers', path: '/librarian/books/publishers', icon: Building },
-      { title: 'Book Copies', path: '/librarian/books/copies', icon: Copy },
+      { title: 'Books', path: '/librarian/books', icon: BookOpen },
     ],
   },
 
@@ -58,7 +51,6 @@ export const NAVIGATION_ITEMS = [
     children: [
       { title: 'Issue Book', path: '/librarian/issue', icon: FileCheck },
       { title: 'Return Book', path: '/librarian/return', icon: FileX },
-      { title: 'Renew Book', path: '/librarian/renew', icon: RefreshCw },
       { title: 'Issued Books', path: '/librarian/issued', icon: Clock },
       { title: 'Overdue Books', path: '/librarian/overdue', icon: AlertTriangle },
     ],
@@ -92,7 +84,6 @@ export const NAVIGATION_ITEMS = [
     children: [
       { title: 'Pending Fines', path: '/librarian/fines/pending', icon: BadgeAlert },
       { title: 'Collected Fines', path: '/librarian/fines/collected', icon: Receipt },
-      { title: 'Fine Rules', path: '/librarian/fines/rules', icon: Sliders },
     ],
   },
 
@@ -103,8 +94,6 @@ export const NAVIGATION_ITEMS = [
     children: [
       { title: 'Issue History', path: '/librarian/transactions/issues', icon: FileCheck },
       { title: 'Return History', path: '/librarian/transactions/returns', icon: RotateCcw },
-      { title: 'Renewal History', path: '/librarian/transactions/renewals', icon: RefreshCw },
-      { title: 'Lost / Damaged Books', path: '/librarian/transactions/lost-damaged', icon: AlertTriangle },
     ],
   },
 
@@ -134,9 +123,8 @@ export const NAVIGATION_ITEMS = [
     title: 'Settings',
     icon: SettingsIcon,
     children: [
-      { title: 'Library Settings', path: '/librarian/settings', icon: SettingsIcon },
-      { title: 'Issue / Return Rules', path: '/librarian/settings/rules', icon: Sliders },
-      { title: 'Fine Settings', path: '/librarian/settings/fines', icon: Receipt },
+      { title: 'Profile', path: '/librarian/settings/profile', icon: User },
+      { title: 'Rules & Fines', path: '/librarian/settings/rules', icon: Sliders },
     ],
   },
 ];

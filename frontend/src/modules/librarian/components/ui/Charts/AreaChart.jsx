@@ -1,7 +1,7 @@
 import React from 'react';
 import { ResponsiveContainer, AreaChart as RechartsArea, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
-export const AreaChart = ({ data, dataKey, xKey, height = 300, color = "#d97706" }) => {
+export const AreaChart = ({ data, dataKey, xKey, height = 300, color = "#4f46e5" }) => {
   if (!data || data.length === 0) {
     return (
       <div

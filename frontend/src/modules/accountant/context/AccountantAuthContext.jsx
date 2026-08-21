@@ -15,7 +15,8 @@ export const AccountantAuthProvider = ({ children }) => {
   }, []);
 
   const login = (username, password) => {
-    if (username.toLowerCase() === 'accountant' && password === 'accountant123') {
+    const lowerUser = username.toLowerCase();
+    if ((lowerUser === 'accountant' || lowerUser === 'accountant@greenfield.edu') && password === 'accountant123') {
       const mockUser = {
         id: 'ACC-001',
         name: 'Mr. Suresh Mehta',

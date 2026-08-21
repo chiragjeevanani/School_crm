@@ -16,6 +16,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { UserAvatar } from '../ui/UserAvatar';
 
 export const TopBar = ({ toggleSidebar, onSearchTrigger }) => {
   const { user, logout } = useLibrarianAuth();
@@ -167,9 +168,11 @@ export const TopBar = ({ toggleSidebar, onSearchTrigger }) => {
               </p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400">Head Librarian</p>
             </div>
-            <div className="h-8 w-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm shadow-indigo-600/30">
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'L'}
-            </div>
+            <UserAvatar
+              src={user?.photoUrl}
+              name={user?.name}
+              className="h-8 w-8 rounded-full text-xs shadow-sm"
+            />
           </button>
 
           {/* Profile Flyout */}

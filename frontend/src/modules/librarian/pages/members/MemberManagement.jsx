@@ -4,6 +4,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { Tabs } from '../../components/ui/Tabs';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 import { useToast } from '../../components/ui/Toast';
 import { User, Users, GraduationCap, Briefcase, RefreshCw, BookOpen } from 'lucide-react';
 import { librarianApi } from '../../../../shared/api/client';
@@ -156,10 +157,7 @@ export const MemberManagement = () => {
       <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
       {loading ? (
-        <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
-          <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
-          <span>Loading verified school members...</span>
-        </div>
+        <SkeletonTable rows={8} columns={6} />
       ) : filteredData.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
           <Users className="h-8 w-8 mx-auto text-slate-400" />

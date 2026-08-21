@@ -98,12 +98,12 @@ export const IssueSlip = ({ issue, onClose }) => {
             </div>
             <div className="flex">
               <span className="font-bold w-24 text-slate-500">Member:</span>
-              <span className="font-semibold">{issue.memberName} ({issue.memberId})</span>
+              <span className="font-semibold">{issue.borrowerName} ({issue.borrowerCode})</span>
             </div>
-            {issue.memberClass && (
+            {issue.borrowerClass && (
               <div className="flex">
                 <span className="font-bold w-24 text-slate-500">Class/Dept:</span>
-                <span className="font-semibold">{issue.memberClass}</span>
+                <span className="font-semibold">{issue.borrowerClass}</span>
               </div>
             )}
             <div className="flex">

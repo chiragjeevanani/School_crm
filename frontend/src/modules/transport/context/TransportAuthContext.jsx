@@ -19,7 +19,8 @@ export const TransportAuthProvider = ({ children }) => {
   const login = (username, password) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        if (username === 'transport' && password === 'transport123') {
+        const lowerUser = username.toLowerCase();
+        if ((lowerUser === 'transport' || lowerUser === 'transport@greenfield.edu') && password === 'transport123') {
           const identity = findStaffByName('Manish Dave');
           const mockUser = {
             id: identity.id,

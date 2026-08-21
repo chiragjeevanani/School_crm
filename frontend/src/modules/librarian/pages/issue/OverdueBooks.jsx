@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 import { AlertTriangle, RefreshCw, Undo, Bell } from 'lucide-react';
 import { librarianApi } from '../../../../shared/api/client';
 import { useToast } from '../../components/ui/Toast';
@@ -140,10 +141,7 @@ export const OverdueBooks = () => {
       />
 
       {loading ? (
-        <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
-          <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
-          <span>Calculating overdue loans and penalties...</span>
-        </div>
+        <SkeletonTable rows={8} columns={6} />
       ) : overdueList.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
           <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-full w-12 h-12 flex items-center justify-center mx-auto">

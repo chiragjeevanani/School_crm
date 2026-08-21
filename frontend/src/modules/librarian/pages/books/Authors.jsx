@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
+import { SkeletonTable } from '../../components/ui/SkeletonLoader';
 import { UserCheck, RefreshCw, BookOpen } from 'lucide-react';
 import { librarianApi } from '../../../../shared/api/client';
 import { useToast } from '../../components/ui/Toast';
@@ -93,10 +94,7 @@ export const Authors = () => {
       />
 
       {loading ? (
-        <div className="py-20 text-center text-xs font-semibold text-slate-400 flex flex-col items-center gap-2">
-          <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
-          <span>Aggregating author directories...</span>
-        </div>
+        <SkeletonTable rows={8} columns={4} />
       ) : authors.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
           <UserCheck className="h-8 w-8 mx-auto text-slate-400" />

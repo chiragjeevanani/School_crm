@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLibrarianAuth } from '../context/LibrarianAuthContext';
-import { BookOpen, Lock, User as UserIcon, AlertCircle, RefreshCw } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle, ArrowRight, ArrowLeft, Eye, EyeOff, Loader2, BookOpen, CheckCircle2, Users, Mail } from 'lucide-react';
+import BrandLogo from '../../../shared/ui/BrandLogo';
 
 export const LibrarianLogin = () => {
   const { login } = useLibrarianAuth();
@@ -9,8 +10,15 @@ export const LibrarianLogin = () => {
   
   const [username, setUsername] = useState('librarian');
   const [password, setPassword] = useState('lib123');
+  const [email, setEmail] = useState('');
+  const [view, setView] = useState('login'); // 'login', 'forgot', 'sent'
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    document.title = 'Librarian Login | School CRM';
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,93 +35,239 @@ export const LibrarianLogin = () => {
     }
   };
 
+  const handleForgotSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    setTimeout(() => {
+      setLoading(false);
+      setView('sent');
+    }, 600);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden font-sans">
-      {/* Subtle Background Glows matching School Admin */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="dark h-dvh overflow-hidden bg-slate-950 text-slate-100 lg:grid lg:grid-cols-2">
+      {/* Left section: branding/features */}
+      <section className="relative hidden h-full items-center justify-center overflow-hidden px-10 lg:flex">
+        {/* Glow Effects */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(79,70,229,0.22),_transparent_58%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_rgba(14,165,233,0.10),_transparent_48%)]" />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.16]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(148,163,184,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.18) 1px, transparent 1px)',
+            backgroundSize: '56px 56px',
+          }}
+        />
 
-      {/* Login Card */}
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative z-10 space-y-6">
-        
-        {/* Brand/Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex p-3.5 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-600/25">
-            <BookOpen className="h-7 w-7" />
-          </div>
-          <h2 className="text-2xl font-black tracking-tight text-white mt-4">Librarian Portal</h2>
-          <p className="text-slate-400 text-xs font-semibold">Greenfield Public School • Library Management</p>
-        </div>
-
-        {/* Error Alert */}
-        {error && (
-          <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex gap-2.5 text-xs text-rose-400">
-            <AlertCircle className="h-4.5 w-4.5 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-3xs font-extrabold uppercase tracking-wider text-slate-400">
-              Username or Email
-            </label>
-            <div className="relative">
-              <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <input
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full h-11 pl-10 pr-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter username"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-3xs font-extrabold uppercase tracking-wider text-slate-400">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-11 pl-10 pr-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter password"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-600/50 text-white text-xs font-bold rounded-2xl transition-all duration-150 shadow-md shadow-indigo-900/20 active:scale-98 flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                <span>Verifying Account...</span>
-              </>
-            ) : (
-              <span>Sign In to Portal</span>
-            )}
-          </button>
-        </form>
-
-        {/* Guest Demo Credentials Notice */}
-        <div className="pt-2 text-center">
-          <span className="text-4xs text-slate-500 font-bold uppercase tracking-widest block mb-1">Demo Credentials</span>
-          <span className="text-3xs font-mono text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">
-            librarian / lib123
+        <div className="relative z-10 flex w-full max-w-md flex-col items-center text-center">
+          <span className="mb-4 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-300">
+            Library Management Portal
           </span>
+          <div className="rounded-3xl bg-slate-900/50 p-2.5 shadow-[0_0_80px_rgba(79,70,229,0.28)] ring-1 ring-white/10">
+            <BrandLogo className="h-40 w-40 rounded-[1.15rem]" />
+          </div>
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-white">School CRM</h1>
+          <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-400">
+            One place to catalog books, track loans and returns, and manage student library accounts.
+          </p>
+          <ul className="mt-6 w-full space-y-2.5 text-left">
+            <li className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-2.5">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-300">
+                <BookOpen className="h-4 w-4" />
+              </span>
+              <span className="text-sm text-slate-300">Catalog Directory: Manage book copies, categories, and authors</span>
+            </li>
+            <li className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-2.5">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-300">
+                <CheckCircle2 className="h-4 w-4" />
+              </span>
+              <span className="text-sm text-slate-300">Circulation Desk: Track book issues, due dates, and check-in logs</span>
+            </li>
+            <li className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-2.5">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-300">
+                <Users className="h-4 w-4" />
+              </span>
+              <span className="text-sm text-slate-300">Membership Cards: Oversee library memberships and outstanding fines</span>
+            </li>
+          </ul>
         </div>
-      </div>
+      </section>
+
+      {/* Right section: form */}
+      <section className="relative flex h-full items-center justify-center overflow-hidden border-slate-800 bg-slate-950 px-4 lg:border-l">
+        <div className="w-full max-w-[400px]">
+          <div className="mb-5 flex flex-col items-center text-center">
+            <BrandLogo className="mb-3 h-11 w-11 rounded-xl ring-1 ring-white/10" />
+            <h2 className="text-2xl font-semibold tracking-tight text-white">Welcome back</h2>
+            <p className="mt-1.5 text-sm text-slate-400">
+              {view === 'login' ? 'Sign in with your library account' : 'Reset your library password'}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/75 p-6 shadow-2xl shadow-black/40 backdrop-blur-xl space-y-4">
+            {error && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3.5 py-3 text-sm text-rose-300">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {view === 'login' && (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-slate-300">Email</label>
+                  <div className="relative">
+                    <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      placeholder="librarian@greenfield.edu"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                      className="h-12 w-full rounded-xl border border-slate-700/80 bg-slate-950/80 pl-11 pr-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition hover:border-slate-600 focus:border-indigo-500 focus:bg-slate-950 focus:ring-4 focus:ring-indigo-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-medium text-slate-300">Password</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError('');
+                        setView('forgot');
+                      }}
+                      className="text-xs font-semibold text-indigo-400 transition hover:text-indigo-300"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="h-12 w-full rounded-xl border border-slate-700/80 bg-slate-950/80 pl-11 pr-11 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition hover:border-slate-600 focus:border-indigo-500 focus:bg-slate-950 focus:ring-4 focus:ring-indigo-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((open) => !open)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 transition hover:bg-slate-800 hover:text-slate-200"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Authenticating Library Credentials...
+                    </>
+                  ) : (
+                    <>
+                      Sign In
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {view === 'forgot' && (
+              <form onSubmit={handleForgotSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-slate-300">Email Address</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="email"
+                      placeholder="librarian@greenfield.edu"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="h-12 w-full rounded-xl border border-slate-700/80 bg-slate-950/80 pl-11 pr-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition hover:border-slate-600 focus:border-indigo-500 focus:bg-slate-950 focus:ring-4 focus:ring-indigo-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Sending link...
+                    </>
+                  ) : (
+                    'Send reset link'
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError('');
+                    setView('login');
+                  }}
+                  className="inline-flex w-full items-center justify-center gap-1.5 text-sm font-medium text-slate-400 transition hover:text-slate-200"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to sign in
+                </button>
+              </form>
+            )}
+
+            {view === 'sent' && (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-3 text-sm text-emerald-300">
+                  If <span className="font-semibold">{email}</span> is registered in our database, reset instructions will be sent shortly. Check your inbox.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setView('login');
+                    setEmail('');
+                  }}
+                  className="inline-flex w-full items-center justify-center gap-1.5 text-sm font-medium text-slate-400 transition hover:text-slate-200"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to sign in
+                </button>
+              </div>
+            )}
+
+            {/* Credentials Reminder */}
+            {view === 'login' && (
+              <div className="bg-slate-950/80 p-3.5 border border-slate-800 rounded-xl text-center text-xs">
+                <span className="text-slate-400 block mb-1">Mock Credentials:</span>
+                <code className="text-indigo-400 font-semibold font-mono text-[11px] block">
+                  Email: librarian@greenfield.edu | Password: password123
+                </code>
+              </div>
+            )}
+          </div>
+          <p className="mt-4 text-center text-[11px] tracking-wide text-slate-500">
+            Authorized librarians only · Secure database connection
+          </p>
+        </div>
+      </section>
     </div>
   );
 };
+
 export default LibrarianLogin;
