@@ -8,8 +8,8 @@ export const LibrarianLogin = () => {
   const { login } = useLibrarianAuth();
   const navigate = useNavigate();
   
-  const [username, setUsername] = useState('librarian');
-  const [password, setPassword] = useState('lib123');
+  const [username, setUsername] = useState('meenakshi.lib@greenfield.edu');
+  const [password, setPassword] = useState('Password@123');
   const [email, setEmail] = useState('');
   const [view, setView] = useState('login'); // 'login', 'forgot', 'sent'
   const [error, setError] = useState('');
@@ -248,16 +248,6 @@ export const LibrarianLogin = () => {
                   <ArrowLeft className="h-4 w-4" />
                   Back to sign in
                 </button>
-              </div>
-            )}
-
-            {/* Credentials Reminder */}
-            {view === 'login' && (
-              <div className="bg-slate-950/80 p-3.5 border border-slate-800 rounded-xl text-center text-xs">
-                <span className="text-slate-400 block mb-1">Mock Credentials:</span>
-                <code className="text-indigo-400 font-semibold font-mono text-[11px] block">
-                  Email: librarian@greenfield.edu | Password: password123
-                </code>
               </div>
             )}
           </div>

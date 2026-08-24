@@ -8,8 +8,8 @@ export const HRLogin = () => {
   const { login } = useHRAuth();
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('rohan.hr@greenfield.edu');
+  const [password, setPassword] = useState('Password@123');
   const [email, setEmail] = useState('');
   const [view, setView] = useState('login'); // 'login', 'forgot', 'sent'
   const [error, setError] = useState(null);
@@ -248,14 +248,6 @@ export const HRLogin = () => {
                   <ArrowLeft className="h-4 w-4" />
                   Back to sign in
                 </button>
-              </div>
-            )}
-
-            {/* Credentials Reminder */}
-            {view === 'login' && (
-              <div className="bg-slate-955/80 p-3.5 border border-slate-800 rounded-xl text-center text-xs">
-                <span className="text-slate-400 block mb-1">Mock Credentials:</span>
-                <code className="text-indigo-400 font-semibold font-mono text-[11px]">Email: hr@greenfield.edu | Password: password123</code>
               </div>
             )}
           </div>

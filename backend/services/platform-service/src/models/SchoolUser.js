@@ -16,6 +16,15 @@ const bankDetailsSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const emergencyContactSchema = new mongoose.Schema(
+  {
+    name: { type: String, default: '', trim: true },
+    phone: { type: String, default: '', trim: true },
+    relationship: { type: String, default: '', trim: true },
+  },
+  { _id: false }
+);
+
 const schoolUserSchema = new mongoose.Schema(
   {
     schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true, index: true },
@@ -37,21 +46,45 @@ const schoolUserSchema = new mongoose.Schema(
       enum: ['MALE', 'FEMALE', 'OTHER'],
       default: 'MALE',
     },
+    dateOfBirth: { type: Date, default: null },
+    bloodGroup: { type: String, default: '', trim: true },
+    maritalStatus: { type: String, enum: ['', 'SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED'], default: '' },
+    nationality: { type: String, default: '', trim: true },
+    address: {
+      addressLine: { type: String, default: '', trim: true },
+      city: { type: String, default: '', trim: true },
+      state: { type: String, default: '', trim: true },
+      country: { type: String, default: '', trim: true },
+      pincode: { type: String, default: '', trim: true },
+    },
     specialization: { type: String, default: '', trim: true },
+    qualification: { type: String, default: '', trim: true },
+    experienceSummary: { type: String, default: '', trim: true },
+    employmentType: {
+      type: String,
+      enum: ['', 'FULL_TIME', 'PART_TIME', 'CONTRACT', 'VISITING', 'TEMPORARY'],
+      default: 'FULL_TIME',
+    },
     joiningDate: { type: Date, default: null },
     department: { type: String, default: '', trim: true },
     designation: { type: String, default: '', trim: true },
     basicSalary: { type: Number, default: 0, min: 0 },
+    pan: { type: String, default: '', trim: true },
+    uan: { type: String, default: '', trim: true },
     bankDetails: {
       type: bankDetailsSchema,
+      default: () => ({}),
+    },
+    emergencyContact: {
+      type: emergencyContactSchema,
       default: () => ({}),
     },
     documents: [{ type: String, trim: true }], // Max 3 image file paths
     photo: { type: String, default: '', trim: true },
     status: {
       type: String,
-      enum: ['ACTIVE', 'INACTIVE'],
-      default: 'ACTIVE',
+      enum: ['ACTIVE', 'INACTIVE', 'PENDING_APPROVAL', 'PENDING', 'REJECTED', 'ON_LEAVE', 'SUSPENDED'],
+      default: 'PENDING_APPROVAL',
       index: true,
     },
     lastLoginAt: { type: Date, default: null },
@@ -76,11 +109,21 @@ schoolUserSchema.methods.toPublicJSON = function toPublicJSON() {
     role: this.role,
     phone: this.phone,
     gender: this.gender,
+    dateOfBirth: this.dateOfBirth,
+    bloodGroup: this.bloodGroup,
+    maritalStatus: this.maritalStatus,
+    nationality: this.nationality,
+    address: this.address || {},
     specialization: this.specialization,
+    qualification: this.qualification,
+    experienceSummary: this.experienceSummary,
+    employmentType: this.employmentType,
     joiningDate: this.joiningDate,
     department: this.department,
     designation: this.designation,
     basicSalary: this.basicSalary || 0,
+    pan: this.pan,
+    uan: this.uan,
     bankDetails: this.bankDetails || {
       accountName: '',
       accountNumber: '',
@@ -88,6 +131,11 @@ schoolUserSchema.methods.toPublicJSON = function toPublicJSON() {
       bankName: '',
       branchName: '',
       accountType: 'SALARY',
+    },
+    emergencyContact: this.emergencyContact || {
+      name: '',
+      phone: '',
+      relationship: '',
     },
     documents: Array.isArray(this.documents) ? this.documents : [],
     photo: this.photo || '',

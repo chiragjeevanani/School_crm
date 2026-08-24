@@ -403,6 +403,8 @@ export const librarianApi = {
   authors: () => librarianClient.get('/platform/school-portal/library/authors').then((r) => r.data),
   publishers: () => librarianClient.get('/platform/school-portal/library/publishers').then((r) => r.data),
   borrowers: (params) => librarianClient.get('/platform/school-portal/library/borrowers', { params }).then((r) => r.data),
+  notificationRecipients: () => librarianClient.get('/platform/school-portal/library/notification-recipients').then((r) => r.data),
+  sendNotification: (payload) => librarianClient.post('/platform/school-portal/library/notifications', payload).then((r) => r.data),
 
   // Books Catalog
   books: (params) => librarianClient.get('/platform/school-portal/library/books', { params }).then((r) => r.data),
@@ -474,6 +476,8 @@ export const hrApi = {
   createEmployee: (payload) => hrClient.post('/platform/school-portal/hr/employees', payload).then((r) => r.data),
   updateEmployee: (id, payload) => hrClient.patch(`/platform/school-portal/hr/employees/${id}`, payload).then((r) => r.data),
   updateEmployeeStatus: (id, status) => hrClient.patch(`/platform/school-portal/hr/employees/${id}/status`, { status }).then((r) => r.data),
+  approveEmployee: (id) => hrClient.patch(`/platform/school-portal/hr/employees/${id}/approve`).then((r) => r.data),
+  rejectEmployee: (id, reason) => hrClient.patch(`/platform/school-portal/hr/employees/${id}/reject`, { reason }).then((r) => r.data),
   deleteEmployee: (id) => hrClient.delete(`/platform/school-portal/hr/employees/${id}`).then((r) => r.data),
 
   // Departments
@@ -521,7 +525,16 @@ export const hrApi = {
   deleteReview: (id) => hrClient.delete(`/platform/school-portal/hr/performance/${id}`).then((r) => r.data),
 
   // Documents & Announcements
-  documents: () => hrClient.get('/platform/school-portal/hr/documents').then((r) => r.data),
+  documents: (params) => hrClient.get('/platform/school-portal/hr/documents', { params }).then((r) => r.data),
+  uploadDocument: (formData) =>
+    hrClient
+      .post('/platform/school-portal/hr/documents/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data),
+  verifyDocument: (id, status) =>
+    hrClient.patch(`/platform/school-portal/hr/documents/${id}/verify`, { status }).then((r) => r.data),
+  deleteDocument: (id) => hrClient.delete(`/platform/school-portal/hr/documents/${id}`).then((r) => r.data),
   announcements: () => hrClient.get('/platform/school-portal/hr/announcements').then((r) => r.data),
   createAnnouncement: (payload) => hrClient.post('/platform/school-portal/hr/announcements', payload).then((r) => r.data),
 

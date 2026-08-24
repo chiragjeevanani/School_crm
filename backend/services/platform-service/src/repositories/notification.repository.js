@@ -11,11 +11,22 @@ export class NotificationRepository {
     return PlatformNotification.find(filter).sort({ createdAt: -1 }).limit(100);
   }
 
-  inbox({ role, schoolIds = [] }) {
+  inbox({ role, schoolIds = [], userId = '' }) {
     const filter = { audiences: role };
     if (schoolIds.length) {
       filter.$or = [{ schoolId: '' }, { schoolId: null }, { schoolId: { $in: schoolIds } }];
     }
+    // Broadcasts (empty recipientRefIds) are always visible; targeted notifications
+    // only show up for the specific userId they were addressed to.
+    filter.$and = [
+      {
+        $or: [
+          { recipientRefIds: { $exists: false } },
+          { recipientRefIds: { $size: 0 } },
+          ...(userId ? [{ recipientRefIds: userId }] : []),
+        ],
+      },
+    ];
     return PlatformNotification.find(filter).sort({ createdAt: -1 }).limit(50);
   }
 
@@ -27,10 +38,13 @@ export class NotificationRepository {
     );
   }
 
-  findTokens({ roles, schoolIds = [] }) {
+  findTokens({ roles, schoolIds = [], userIds }) {
     const filter = { role: { $in: roles } };
     if (schoolIds.length) {
       filter.schoolId = { $in: schoolIds };
+    }
+    if (userIds?.length) {
+      filter.userId = { $in: userIds };
     }
     return DeviceToken.find(filter);
   }

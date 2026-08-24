@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { useHRAuth } from '../../context/HRAuthContext';
 import { useHRTheme } from '../../context/HRThemeContext';
@@ -14,7 +14,11 @@ import {
   ShieldCheck,
   RefreshCw,
   AlertCircle,
-  Building
+  Building,
+  CheckCircle2,
+  CalendarDays,
+  BadgeCent,
+  Shield,
 } from 'lucide-react';
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -43,11 +47,7 @@ export const Settings = () => {
     autoApproveLeaves: false,
   });
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -60,7 +60,11 @@ export const Settings = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const handleWorkingDayToggle = (day) => {
     setSettings((prev) => {
@@ -100,43 +104,46 @@ export const Settings = () => {
   };
 
   return (
-    <div className="space-y-6 text-xs font-semibold max-w-4xl mx-auto">
+    <div className="space-y-6 pb-12">
       <PageHeader
-        title="HR Policy, Leave Quotas & System Settings"
-        subtitle="Manage working days, shift operating hours, annual staff leave entitlement balances, and fine deduction rules."
+        title="Institutional HR Operations & Policy Settings"
+        subtitle="Configure campus shift timings, weekly academic schedules, annual staff leave allowances, and payroll deduction rules."
         actions={
           <button
             onClick={fetchSettings}
-            className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
-            title="Refresh Settings"
+            disabled={loading}
+            className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Refresh"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         }
       />
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6">
-        <button
-          onClick={() => setActiveTab('policy')}
-          className={`pb-3 text-xs font-bold transition-colors cursor-pointer ${
-            activeTab === 'policy'
-              ? 'border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400'
-              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-          }`}
-        >
-          Staff Policy & Quotas
-        </button>
-        <button
-          onClick={() => setActiveTab('profile')}
-          className={`pb-3 text-xs font-bold transition-colors cursor-pointer ${
-            activeTab === 'profile'
-              ? 'border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400'
-              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-          }`}
-        >
-          HR Account & Security
-        </button>
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6 overflow-x-auto no-scrollbar">
+        {[
+          { id: 'policy', label: 'Shift Timings & Working Days', icon: CalendarDays },
+          { id: 'quotas', label: 'Annual Leave Quotas', icon: Calendar },
+          { id: 'deductions', label: 'Payroll & Statutory Rules', icon: BadgeCent },
+          { id: 'appearance', label: 'Theme & Institution Profile', icon: Shield },
+        ].map((t) => {
+          const TabIcon = t.icon;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`pb-3 text-xs font-bold transition-colors cursor-pointer shrink-0 flex items-center gap-2 ${
+                activeTab === t.id
+                  ? 'border-b-2 border-indigo-650 text-indigo-650 dark:text-indigo-400'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+              }`}
+            >
+              <TabIcon className="w-4 h-4" />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {error && (
@@ -146,196 +153,204 @@ export const Settings = () => {
         </div>
       )}
 
-      {/* Tab 1: Staff Policy & Quotas */}
-      {activeTab === 'policy' && (
-        <form onSubmit={handleSavePolicy} className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
-          {loading ? (
-            <div className="space-y-4">
-              <div className="h-10 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
-              <div className="h-40 bg-slate-100 dark:bg-slate-800/60 rounded-2xl animate-pulse" />
-            </div>
-          ) : (
-            <>
-              {/* Working Days Selection */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">
-                  Institutional Working Days
-                </h3>
-                <p className="text-xs text-slate-400">Select active days when faculty and staff are expected on campus.</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-                  {WEEKDAYS.map((day) => {
-                    const isChecked = (settings.workingDays || []).includes(day);
-                    return (
-                      <button
-                        key={day}
-                        type="button"
-                        onClick={() => handleWorkingDayToggle(day)}
-                        className={`p-3 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
-                          isChecked
-                            ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold'
-                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-400 font-medium'
-                        }`}
-                      >
-                        <span>{day}</span>
-                        <div
-                          className={`w-4 h-4 rounded-md flex items-center justify-center text-[10px] ${
-                            isChecked ? 'bg-indigo-600 text-white' : 'border border-slate-300 dark:border-slate-700'
-                          }`}
-                        >
-                          {isChecked && '✓'}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Shift Hours */}
-              <div className="space-y-3 pt-2">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">
-                  Standard Shift Operating Hours
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-slate-700 dark:text-slate-300 font-bold">Shift Start Time</label>
-                    <input
-                      type="text"
-                      value={settings.shiftStartTime}
-                      onChange={(e) => setSettings({ ...settings, shiftStartTime: e.target.value })}
-                      placeholder="08:00 AM"
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-xs font-semibold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-slate-700 dark:text-slate-300 font-bold">Shift End Time</label>
-                    <input
-                      type="text"
-                      value={settings.shiftEndTime}
-                      onChange={(e) => setSettings({ ...settings, shiftEndTime: e.target.value })}
-                      placeholder="03:00 PM"
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-xs font-semibold"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Annual Leave Entitlement Quotas */}
-              <div className="space-y-3 pt-2">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">
-                  Annual Staff Leave Entitlement Quotas (Per Calendar Year)
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-slate-700 dark:text-slate-300 font-bold">Casual Leaves (CL)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={settings.casualLeaveQuota}
-                      onChange={(e) => setSettings({ ...settings, casualLeaveQuota: Number(e.target.value) })}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-xs font-bold"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-slate-700 dark:text-slate-300 font-bold">Medical / Sick Leaves (SL)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={settings.medicalLeaveQuota}
-                      onChange={(e) => setSettings({ ...settings, medicalLeaveQuota: Number(e.target.value) })}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-xs font-bold"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-slate-700 dark:text-slate-300 font-bold">Paid / Earned Leaves (PL)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={settings.paidLeaveQuota}
-                      onChange={(e) => setSettings({ ...settings, paidLeaveQuota: Number(e.target.value) })}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-xs font-bold"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Automatic Approvals & Probations */}
-              <div className="space-y-3 pt-2">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">
-                  HR Compliance & Automation
-                </h3>
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-850">
-                  <div>
-                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Auto-Approve Time Off Requests</span>
-                    <span className="text-[11px] text-slate-400">
-                      When enabled, leave requests submitted by staff will be auto-approved without manual review.
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={settings.autoApproveLeaves}
-                    onChange={(e) => setSettings({ ...settings, autoApproveLeaves: e.target.checked })}
-                    className="w-5 h-5 accent-indigo-600 rounded cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {/* Save Button */}
-              <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-xs cursor-pointer disabled:opacity-60"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>{saving ? 'Saving...' : 'Save HR Settings'}</span>
-                </button>
-              </div>
-            </>
-          )}
-        </form>
-      )}
-
-      {/* Tab 2: HR Profile & Theme */}
-      {activeTab === 'profile' && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">
-            Active HR Administrator Profile
-          </h3>
-
-          <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-100 dark:border-slate-850">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-xl">
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'H'}
-            </div>
+      {/* Settings Form Container */}
+      <form onSubmit={handleSavePolicy} className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-6">
+        {/* Tab 1: Policy */}
+        {activeTab === 'policy' && (
+          <div className="space-y-6 text-xs font-semibold">
             <div>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white">{user?.name}</h4>
-              <p className="text-xs text-slate-400">{user?.email} • {user?.employeeId || 'HR-201'}</p>
-              <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold mt-0.5">{user?.schoolName}</p>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Standard Campus Shift Timings</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Define mandatory entry and exit hours for daily attendance logging</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
+                  Shift Start Time
+                </label>
+                <input
+                  type="text"
+                  value={settings.shiftStartTime || '08:00 AM'}
+                  onChange={(e) => setSettings({ ...settings, shiftStartTime: e.target.value })}
+                  placeholder="08:00 AM"
+                  className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-indigo-500 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
+                  Shift End Time
+                </label>
+                <input
+                  type="text"
+                  value={settings.shiftEndTime || '03:00 PM'}
+                  onChange={(e) => setSettings({ ...settings, shiftEndTime: e.target.value })}
+                  placeholder="03:00 PM"
+                  className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-indigo-500 font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white mb-1">Institutional Working Days</h4>
+              <p className="text-[11px] text-slate-400 mb-3">Select the active operational schedule for faculty presence</p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
+                {WEEKDAYS.map((day) => {
+                  const isChecked = (settings.workingDays || []).includes(day);
+                  return (
+                    <button
+                      type="button"
+                      key={day}
+                      onClick={() => handleWorkingDayToggle(day)}
+                      className={`p-3 rounded-2xl border text-center transition-all cursor-pointer font-bold ${
+                        isChecked
+                          ? 'bg-indigo-50 dark:bg-indigo-950/80 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 shadow-2xs'
+                          : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      <span className="block text-xs">{day.slice(0, 3)}</span>
+                      <span className="block text-[9px] mt-0.5 uppercase tracking-wider">{isChecked ? 'Active' : 'Off'}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
+        )}
 
-          <div className="space-y-3">
-            <h4 className="font-bold text-slate-900 dark:text-white">Workspace Interface Theme</h4>
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-850">
+        {/* Tab 2: Quotas */}
+        {activeTab === 'quotas' && (
+          <div className="space-y-6 text-xs font-semibold">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Annual Leave Entitlements</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Configured yearly quotas credited to full-time faculty profiles</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <span className="font-bold text-slate-800 dark:text-slate-200 block">Dark Mode Workspace</span>
-                <span className="text-[11px] text-slate-400">Toggle dark / light mode palette for the HRMS portal</span>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
+                  Casual Leave (Days / Year)
+                </label>
+                <input
+                  type="number"
+                  value={settings.casualLeaveQuota}
+                  onChange={(e) => setSettings({ ...settings, casualLeaveQuota: e.target.value })}
+                  className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-indigo-500 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
+                  Medical / Sick Leave (Days / Year)
+                </label>
+                <input
+                  type="number"
+                  value={settings.medicalLeaveQuota}
+                  onChange={(e) => setSettings({ ...settings, medicalLeaveQuota: e.target.value })}
+                  className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-indigo-500 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
+                  Paid / Earned Leave (Days / Year)
+                </label>
+                <input
+                  type="number"
+                  value={settings.paidLeaveQuota}
+                  onChange={(e) => setSettings({ ...settings, paidLeaveQuota: e.target.value })}
+                  className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-indigo-500 font-bold"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Deductions */}
+        {activeTab === 'deductions' && (
+          <div className="space-y-6 text-xs font-semibold">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Compensation & Deduction Parameters</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Automated payroll adjustments for unapproved absences and delays</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
+                  Unapproved Absent Deduction (₹ / Day)
+                </label>
+                <input
+                  type="number"
+                  value={settings.absentDeductionPerDay || 0}
+                  onChange={(e) => setSettings({ ...settings, absentDeductionPerDay: e.target.value })}
+                  className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-indigo-500 font-bold text-rose-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
+                  Standard Probation Period (Months)
+                </label>
+                <input
+                  type="number"
+                  value={settings.probationPeriodMonths || 6}
+                  onChange={(e) => setSettings({ ...settings, probationPeriodMonths: e.target.value })}
+                  className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-indigo-500 font-bold"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 4: Appearance & Institution */}
+        {activeTab === 'appearance' && (
+          <div className="space-y-6 text-xs font-semibold">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Portal Display & Branding</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Custom appearance and tenant institution profile</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-900 dark:text-white block">Workspace Theme Mode</span>
+                <p className="text-[11px] text-slate-400 mt-0.5">Toggle between crisp Light Mode and Dark Mode</p>
               </div>
               <button
                 type="button"
                 onClick={toggleDarkMode}
-                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer"
+                className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white hover:bg-slate-100 flex items-center gap-2 cursor-pointer"
               >
-                {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+                {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+                <span>{darkMode ? 'Dark Theme (Active)' : 'Light Theme (Active)'}</span>
               </button>
             </div>
+
+            <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30">
+              <span className="text-[10px] font-bold text-indigo-650 uppercase tracking-wider block">Institutional Scoping</span>
+              <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
+                {user?.schoolName || 'Greenfield Public School'}
+              </p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Logged in as: {user?.name} ({user?.email})</p>
+            </div>
           </div>
+        )}
+
+        <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+          <button
+            type="submit"
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            <span>{saving ? 'Saving Changes...' : 'Save Policy Settings'}</span>
+          </button>
         </div>
-      )}
+      </form>
 
       <ToastComponent />
     </div>
   );
 };
+
 export default Settings;

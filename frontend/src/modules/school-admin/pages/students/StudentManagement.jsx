@@ -551,38 +551,38 @@ export const StudentManagement = () => {
       header: 'Actions',
       key: 'actions',
       render: (_, row) => (
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             onClick={() => handleView(row)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-primary hover:text-primary dark:border-slate-700"
-            aria-label={`View ${row.name}`}
+            className="rounded-full p-1.5 text-blue-500 transition hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer"
+            title={`View ${row.name}`}
           >
-            <Eye className="h-3.5 w-3.5" />
+            <Eye className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={() => openEditModal(row)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-primary hover:text-primary dark:border-slate-700"
-            aria-label={`Edit ${row.name}`}
+            className="rounded-full p-1.5 text-amber-500 transition hover:bg-amber-50 dark:hover:bg-amber-950/50 cursor-pointer"
+            title={`Edit ${row.name}`}
           >
-            <Edit3 className="h-3.5 w-3.5" />
+            <Edit3 className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={() => handleToggleStatus(row)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-emerald-300 hover:bg-emerald-50 dark:border-slate-700 dark:hover:bg-emerald-950/20"
-            aria-label={row.status === 'ACTIVE' ? `Deactivate ${row.name}` : `Activate ${row.name}`}
+            className="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+            title={row.status === 'ACTIVE' ? `Deactivate ${row.name}` : `Activate ${row.name}`}
           >
-            {row.status === 'ACTIVE' ? <UserX className="h-3.5 w-3.5 text-rose-500" /> : <UserCheck className="h-3.5 w-3.5 text-emerald-500" />}
+            {row.status === 'ACTIVE' ? <UserX className="h-4 w-4 text-rose-500" /> : <UserCheck className="h-4 w-4 text-emerald-500" />}
           </button>
           <button
             type="button"
             onClick={() => handleDelete(row)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-rose-500 hover:border-rose-300 hover:bg-rose-50 dark:border-slate-700 dark:hover:bg-rose-950/20"
-            aria-label={`Delete ${row.name}`}
+            className="rounded-full p-1.5 text-rose-500 transition hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
+            title={`Delete ${row.name}`}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       ),

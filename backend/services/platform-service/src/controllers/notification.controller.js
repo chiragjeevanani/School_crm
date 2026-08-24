@@ -24,6 +24,7 @@ export async function inboxNotifications(req, res, next) {
     const data = await notificationService.inbox({
       role: req.query?.role,
       schoolId: req.query?.schoolId,
+      userId: req.query?.userId,
     });
     res.json({ success: true, data });
   } catch (error) {
@@ -64,6 +65,27 @@ export async function sendSchoolNotification(req, res, next) {
     res.status(201).json({
       success: true,
       message: data.delivery.skippedReason
+        ? `Notification saved. ${data.delivery.skippedReason}.`
+        : `Notification sent to ${data.delivery.success} device(s).`,
+      data,
+      firebaseConfigured: isFirebaseConfigured(),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function sendLibraryNotification(req, res, next) {
+  try {
+    const data = await notificationService.send(req.body, req.user?.sub || null, {
+      schoolId: req.user?.schoolId || '',
+    });
+    const recipientCount = data.recipientRefIds?.length || 0;
+    res.status(201).json({
+      success: true,
+      message: recipientCount
+        ? `Notification sent to ${recipientCount} recipient(s).`
+        : data.delivery.skippedReason
         ? `Notification saved. ${data.delivery.skippedReason}.`
         : `Notification sent to ${data.delivery.success} device(s).`,
       data,

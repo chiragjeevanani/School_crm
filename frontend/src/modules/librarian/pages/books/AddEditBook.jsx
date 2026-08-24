@@ -25,6 +25,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel, isLoading }) => {
     subject: book?.subject || '',
     price: book?.price ?? 0,
     totalCopies: book?.totalCopies || 1,
+    description: book?.description || '',
   });
 
   useEffect(() => {
@@ -140,6 +141,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel, isLoading }) => {
             name="publicationYear"
             value={formData.publicationYear}
             onChange={handleChange}
+            placeholder="e.g. 2024"
             className={inputClass}
           />
         </div>
@@ -152,7 +154,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel, isLoading }) => {
             value={formData.edition}
             onChange={handleChange}
             className={inputClass}
-            placeholder="e.g. 10th Anniversary"
+            placeholder="e.g. 10th Anniversary / 3rd Edition"
           />
         </div>
 
@@ -163,6 +165,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel, isLoading }) => {
             name="language"
             value={formData.language}
             onChange={handleChange}
+            placeholder="e.g. English, Hindi"
             className={inputClass}
           />
         </div>
@@ -201,6 +204,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel, isLoading }) => {
             name="price"
             value={formData.price}
             onChange={handleChange}
+            placeholder="e.g. 450"
             className={inputClass}
             min="0"
             required
@@ -214,6 +218,7 @@ export const AddEditBook = ({ book, onSuccess, onCancel, isLoading }) => {
             name="totalCopies"
             value={formData.totalCopies}
             onChange={handleChange}
+            placeholder="e.g. 1"
             className={inputClass}
             min="1"
             disabled={Boolean(book)}
@@ -222,6 +227,18 @@ export const AddEditBook = ({ book, onSuccess, onCancel, isLoading }) => {
           {book && (
             <p className="mt-1 text-3xs text-slate-400">Manage individual copies from the Book Copies page.</p>
           )}
+        </div>
+
+        <div className="col-span-2">
+          <label className={labelClass}>Description</label>
+          <textarea
+            rows={3}
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="Enter book summary, key topics covered, syllabus notes, or condition details..."
+            className={`${inputClass} h-auto py-2.5`}
+          />
         </div>
       </div>
 

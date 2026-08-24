@@ -1,23 +1,40 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useLayoutEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const TransportThemeContext = createContext();
 
+function applyThemeClass(isDark) {
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+    localStorage.setItem('transport_darkMode', 'true');
+  } else {
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('transport_darkMode', 'false');
+  }
+}
+
 export const TransportThemeProvider = ({ children }) => {
+  const location = useLocation();
+  const isTransport = location.pathname.startsWith('/transport');
+
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('transport_darkMode');
     return saved ? JSON.parse(saved) : false;
   });
 
-  useEffect(() => {
-    localStorage.setItem('transport_darkMode', JSON.stringify(darkMode));
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+  useLayoutEffect(() => {
+    if (isTransport) {
+      applyThemeClass(darkMode);
     }
-  }, [darkMode]);
+  }, [isTransport, darkMode]);
 
-  const toggleDarkMode = () => setDarkMode(!darkMode);
+  const toggleDarkMode = useCallback(() => {
+    setDarkMode((prev) => {
+      const next = !prev;
+      if (isTransport) applyThemeClass(next);
+      return next;
+    });
+  }, [isTransport]);
 
   return (
     <TransportThemeContext.Provider value={{ darkMode, toggleDarkMode }}>

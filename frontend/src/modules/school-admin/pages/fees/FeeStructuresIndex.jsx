@@ -95,9 +95,9 @@ export const FeeStructuresIndex = ({ hideHeader = false }) => {
       const res = await academicPortalApi.yearClasses(yearId);
       const list = res.data || [];
       const normalized = list.map((item) => ({
-        id: item.classId || item.id,
-        name: item.name || 'Class',
-        code: item.code || '',
+        id: item.classId || item.class?.id || item.id,
+        name: item.class?.name || item.name || 'Class',
+        code: item.class?.code || item.code || '',
       }));
       setYearClasses(normalized);
       return normalized;

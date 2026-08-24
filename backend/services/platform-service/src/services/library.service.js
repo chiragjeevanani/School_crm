@@ -70,6 +70,10 @@ class LibraryService {
     if (payload.lostBookFineMultiplier !== undefined) updates.lostBookFineMultiplier = Math.max(0, Number(payload.lostBookFineMultiplier) || 0);
     if (payload.damagedBookFineMultiplier !== undefined) updates.damagedBookFineMultiplier = Math.max(0, Number(payload.damagedBookFineMultiplier) || 0);
 
+    // Reservation Rules
+    if (payload.reservationEnabled !== undefined) updates.reservationEnabled = Boolean(payload.reservationEnabled);
+    if (payload.maxActiveReservations !== undefined) updates.maxActiveReservations = Math.max(1, Number(payload.maxActiveReservations) || 2);
+
     const updated = await librarySettingsRepository.updateSettings(schoolId, updates);
     return updated.toPublicJSON();
   }
@@ -462,31 +466,31 @@ class LibraryService {
     const returnDate = payload.returnDate ? new Date(payload.returnDate) : new Date();
     const conditionOnReturn = payload.conditionOnReturn || 'GOOD';
 
-    let fineAmount = Number(payload.fineAmount);
-    if (isNaN(fineAmount) || fineAmount < 0) {
-      if (conditionOnReturn === 'LOST' || conditionOnReturn === 'DAMAGED') {
-        // Replacement/damage charge, calculated off the book's catalog price
-        const bookPrice = Number(issue.bookId?.price) || 0;
-        const multiplier = conditionOnReturn === 'LOST'
-          ? (settings.lostBookFineMultiplier ?? 1.5)
-          : (settings.damagedBookFineMultiplier ?? 0.5);
-        fineAmount = Math.round(bookPrice * multiplier);
-      } else if (!settings.fineEnabled) {
-        fineAmount = 0;
-      } else {
-        // Calculate overdue fine from DB settings
-        const dueDate = new Date(issue.dueDate);
-        const graceDays = settings.gracePeriodDays || 0;
-        const effectiveDueDate = new Date(dueDate.getTime() + graceDays * 24 * 60 * 60 * 1000);
+    // Fine is always computed server-side from library rules — never trusted from the
+    // request body, otherwise a client could submit fineAmount: 0 to bypass it.
+    let fineAmount;
+    if (conditionOnReturn === 'LOST' || conditionOnReturn === 'DAMAGED') {
+      // Replacement/damage charge, calculated off the book's catalog price
+      const bookPrice = Number(issue.bookId?.price) || 0;
+      const multiplier = conditionOnReturn === 'LOST'
+        ? (settings.lostBookFineMultiplier ?? 1.5)
+        : (settings.damagedBookFineMultiplier ?? 0.5);
+      fineAmount = Math.round(bookPrice * multiplier);
+    } else if (!settings.fineEnabled) {
+      fineAmount = 0;
+    } else {
+      // Calculate overdue fine from DB settings
+      const dueDate = new Date(issue.dueDate);
+      const graceDays = settings.gracePeriodDays || 0;
+      const effectiveDueDate = new Date(dueDate.getTime() + graceDays * 24 * 60 * 60 * 1000);
 
-        if (returnDate > effectiveDueDate) {
-          const diffTime = Math.max(0, returnDate - dueDate);
-          const overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          const calculatedFine = overdueDays * (settings.finePerDay ?? 5);
-          fineAmount = Math.min(calculatedFine, settings.maxFineAmount ?? 500);
-        } else {
-          fineAmount = 0;
-        }
+      if (returnDate > effectiveDueDate) {
+        const diffTime = Math.max(0, returnDate - dueDate);
+        const overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const calculatedFine = overdueDays * (settings.finePerDay ?? 5);
+        fineAmount = Math.min(calculatedFine, settings.maxFineAmount ?? 500);
+      } else {
+        fineAmount = 0;
       }
     }
 
@@ -499,6 +503,10 @@ class LibraryService {
       conditionOnReturn,
       remarks: payload.remarks,
     }, performedBy);
+
+    if (!updated) {
+      throw new AppError('This book has already been returned', 409);
+    }
 
     return updated.toPublicJSON();
   }
@@ -560,6 +568,11 @@ class LibraryService {
     const bookId = requireText(payload.bookId, 'Book');
     const borrowerRefId = requireText(payload.borrowerRefId, 'Borrower ID');
 
+    const settings = await librarySettingsRepository.getSettings(schoolId);
+    if (!settings.reservationEnabled) {
+      throw new AppError('Book reservations are currently disabled by library policy.', 400);
+    }
+
     const bookRes = await libraryRepository.findBookById(schoolId, bookId);
     if (!bookRes || !bookRes.book) throw new AppError('Selected book not found', 404);
 
@@ -570,6 +583,21 @@ class LibraryService {
     });
     if (existingPending.total > 0) {
       throw new AppError('This borrower already has an active pending reservation for this book.', 400);
+    }
+
+    // Enforce the school's cap on how many reservations one borrower can hold at once
+    // (PENDING + APPROVED count as "active" — only FULFILLED/REJECTED/CANCELLED don't).
+    const maxActive = settings.maxActiveReservations || 2;
+    const [activePending, activeApproved] = await Promise.all([
+      libraryReservationRepository.listReservations(schoolId, { borrowerRefId, status: 'PENDING' }),
+      libraryReservationRepository.listReservations(schoolId, { borrowerRefId, status: 'APPROVED' }),
+    ]);
+    const activeCount = activePending.total + activeApproved.total;
+    if (activeCount >= maxActive) {
+      throw new AppError(
+        `Borrower already has ${activeCount} active reservation(s) (Limit: ${maxActive}). Please cancel or fulfill an earlier reservation first.`,
+        400
+      );
     }
 
     const reservation = await libraryReservationRepository.createReservation({
@@ -595,26 +623,28 @@ class LibraryService {
       throw new AppError(`Cannot approve reservation with status "${reservation.status}". Only PENDING reservations can be approved.`, 400);
     }
 
-    // Find and hold a specific copy for this reservation so it can't be issued to anyone else
+    // Atomically claim and hold a specific copy for this reservation so it can't be issued
+    // to anyone else — a plain read-then-write here would let two concurrent approvals for
+    // the last copy both succeed.
     const bookId = reservation.bookId._id || reservation.bookId;
-    const availableCopies = await bookCopyRepository.listCopies(schoolId, {
-      bookId,
-      status: 'AVAILABLE',
-      limit: 1,
-    });
+    const heldCopy = await bookCopyRepository.claimAvailableCopy(schoolId, bookId, 'RESERVED');
 
-    if (!availableCopies.items.length) {
+    if (!heldCopy) {
       throw new AppError(`Cannot approve reservation: No copies of "${reservation.bookId?.title || 'Book'}" are currently available in the library.`, 400);
     }
-
-    const heldCopy = availableCopies.items[0];
-    await bookCopyRepository.updateCopy(schoolId, heldCopy._id, { status: 'RESERVED' });
 
     const updated = await libraryReservationRepository.updateStatus(schoolId, id, 'APPROVED', {
       approvedAt: new Date(),
       copyId: heldCopy._id,
       remarks: `Approved by ${performedBy}`,
-    });
+    }, 'PENDING');
+
+    if (!updated) {
+      // Reservation status changed concurrently (e.g. cancelled by the borrower) — release
+      // the copy we just claimed instead of leaving it stuck RESERVED.
+      await bookCopyRepository.updateCopy(schoolId, heldCopy._id, { status: 'AVAILABLE' });
+      throw new AppError('This reservation was already updated by another request. Please refresh.', 409);
+    }
 
     return updated.toPublicJSON();
   }
@@ -744,6 +774,24 @@ class LibraryService {
         return libraryRepository.listIssues(schoolId, { status: 'ALL', limit: 100 });
       case 'fines':
         return libraryRepository.listIssues(schoolId, { fineStatus: 'PAID', limit: 100 });
+      case 'member-activity':
+        return libraryTransactionRepository.getMemberActivityReport(schoolId, {
+          limit: Number(query.limit) || 50,
+          borrowerType: query.borrowerType,
+          startDate: query.startDate,
+          endDate: query.endDate,
+        });
+      case 'most-active-members':
+        return libraryTransactionRepository.getMemberActivityReport(schoolId, { limit: Number(query.limit) || 10 });
+      case 'book-usage':
+        return libraryRepository.getBookUsageReport(schoolId, { category: query.category });
+      case 'lost-damaged':
+        return libraryRepository.getLostDamagedReport(schoolId);
+      case 'period-trend':
+        return libraryTransactionRepository.getPeriodTrend(schoolId, {
+          granularity: query.granularity || 'daily',
+          days: Number(query.days) || 30,
+        });
       default:
         throw new AppError(`Unknown report category "${category}"`, 400);
     }
@@ -752,6 +800,42 @@ class LibraryService {
   // Borrowers
   async getEligibleBorrowers(schoolId) {
     return libraryRepository.getEligibleBorrowers(schoolId);
+  }
+
+  // Notification recipients: students & teachers, tagged with their current
+  // circulation status so the librarian can see who has a book issued/due/reserved.
+  async getNotificationRecipients(schoolId) {
+    const [borrowers, issuesRes, reservationsRes] = await Promise.all([
+      libraryRepository.getEligibleBorrowers(schoolId),
+      libraryRepository.listIssues(schoolId, { status: 'ISSUED', limit: 200 }),
+      libraryReservationRepository.listReservations(schoolId, { limit: 200 }),
+    ]);
+
+    const tagsByBorrower = {};
+    const addTag = (id, tag) => {
+      if (!id) return;
+      if (!tagsByBorrower[id]) tagsByBorrower[id] = new Set();
+      tagsByBorrower[id].add(tag);
+    };
+
+    for (const issue of issuesRes.items) {
+      const pub = issue.toPublicJSON();
+      addTag(pub.borrowerRefId, pub.status === 'OVERDUE' ? 'Due' : 'Issued');
+    }
+
+    for (const reservation of reservationsRes.items) {
+      const pub = reservation.toPublicJSON();
+      if (pub.status === 'PENDING' || pub.status === 'APPROVED') {
+        addTag(pub.borrowerRefId, 'Reserved');
+      }
+    }
+
+    return borrowers
+      .filter((b) => b.type === 'STUDENT' || b.type === 'TEACHER')
+      .map((b) => ({
+        ...b,
+        tags: Array.from(tagsByBorrower[b.id] || []),
+      }));
   }
 }
 

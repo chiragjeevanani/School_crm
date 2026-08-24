@@ -3,6 +3,7 @@ import { LibraryTransaction } from '../models/LibraryTransaction.js';
 import { LibraryIssue } from '../models/LibraryIssue.js';
 import { LibraryBook } from '../models/LibraryBook.js';
 import { BookCopy } from '../models/BookCopy.js';
+import { escapeRegex } from '../../../shared/sanitize.js';
 
 function toObjectId(id) {
   if (!id) return null;
@@ -56,7 +57,7 @@ class LibraryTransactionRepository {
     }
 
     if (query.search?.trim()) {
-      const regex = new RegExp(query.search.trim(), 'i');
+      const regex = new RegExp(escapeRegex(query.search.trim()), 'i');
       filter.$or = [
         { bookTitle: regex },
         { accessionNumber: regex },
@@ -192,6 +193,102 @@ class LibraryTransactionRepository {
     ]);
 
     return fines;
+  }
+
+  // Per-borrower circulation activity (also used for the "Most Active Members" report)
+  async getMemberActivityReport(schoolId, { limit = 50, borrowerType, startDate, endDate } = {}) {
+    const schoolObjId = toObjectId(schoolId);
+    const match = { schoolId: schoolObjId };
+    if (borrowerType && borrowerType !== 'ALL') match.borrowerType = borrowerType.toUpperCase();
+    if (startDate || endDate) {
+      match.issueDate = {};
+      if (startDate) match.issueDate.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        match.issueDate.$lte = end;
+      }
+    }
+
+    return LibraryIssue.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: '$borrowerRefId',
+          borrowerName: { $first: '$borrowerName' },
+          borrowerType: { $first: '$borrowerType' },
+          borrowerCode: { $first: '$borrowerCode' },
+          totalIssues: { $sum: 1 },
+          currentlyIssued: { $sum: { $cond: [{ $eq: ['$status', 'ISSUED'] }, 1, 0] } },
+          overdueCount: {
+            $sum: {
+              $cond: [
+                { $and: [{ $eq: ['$status', 'ISSUED'] }, { $lt: ['$dueDate', new Date()] }] },
+                1,
+                0,
+              ],
+            },
+          },
+          totalFines: { $sum: '$fineAmount' },
+          lastActivityAt: { $max: '$issueDate' },
+        },
+      },
+      { $sort: { totalIssues: -1 } },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 0,
+          borrowerId: '$_id',
+          borrowerName: 1,
+          borrowerType: 1,
+          borrowerCode: 1,
+          totalIssues: 1,
+          currentlyIssued: 1,
+          overdueCount: 1,
+          totalFines: 1,
+          lastActivityAt: 1,
+        },
+      },
+    ]);
+  }
+
+  // Daily / Weekly / Monthly circulation trend
+  async getPeriodTrend(schoolId, { granularity = 'daily', days = 30 } = {}) {
+    const schoolObjId = toObjectId(schoolId);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setHours(0, 0, 0, 0);
+
+    const baseMatch = {
+      schoolId: schoolObjId,
+      performedAt: { $gte: startDate },
+      type: { $in: ['ISSUE', 'RETURN', 'RENEW'] },
+    };
+
+    if (granularity === 'weekly') {
+      return LibraryTransaction.aggregate([
+        { $match: baseMatch },
+        {
+          $group: {
+            _id: { year: { $isoWeekYear: '$performedAt' }, week: { $isoWeek: '$performedAt' }, type: '$type' },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { '_id.year': 1, '_id.week': 1 } },
+      ]);
+    }
+
+    const dateFormat = granularity === 'monthly' ? '%Y-%m' : '%Y-%m-%d';
+    return LibraryTransaction.aggregate([
+      { $match: baseMatch },
+      {
+        $group: {
+          _id: { period: { $dateToString: { format: dateFormat, date: '$performedAt' } }, type: '$type' },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { '_id.period': 1 } },
+    ]);
   }
 }
 

@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { loginRateLimiter } from '../middleware/loginRateLimiter.js';
+import { validateObjectId } from '../middleware/validateObjectId.js';
 import {
   getServiceInfo,
   healthCheck,
@@ -54,6 +56,7 @@ import {
   registerDevice,
   sendNotification,
   sendSchoolNotification,
+  sendLibraryNotification,
 } from '../controllers/notification.controller.js';
 import {
   cancelInvoice,
@@ -205,6 +208,7 @@ import {
   renewBook,
   updateFineStatus,
   getEligibleBorrowers,
+  getNotificationRecipients,
   listReservations,
   createReservation,
   approveReservation,
@@ -308,6 +312,8 @@ import {
   createEmployee as hrCreateEmployee,
   updateEmployee as hrUpdateEmployee,
   updateEmployeeStatus as hrUpdateEmployeeStatus,
+  approveEmployee as hrApproveEmployee,
+  rejectEmployee as hrRejectEmployee,
   deleteEmployee as hrDeleteEmployee,
   listDepartments as hrListDepartments,
   createDepartment as hrCreateDepartment,
@@ -342,6 +348,9 @@ import {
   updatePerformanceReview,
   deletePerformanceReview,
   listHRDocuments,
+  uploadHRDocument,
+  verifyHRDocument,
+  deleteHRDocument,
   getHRSettings,
   updateHRSettings,
   getHRReportData,
@@ -364,8 +373,8 @@ router.post('/schools/:id/reset-login', requireSuperAdmin, resetSchoolLogin);
 router.delete('/schools/:id', requireSuperAdmin, deleteSchool);
 router.get('/school-auth/branding', schoolBranding);
 router.post('/school-auth/login', schoolAdminLogin);
-router.post('/school-auth/librarian-login', librarianLogin);
-router.post('/school-portal/auth/librarian-login', librarianLogin);
+router.post('/school-auth/librarian-login', loginRateLimiter, librarianLogin);
+router.post('/school-portal/auth/librarian-login', loginRateLimiter, librarianLogin);
 router.post('/school-auth/hr-login', hrLogin);
 router.post('/school-portal/auth/hr-login', hrLogin);
 router.post('/school-auth/forgot-password', schoolAdminForgotPassword);
@@ -499,35 +508,37 @@ router.patch('/school-portal/library/settings', requireLibrarian, updateLibraryS
 router.get('/school-portal/library/stats', requireLibrarian, getLibraryStats);
 router.get('/school-portal/library/categories', requireLibrarian, getCategories);
 router.post('/school-portal/library/categories', requireLibrarian, createCategory);
-router.patch('/school-portal/library/categories/:id', requireLibrarian, updateCategory);
-router.delete('/school-portal/library/categories/:id', requireLibrarian, deleteCategory);
+router.patch('/school-portal/library/categories/:id', requireLibrarian, validateObjectId(), updateCategory);
+router.delete('/school-portal/library/categories/:id', requireLibrarian, validateObjectId(), deleteCategory);
 router.get('/school-portal/library/authors', requireLibrarian, getAuthors);
 router.get('/school-portal/library/publishers', requireLibrarian, getPublishers);
 router.get('/school-portal/library/borrowers', requireLibrarian, getEligibleBorrowers);
+router.get('/school-portal/library/notification-recipients', requireLibrarian, getNotificationRecipients);
+router.post('/school-portal/library/notifications', requireLibrarian, sendLibraryNotification);
 
 router.get('/school-portal/library/books', requireLibrarian, listBooks);
 router.post('/school-portal/library/books', requireLibrarian, createBook);
-router.get('/school-portal/library/books/:id', requireLibrarian, getBook);
-router.patch('/school-portal/library/books/:id', requireLibrarian, updateBook);
-router.delete('/school-portal/library/books/:id', requireLibrarian, deleteBook);
+router.get('/school-portal/library/books/:id', requireLibrarian, validateObjectId(), getBook);
+router.patch('/school-portal/library/books/:id', requireLibrarian, validateObjectId(), updateBook);
+router.delete('/school-portal/library/books/:id', requireLibrarian, validateObjectId(), deleteBook);
 
 router.get('/school-portal/library/copies', requireLibrarian, listBookCopies);
 router.post('/school-portal/library/copies', requireLibrarian, createBookCopy);
-router.patch('/school-portal/library/copies/:id', requireLibrarian, updateBookCopy);
-router.delete('/school-portal/library/copies/:id', requireLibrarian, deleteBookCopy);
+router.patch('/school-portal/library/copies/:id', requireLibrarian, validateObjectId(), updateBookCopy);
+router.delete('/school-portal/library/copies/:id', requireLibrarian, validateObjectId(), deleteBookCopy);
 
 router.get('/school-portal/library/issues', requireLibrarian, listIssues);
 router.post('/school-portal/library/issues', requireLibrarian, issueBook);
-router.post('/school-portal/library/issues/:id/return', requireLibrarian, returnBook);
-router.post('/school-portal/library/issues/:id/renew', requireLibrarian, renewBook);
-router.patch('/school-portal/library/issues/:id/fine', requireLibrarian, updateFineStatus);
+router.post('/school-portal/library/issues/:id/return', requireLibrarian, validateObjectId(), returnBook);
+router.post('/school-portal/library/issues/:id/renew', requireLibrarian, validateObjectId(), renewBook);
+router.patch('/school-portal/library/issues/:id/fine', requireLibrarian, validateObjectId(), updateFineStatus);
 
 router.get('/school-portal/library/reservations', requireLibrarian, listReservations);
 router.post('/school-portal/library/reservations', requireLibrarian, createReservation);
-router.patch('/school-portal/library/reservations/:id/approve', requireLibrarian, approveReservation);
-router.patch('/school-portal/library/reservations/:id/reject', requireLibrarian, rejectReservation);
-router.patch('/school-portal/library/reservations/:id/cancel', requireLibrarian, cancelReservation);
-router.post('/school-portal/library/reservations/:id/fulfill', requireLibrarian, fulfillReservation);
+router.patch('/school-portal/library/reservations/:id/approve', requireLibrarian, validateObjectId(), approveReservation);
+router.patch('/school-portal/library/reservations/:id/reject', requireLibrarian, validateObjectId(), rejectReservation);
+router.patch('/school-portal/library/reservations/:id/cancel', requireLibrarian, validateObjectId(), cancelReservation);
+router.post('/school-portal/library/reservations/:id/fulfill', requireLibrarian, validateObjectId(), fulfillReservation);
 
 router.get('/school-portal/library/transactions', requireLibrarian, listTransactions);
 router.get('/school-portal/library/reports/:category', requireLibrarian, getReportData);
@@ -639,6 +650,9 @@ router.get('/school-portal/hr/dashboard', requireHR, getHRDashboard);
 router.get('/school-portal/hr/settings', requireHR, getHRSettings);
 router.patch('/school-portal/hr/settings', requireHR, updateHRSettings);
 router.get('/school-portal/hr/documents', requireHR, listHRDocuments);
+router.post('/school-portal/hr/documents/upload', requireHR, uploadSchoolUserFiles, convertSchoolUserImages, uploadHRDocument);
+router.patch('/school-portal/hr/documents/:id/verify', requireHR, verifyHRDocument);
+router.delete('/school-portal/hr/documents/:id', requireHR, deleteHRDocument);
 router.get('/school-portal/hr/announcements', requireHR, hrListAnnouncements);
 router.post('/school-portal/hr/announcements', requireHR, hrCreateAnnouncement);
 
@@ -648,6 +662,8 @@ router.post('/school-portal/hr/employees', requireHR, uploadSchoolUserFiles, con
 router.get('/school-portal/hr/employees/:id', requireHR, hrGetEmployee);
 router.patch('/school-portal/hr/employees/:id', requireHR, uploadSchoolUserFiles, convertSchoolUserImages, hrUpdateEmployee);
 router.patch('/school-portal/hr/employees/:id/status', requireHR, hrUpdateEmployeeStatus);
+router.patch('/school-portal/hr/employees/:id/approve', requireHR, hrApproveEmployee);
+router.patch('/school-portal/hr/employees/:id/reject', requireHR, hrRejectEmployee);
 router.delete('/school-portal/hr/employees/:id', requireHR, hrDeleteEmployee);
 
 // Departments

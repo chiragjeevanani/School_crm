@@ -86,6 +86,17 @@ const librarySettingsSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Reservation Rules
+    reservationEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    maxActiveReservations: {
+      type: Number,
+      default: 2,
+      min: 1,
+    },
+
     demoDataSeeded: {
       type: Boolean,
       default: false,
@@ -112,6 +123,8 @@ librarySettingsSchema.methods.toPublicJSON = function toPublicJSON() {
     blockIssueOnOverdue: this.blockIssueOnOverdue ?? true,
     lostBookFineMultiplier: this.lostBookFineMultiplier ?? 1.5,
     damagedBookFineMultiplier: this.damagedBookFineMultiplier ?? 0.5,
+    reservationEnabled: this.reservationEnabled ?? true,
+    maxActiveReservations: this.maxActiveReservations ?? 2,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
   };

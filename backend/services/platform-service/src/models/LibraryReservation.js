@@ -88,6 +88,12 @@ const libraryReservationSchema = new mongoose.Schema(
 libraryReservationSchema.index({ schoolId: 1, status: 1 });
 libraryReservationSchema.index({ schoolId: 1, bookId: 1, status: 1 });
 libraryReservationSchema.index({ schoolId: 1, borrowerRefId: 1, status: 1 });
+// Enforces "no duplicate pending reservation" at the DB level, closing the race window
+// where two concurrent requests could both pass an application-level duplicate check.
+libraryReservationSchema.index(
+  { schoolId: 1, bookId: 1, borrowerRefId: 1 },
+  { unique: true, partialFilterExpression: { status: 'PENDING' } }
+);
 
 libraryReservationSchema.methods.toPublicJSON = function toPublicJSON() {
   return {

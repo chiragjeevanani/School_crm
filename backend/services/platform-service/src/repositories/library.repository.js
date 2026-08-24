@@ -11,6 +11,7 @@ import { SchoolUser } from '../models/SchoolUser.js';
 import { bookCopyRepository } from './bookCopy.repository.js';
 import { libraryTransactionRepository } from './libraryTransaction.repository.js';
 import { escapeRegex } from '../../../shared/sanitize.js';
+import { AppError } from '../../../shared/AppError.js';
 
 function toObjectId(id) {
   if (!id) return null;
@@ -245,10 +246,26 @@ class LibraryRepository {
 
     if (query.bookId) {
       filter.bookId = toObjectId(query.bookId);
+    } else if (query.category && query.category !== 'ALL') {
+      const bookIds = await LibraryBook.find({
+        schoolId: toObjectId(schoolId),
+        category: query.category,
+      }).distinct('_id');
+      filter.bookId = { $in: bookIds };
+    }
+
+    if (query.startDate || query.endDate) {
+      filter.issueDate = {};
+      if (query.startDate) filter.issueDate.$gte = new Date(query.startDate);
+      if (query.endDate) {
+        const end = new Date(query.endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.issueDate.$lte = end;
+      }
     }
 
     if (query.search?.trim()) {
-      const regex = new RegExp(query.search.trim(), 'i');
+      const regex = new RegExp(escapeRegex(query.search.trim()), 'i');
       filter.$or = [
         { bookTitle: regex },
         { bookCode: regex },
@@ -297,26 +314,50 @@ class LibraryRepository {
   async createIssue(payload, performedBy = 'Librarian') {
     const schoolObjId = toObjectId(payload.schoolId);
     const bookObjId = toObjectId(payload.bookId);
-    const copyObjId = payload.copyId ? toObjectId(payload.copyId) : null;
+    const copyObjId = toObjectId(payload.copyId);
 
-    // 1. Create issue record
-    const issue = await LibraryIssue.create({
-      ...payload,
+    // Also guard against the same borrower already holding an unreturned copy of this book.
+    const existingActiveIssue = await LibraryIssue.findOne({
       schoolId: schoolObjId,
       bookId: bookObjId,
-      copyId: copyObjId,
       borrowerRefId: toObjectId(payload.borrowerRefId),
+      status: 'ISSUED',
     });
-
-    // 2. If copyId specified, mark that copy as ISSUED
-    if (copyObjId) {
-      await BookCopy.updateOne(
-        { _id: copyObjId, schoolId: schoolObjId },
-        { $set: { status: 'ISSUED' } }
-      );
+    if (existingActiveIssue) {
+      throw new AppError('This borrower already has an unreturned copy of this book.', 409);
     }
 
-    // 3. Sync book copy counts
+    // Atomically claim the physical copy: this conditional update only succeeds if the
+    // copy is still AVAILABLE, so two concurrent issue requests for the same copy cannot
+    // both win — the loser gets null here, before any LibraryIssue record is created.
+    const claimedCopy = await BookCopy.findOneAndUpdate(
+      { _id: copyObjId, schoolId: schoolObjId, status: 'AVAILABLE' },
+      { $set: { status: 'ISSUED' } },
+      { new: true }
+    );
+    if (!claimedCopy) {
+      throw new AppError('This copy was just issued to someone else. Please pick another copy.', 409);
+    }
+
+    // Create issue record; if this fails, release the copy claim so it isn't stuck ISSUED with no issue record.
+    let issue;
+    try {
+      issue = await LibraryIssue.create({
+        ...payload,
+        schoolId: schoolObjId,
+        bookId: bookObjId,
+        copyId: copyObjId,
+        borrowerRefId: toObjectId(payload.borrowerRefId),
+      });
+    } catch (err) {
+      await BookCopy.updateOne(
+        { _id: copyObjId, schoolId: schoolObjId },
+        { $set: { status: 'AVAILABLE' } }
+      );
+      throw err;
+    }
+
+    // Sync book copy counts
     await bookCopyRepository.syncBookCopyCounts(schoolObjId, bookObjId);
 
     // 4. Log transaction
@@ -343,17 +384,25 @@ class LibraryRepository {
     const schoolObjId = toObjectId(schoolId);
     const issueObjId = toObjectId(issueId);
 
-    const issue = await LibraryIssue.findOne({ schoolId: schoolObjId, _id: issueObjId });
-    if (!issue) return null;
+    const fineAmount = Number(returnData.fineAmount) || 0;
+    const update = {
+      returnDate: returnData.returnDate || new Date(),
+      status: 'RETURNED',
+      fineAmount,
+      fineStatus: returnData.fineStatus || (fineAmount > 0 ? 'PAID' : 'NONE'),
+      conditionOnReturn: returnData.conditionOnReturn || 'GOOD',
+    };
+    if (returnData.remarks) update.remarks = returnData.remarks;
 
-    // 1. Update issue record
-    issue.returnDate = returnData.returnDate || new Date();
-    issue.status = 'RETURNED';
-    issue.fineAmount = Number(returnData.fineAmount) || 0;
-    issue.fineStatus = returnData.fineStatus || (issue.fineAmount > 0 ? 'PAID' : 'NONE');
-    issue.conditionOnReturn = returnData.conditionOnReturn || 'GOOD';
-    if (returnData.remarks) issue.remarks = returnData.remarks;
-    await issue.save();
+    // Atomic guard: only succeeds while status is still ISSUED, so a duplicate/concurrent
+    // return request for the same issue cannot double-process (double-credit copy
+    // availability, double-log a transaction, or double-apply a fine).
+    const issue = await LibraryIssue.findOneAndUpdate(
+      { schoolId: schoolObjId, _id: issueObjId, status: 'ISSUED' },
+      { $set: update },
+      { new: true }
+    );
+    if (!issue) return null;
 
     // 2. Update physical BookCopy status based on condition
     let newCopyStatus = 'AVAILABLE';
@@ -639,6 +688,46 @@ class LibraryRepository {
       }));
 
     return [...formattedStudents, ...formattedTeachers, ...formattedStaff];
+  }
+
+  // Per-book circulation & stock utilization
+  async getBookUsageReport(schoolId, { category } = {}) {
+    const schoolObjId = toObjectId(schoolId);
+    const match = { schoolId: schoolObjId };
+    if (category && category !== 'ALL') match.category = category;
+
+    return LibraryBook.aggregate([
+      { $match: match },
+      { $lookup: { from: 'libraryissues', localField: '_id', foreignField: 'bookId', as: 'issues' } },
+      { $lookup: { from: 'bookcopies', localField: '_id', foreignField: 'bookId', as: 'copies' } },
+      {
+        $project: {
+          title: 1,
+          author: 1,
+          category: 1,
+          totalCopies: { $size: '$copies' },
+          availableCopies: {
+            $size: { $filter: { input: '$copies', as: 'c', cond: { $eq: ['$$c.status', 'AVAILABLE'] } } },
+          },
+          totalIssues: { $size: '$issues' },
+          currentlyIssued: {
+            $size: { $filter: { input: '$issues', as: 'i', cond: { $eq: ['$$i.status', 'ISSUED'] } } },
+          },
+        },
+      },
+      { $sort: { totalIssues: -1 } },
+    ]);
+  }
+
+  // Books returned in DAMAGED / LOST condition
+  async getLostDamagedReport(schoolId) {
+    const schoolObjId = toObjectId(schoolId);
+    return LibraryIssue.find({
+      schoolId: schoolObjId,
+      conditionOnReturn: { $in: ['DAMAGED', 'LOST'] },
+    })
+      .sort({ returnDate: -1 })
+      .lean();
   }
 }
 

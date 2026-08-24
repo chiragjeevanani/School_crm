@@ -22,19 +22,19 @@ function applyThemeClass(isDark) {
 export const SchoolAdminThemeProvider = ({ children }) => {
   const location = useLocation();
   const isSchoolAdmin = location.pathname.startsWith('/school-admin');
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('school-admin-theme');
+    return saved
+      ? saved === 'dark'
+      : typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const [primaryColor, setPrimaryColorState] = useState(() =>
     normalizeHex(localStorage.getItem('school-admin-accent') || DEFAULT_PRIMARY)
   );
 
   useLayoutEffect(() => {
-    const isDark =
-      localStorage.getItem('school-admin-theme') === 'dark' ||
-      (!localStorage.getItem('school-admin-theme') &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches);
-    setDarkMode(isDark);
-    if (isSchoolAdmin) applyThemeClass(isDark);
-  }, [isSchoolAdmin]);
+    if (isSchoolAdmin) applyThemeClass(darkMode);
+  }, [isSchoolAdmin, darkMode]);
 
   useLayoutEffect(() => {
     applySchoolAdminAccent(primaryColor, isSchoolAdmin);
@@ -43,8 +43,8 @@ export const SchoolAdminThemeProvider = ({ children }) => {
   const setTheme = useCallback((theme) => {
     const isDark = theme === 'dark';
     setDarkMode(isDark);
-    applyThemeClass(isDark);
-  }, []);
+    if (isSchoolAdmin) applyThemeClass(isDark);
+  }, [isSchoolAdmin]);
 
   const setAccentColor = useCallback(
     (hex) => {
@@ -59,10 +59,10 @@ export const SchoolAdminThemeProvider = ({ children }) => {
   const toggleTheme = useCallback(() => {
     setDarkMode((current) => {
       const next = !current;
-      applyThemeClass(next);
+      if (isSchoolAdmin) applyThemeClass(next);
       return next;
     });
-  }, []);
+  }, [isSchoolAdmin]);
 
   return (
     <SchoolAdminThemeContext.Provider

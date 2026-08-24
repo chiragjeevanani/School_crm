@@ -116,9 +116,9 @@ export const ExamManagement = () => {
     try {
       const res = await academicPortalApi.yearClasses(yearId);
       const list = (res.data || []).map((item) => ({
-        id: item.classId || item.id,
-        name: item.name || 'Class',
-        code: item.code || '',
+        id: item.classId || item.class?.id || item.id,
+        name: item.class?.name || item.name || 'Class',
+        code: item.class?.code || item.code || '',
       }));
       setYearClasses(list);
     } catch {
@@ -254,18 +254,17 @@ export const ExamManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <PageHeader
         title="Examinations & Terms"
-        subtitle="Manage end-to-end examination lifecycle: Academic Year → Class → Subjects → Timetable → Marks Entry → Result Calculation → Report Card."
+        subtitle="Manage examination terms, timetables, grading, marks entry, and report cards."
         actions={
           <button
             type="button"
             onClick={handleOpenCreateModal}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition active:scale-95"
+            className="inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-xs shadow-primary/20 hover:bg-primary/90 transition-all cursor-pointer"
           >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Create Exam</span>
+            <Plus className="h-3.5 w-3.5 shrink-0" />
+            <span className="whitespace-nowrap">Create Exam</span>
           </button>
         }
       />

@@ -48,22 +48,22 @@ export const AttendanceCalendar = ({ attendanceRecords = [] }) => {
   return (
     <div className="space-y-4 text-xs font-semibold select-none">
       {/* Month Selector header */}
-      <div className="flex items-center justify-between border-b pb-3">
-        <h4 className="font-extrabold text-sm text-slate-805 dark:text-white uppercase tracking-wider">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h4 className="font-extrabold text-sm text-slate-900 dark:text-white uppercase tracking-wider">
           {monthNames[month]} {year}
         </h4>
         <div className="flex items-center gap-1">
           <button 
             type="button" 
             onClick={handlePrevMonth}
-            className="p-1 hover:bg-slate-50 dark:hover:bg-slate-950 border rounded-lg text-slate-450"
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-500 dark:text-slate-400 cursor-pointer transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button 
             type="button" 
             onClick={handleNextMonth}
-            className="p-1 hover:bg-slate-50 dark:hover:bg-slate-950 border rounded-lg text-slate-450"
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-500 dark:text-slate-400 cursor-pointer transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -71,7 +71,7 @@ export const AttendanceCalendar = ({ attendanceRecords = [] }) => {
       </div>
 
       {/* Week Headers grid */}
-      <div className="grid grid-cols-7 gap-1.5 text-center font-bold text-slate-400 uppercase tracking-widest text-[9px]">
+      <div className="grid grid-cols-7 gap-1.5 text-center font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-[9px]">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(w => (
           <div key={w} className="py-1">{w}</div>
         ))}
@@ -92,7 +92,7 @@ export const AttendanceCalendar = ({ attendanceRecords = [] }) => {
       </div>
 
       {/* Legend status list */}
-      <div className="flex flex-wrap items-center justify-center gap-3.5 pt-3 border-t text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+      <div className="flex flex-wrap items-center justify-center gap-3.5 pt-3 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
         <div className="flex items-center gap-1">
           <div className="w-2.5 h-2.5 rounded bg-emerald-500"></div>
           <span>Present</span>

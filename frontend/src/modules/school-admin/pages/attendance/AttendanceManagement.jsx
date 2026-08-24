@@ -6,9 +6,7 @@ import { useToast } from '../../components/ui/Toast';
 import { staffAttendanceApi } from '../../../../shared/api/client';
 import { apiMessage } from '../academics/utils';
 import {
-  AlertTriangle,
   Calendar,
-  CalendarDays,
   Check,
   CheckCircle2,
   ChevronLeft,
@@ -16,21 +14,17 @@ import {
   Clock,
   Download,
   FileSpreadsheet,
-  FileText,
-  Filter,
-  GraduationCap,
   Loader2,
   RefreshCw,
   Save,
   Search,
-  ShieldCheck,
-  UserCheck,
   Users,
-  UserX,
   X,
   XCircle,
 } from 'lucide-react';
 import { SkeletonTable } from '../../components/ui/SkeletonLoader';
+
+const PAGE_SIZE = 5;
 
 function getTodayString() {
   return new Date().toISOString().split('T')[0];
@@ -95,6 +89,20 @@ function getInitials(name) {
       .map((n) => n[0]?.toUpperCase())
       .join('') || 'ST'
   );
+}
+
+function getAvatarColor(name = '') {
+  const colors = [
+    'bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400',
+    'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400',
+    'bg-sky-500/10 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400',
+    'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400',
+    'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400',
+    'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400',
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
 }
 
 function exportAttendanceToCSV(records = [], filename = 'attendance_report.csv') {
@@ -162,6 +170,7 @@ export const AttendanceManagement = () => {
   const [markingAll, setMarkingAll] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [attendanceList, setAttendanceList] = useState([]);
+  const [dailyPage, setDailyPage] = useState(1);
   const [stats, setStats] = useState({
     totalCount: 0,
     presentCount: 0,
@@ -177,7 +186,6 @@ export const AttendanceManagement = () => {
   const [rangeLoading, setRangeLoading] = useState(false);
   const [rangeRecords, setRangeRecords] = useState([]);
   const [rangePage, setRangePage] = useState(1);
-  const rangePageSize = 5;
 
   // Filters & Search
   const [selectedRole, setSelectedRole] = useState('ALL');
@@ -191,6 +199,14 @@ export const AttendanceManagement = () => {
     leaveType: 'CASUAL',
     leaveReason: '',
   });
+
+  // Shift single day by offset (+1 or -1)
+  const handleShiftDay = (offset) => {
+    const d = new Date(`${date}T00:00:00`);
+    d.setDate(d.getDate() + offset);
+    setDate(d.toISOString().split('T')[0]);
+    setDailyPage(1);
+  };
 
   // Handle Preset Change
   const handlePresetChange = (preset) => {
@@ -212,6 +228,7 @@ export const AttendanceManagement = () => {
       setStartDate(getThisYearStart());
       setEndDate(getTodayString());
     }
+    setRangePage(1);
   };
 
   // Load Daily Attendance
@@ -457,7 +474,7 @@ export const AttendanceManagement = () => {
     return Math.round((stats.presentCount / stats.totalCount) * 100);
   }, [stats.totalCount, stats.presentCount]);
 
-  // Range Report Stats & Pagination
+  // Range Report Stats
   const rangeStats = useMemo(() => {
     return {
       total: rangeRecords.length,
@@ -467,25 +484,36 @@ export const AttendanceManagement = () => {
     };
   }, [rangeRecords]);
 
+  // Paginated daily records
+  const paginatedDailyList = useMemo(() => {
+    const start = (dailyPage - 1) * PAGE_SIZE;
+    return attendanceList.slice(start, start + PAGE_SIZE);
+  }, [attendanceList, dailyPage]);
+
+  const dailyTotalPages = Math.max(1, Math.ceil(attendanceList.length / PAGE_SIZE));
+
+  // Paginated range records
   const paginatedRangeRecords = useMemo(() => {
-    const start = (rangePage - 1) * rangePageSize;
-    return rangeRecords.slice(start, start + rangePageSize);
+    const start = (rangePage - 1) * PAGE_SIZE;
+    return rangeRecords.slice(start, start + PAGE_SIZE);
   }, [rangeRecords, rangePage]);
 
-  const rangeTotalPages = Math.max(1, Math.ceil(rangeRecords.length / rangePageSize));
+  const rangeTotalPages = Math.max(1, Math.ceil(rangeRecords.length / PAGE_SIZE));
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Page Header */}
       <PageHeader
-        title="Staff & Teacher Attendance"
-        subtitle="Manage daily staff rolls, approved leaves, and custom date range presence logs."
+        title="Staff & Faculty Attendance"
+        subtitle="Manage daily staff roll calls, verify presence, and manage leaves."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-nowrap shrink-0">
+            {/* Export CSV */}
             <button
+              type="button"
               onClick={handleExport}
               disabled={dateMode === 'single' ? attendanceList.length === 0 : rangeRecords.length === 0}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-40 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 disabled:opacity-40 cursor-pointer"
               title="Export to CSV Spreadsheet"
             >
               <Download className="h-3.5 w-3.5" />
@@ -494,34 +522,44 @@ export const AttendanceManagement = () => {
 
             {dateMode === 'single' && (
               <>
+                {/* Mark All Present */}
                 <button
+                  type="button"
                   onClick={() => handleMarkAll('PRESENT')}
                   disabled={markingAll || loading || attendanceList.length === 0}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-100 disabled:opacity-40 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 shadow-2xs transition hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300 disabled:opacity-40 cursor-pointer"
                   title="Mark all active staff present"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   <span>Mark All Present</span>
                 </button>
 
+                {/* Mark All Absent */}
                 <button
+                  type="button"
                   onClick={() => handleMarkAll('ABSENT')}
                   disabled={markingAll || loading || attendanceList.length === 0}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 shadow-sm transition hover:bg-rose-100 disabled:opacity-40 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
+                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 shadow-2xs transition hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300 disabled:opacity-40 cursor-pointer"
                   title="Mark all staff absent"
                 >
                   <XCircle className="h-3.5 w-3.5" />
                   <span>Mark All Absent</span>
                 </button>
 
+                {/* Save Sheet */}
                 <button
+                  type="button"
                   onClick={handleSaveAll}
                   disabled={saving || loading}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-primary/90 disabled:opacity-50"
+                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-bold text-white shadow-xs transition-all cursor-pointer ${
+                    hasUnsavedChanges
+                      ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/30'
+                      : 'bg-primary hover:bg-primary/90 shadow-primary/20'
+                  } disabled:opacity-50`}
                   title="Save Attendance Sheet"
                 >
                   {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                  <span>Save Sheet</span>
+                  <span>{hasUnsavedChanges ? 'Save Unsaved' : 'Save Sheet'}</span>
                 </button>
               </>
             )}
@@ -530,402 +568,499 @@ export const AttendanceManagement = () => {
       />
 
       {/* Top Metric Cards */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">
-              {dateMode === 'single' ? 'Total Staff' : 'Total Range Logs'}
-            </span>
-            <Users className="h-4 w-4 text-primary" />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* Total Staff */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex items-center gap-3">
+          <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+            <Users className="h-5 w-5" />
           </div>
-          <p className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
-            {dateMode === 'single' ? stats.totalCount || 0 : rangeStats.total}
-          </p>
-          <span className="mt-0.5 text-[11px] font-semibold text-slate-400">
-            {dateMode === 'single' ? 'All registered employees' : `${startDate} to ${endDate}`}
-          </span>
-        </div>
-
-        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/40 p-4 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/20">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Present</span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-              {dateMode === 'single' ? stats.presentCount || 0 : rangeStats.present}
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Staff</p>
+            <p className="text-xl font-extrabold text-slate-900 dark:text-white">
+              {dateMode === 'single' ? stats.totalCount || 0 : rangeStats.total}
             </p>
-            {dateMode === 'single' && (
-              <span className="text-xs font-bold text-emerald-600">({attendancePercent}%)</span>
-            )}
           </div>
-          <span className="mt-0.5 text-[11px] font-semibold text-emerald-600/80">Active & Present</span>
         </div>
 
-        <div className="rounded-2xl border border-rose-200/80 bg-rose-50/40 p-4 shadow-sm dark:border-rose-900/50 dark:bg-rose-950/20">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-rose-700 dark:text-rose-300">Absent</span>
-            <XCircle className="h-4 w-4 text-rose-500" />
+        {/* Present */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex items-center gap-3">
+          <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="h-5 w-5" />
           </div>
-          <p className="mt-2 text-2xl font-black text-rose-600 dark:text-rose-400">
-            {dateMode === 'single' ? stats.absentCount || 0 : rangeStats.absent}
-          </p>
-          <span className="mt-0.5 text-[11px] font-semibold text-rose-600/80">Uninformed / Absent</span>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Present</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                {dateMode === 'single' ? stats.presentCount || 0 : rangeStats.present}
+              </p>
+              {dateMode === 'single' && (
+                <span className="rounded-md bg-emerald-100 px-1.5 py-0.2 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  {attendancePercent}%
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/40 p-4 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/20">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-700 dark:text-amber-300">On Leave</span>
-            <Clock className="h-4 w-4 text-amber-500" />
+        {/* Absent */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex items-center gap-3">
+          <div className="rounded-xl bg-rose-500/10 p-2.5 text-rose-600 dark:text-rose-400">
+            <XCircle className="h-5 w-5" />
           </div>
-          <p className="mt-2 text-2xl font-black text-amber-600 dark:text-amber-400">
-            {dateMode === 'single' ? stats.leaveCount || 0 : rangeStats.leave}
-          </p>
-          <span className="mt-0.5 text-[11px] font-semibold text-amber-600/80">Approved leaves & medical</span>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Absent</p>
+            <p className="text-xl font-extrabold text-rose-600 dark:text-rose-400">
+              {dateMode === 'single' ? stats.absentCount || 0 : rangeStats.absent}
+            </p>
+          </div>
+        </div>
+
+        {/* On Leave */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex items-center gap-3">
+          <div className="rounded-xl bg-amber-500/10 p-2.5 text-amber-600 dark:text-amber-400">
+            <Clock className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">On Leave</p>
+            <p className="text-xl font-extrabold text-amber-600 dark:text-amber-400">
+              {dateMode === 'single' ? stats.leaveCount || 0 : rangeStats.leave}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Date Filter & Search Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        {/* Left Side: Mode Switch + Date Controls */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Mode Switcher: Single Day vs Custom Date Range */}
-          <div className="flex items-center rounded-xl bg-slate-100 p-1 dark:bg-slate-950">
-            <button
-              type="button"
-              onClick={() => setDateMode('single')}
-              className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${
-                dateMode === 'single'
-                  ? 'bg-white text-primary shadow-sm dark:bg-slate-900 dark:text-white'
-                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-            >
-              Daily
-            </button>
-            <button
-              type="button"
-              onClick={() => setDateMode('range')}
-              className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${
-                dateMode === 'range'
-                  ? 'bg-white text-primary shadow-sm dark:bg-slate-900 dark:text-white'
-                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-            >
-              Custom Range
-            </button>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3">
+        {/* Top bar: Mode switcher & Date controls */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Mode Switcher: Daily vs Custom Range */}
+            <div className="inline-flex rounded-xl bg-slate-100 p-1 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setDateMode('single');
+                  setDailyPage(1);
+                }}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-extrabold transition-all cursor-pointer ${
+                  dateMode === 'single'
+                    ? 'bg-white text-primary shadow-xs dark:bg-slate-900 dark:text-white'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                Daily
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDateMode('range');
+                  setRangePage(1);
+                }}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-extrabold transition-all cursor-pointer ${
+                  dateMode === 'range'
+                    ? 'bg-white text-primary shadow-xs dark:bg-slate-900 dark:text-white'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                Custom Range
+              </button>
+            </div>
+
+            {/* Single Day Navigation & Picker */}
+            {dateMode === 'single' ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleShiftDay(-1)}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50/80 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 cursor-pointer"
+                  title="Previous Day"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+
+                <div className="relative flex items-center">
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => {
+                      setDate(e.target.value);
+                      setDailyPage(1);
+                    }}
+                    className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs font-bold text-slate-800 outline-none transition focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white cursor-pointer"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleShiftDay(1)}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50/80 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 cursor-pointer"
+                  title="Next Day"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDate(getTodayString());
+                    setDailyPage(1);
+                  }}
+                  className={`rounded-xl px-3 py-2 text-xs font-bold transition cursor-pointer ${
+                    date === getTodayString()
+                      ? 'bg-primary text-white shadow-2xs shadow-primary/20'
+                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200'
+                  }`}
+                >
+                  Today
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDate(getYesterdayString());
+                    setDailyPage(1);
+                  }}
+                  className={`rounded-xl px-3 py-2 text-xs font-bold transition cursor-pointer ${
+                    date === getYesterdayString()
+                      ? 'bg-primary text-white shadow-2xs shadow-primary/20'
+                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200'
+                  }`}
+                >
+                  Yesterday
+                </button>
+              </div>
+            ) : (
+              /* Custom Date Range Controls */
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={datePreset}
+                  onChange={(e) => handlePresetChange(e.target.value)}
+                  className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs font-bold text-slate-800 outline-none transition focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white cursor-pointer"
+                >
+                  <option value="THIS_MONTH">This Month</option>
+                  <option value="LAST_7_DAYS">Last 7 Days</option>
+                  <option value="LAST_30_DAYS">Last 30 Days</option>
+                  <option value="LAST_MONTH">Last Month</option>
+                  <option value="THIS_YEAR">This Year</option>
+                  <option value="CUSTOM">Custom Range</option>
+                </select>
+
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] font-bold text-slate-400">From:</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setDatePreset('CUSTOM');
+                      setRangePage(1);
+                    }}
+                    className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 px-2.5 text-xs font-bold text-slate-800 outline-none transition focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white cursor-pointer"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] font-bold text-slate-400">To:</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setDatePreset('CUSTOM');
+                      setRangePage(1);
+                    }}
+                    className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 px-2.5 text-xs font-bold text-slate-800 outline-none transition focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white cursor-pointer"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Single Day Date Picker */}
-          {dateMode === 'single' ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs font-bold text-slate-800 outline-none transition focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-              />
-              <button
-                type="button"
-                onClick={() => setDate(getTodayString())}
-                className={`rounded-xl px-3 py-2 text-xs font-bold transition ${
-                  date === getTodayString()
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200'
-                }`}
-              >
-                Today
-              </button>
-              <button
-                type="button"
-                onClick={() => setDate(getYesterdayString())}
-                className={`rounded-xl px-3 py-2 text-xs font-bold transition ${
-                  date === getYesterdayString()
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200'
-                }`}
-              >
-                Yesterday
-              </button>
-              <span className="ml-1 hidden text-xs font-extrabold text-slate-500 sm:inline-block">
-                {formatDisplayDate(date)}
-              </span>
-            </div>
-          ) : (
-            /* Custom Date Range Picker (Presets + From/To Inputs) */
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={datePreset}
-                onChange={(e) => handlePresetChange(e.target.value)}
-                className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs font-bold text-slate-800 outline-none transition focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-              >
-                <option value="THIS_MONTH">This Month</option>
-                <option value="LAST_7_DAYS">Last 7 Days</option>
-                <option value="LAST_30_DAYS">Last 30 Days</option>
-                <option value="LAST_MONTH">Last Month</option>
-                <option value="THIS_YEAR">This Year</option>
-                <option value="CUSTOM">Custom Date Range</option>
-              </select>
-
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] font-bold text-slate-400">From:</span>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => {
-                    setStartDate(e.target.value);
-                    setDatePreset('CUSTOM');
-                  }}
-                  className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 px-2.5 text-xs font-bold text-slate-800 outline-none transition focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-                />
-              </div>
-
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] font-bold text-slate-400">To:</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    setEndDate(e.target.value);
-                    setDatePreset('CUSTOM');
-                  }}
-                  className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 px-2.5 text-xs font-bold text-slate-800 outline-none transition focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-                />
-              </div>
-            </div>
-          )}
+          {/* Active Date Label Chip */}
+          <div className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs font-extrabold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+            <Calendar className="h-3.5 w-3.5 text-primary" />
+            <span>{dateMode === 'single' ? formatDisplayDate(date) : `${startDate} to ${endDate}`}</span>
+          </div>
         </div>
 
-        {/* Right Side Search & Status Filter */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[220px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search staff name or ID..."
-              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/80 pl-8 pr-3 text-xs font-semibold outline-none focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-            />
+        {/* Bottom bar: Search & Status Filter */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Role Filter Tabs */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {ROLE_FILTERS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setSelectedRole(tab.id);
+                  setDailyPage(1);
+                  setRangePage(1);
+                }}
+                className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                  selectedRole === tab.id
+                    ? 'bg-primary text-white shadow-2xs shadow-primary/20'
+                    : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Search & Status Filter */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[200px]">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setDailyPage(1);
+                  setRangePage(1);
+                }}
+                placeholder="Search staff name or ID..."
+                className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50/80 pl-8 pr-7 text-xs font-semibold outline-none focus:border-primary focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs font-semibold outline-none focus:border-primary dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setDailyPage(1);
+                setRangePage(1);
+              }}
+              className="h-9 rounded-xl border border-slate-200 bg-slate-50/80 px-2.5 text-xs font-semibold outline-none focus:border-primary dark:border-slate-800 dark:bg-slate-950 dark:text-white cursor-pointer"
             >
               <option value="ALL">All Statuses</option>
               <option value="PRESENT">Present Only</option>
               <option value="ABSENT">Absent Only</option>
               <option value="LEAVE">On Leave</option>
             </select>
+
+            <button
+              onClick={() => (dateMode === 'single' ? loadAttendance(date) : loadRangeReport())}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 cursor-pointer"
+              title="Refresh Attendance"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${
+                  (dateMode === 'single' ? loading : rangeLoading) ? 'animate-spin text-primary' : ''
+                }`}
+              />
+            </button>
           </div>
-
-          <button
-            onClick={() => (dateMode === 'single' ? loadAttendance(date) : loadRangeReport())}
-            className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
-            title="Refresh Attendance"
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${
-                (dateMode === 'single' ? loading : rangeLoading) ? 'animate-spin' : ''
-              }`}
-            />
-          </button>
         </div>
-      </div>
-
-      {/* Role Tabs */}
-      <div className="flex flex-wrap items-center gap-2">
-        {ROLE_FILTERS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setSelectedRole(tab.id)}
-            className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
-              selectedRole === tab.id
-                ? 'bg-primary text-white shadow-sm'
-                : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
       </div>
 
       {/* VIEW 1: DAILY ROLL CALL TABLE */}
       {dateMode === 'single' && (
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          {loading ? (
-            <SkeletonTable rows={8} columns={4} />
-          ) : attendanceList.length === 0 ? (
-            <div className="py-16 text-center">
-              <Users className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />
-              <h3 className="mt-4 text-sm font-bold text-slate-700 dark:text-slate-200">
-                No Staff Members Found
-              </h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Try adjusting your role filter or search criteria.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-100 bg-slate-50/70 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
-                  <tr>
-                    <th className="px-4 py-3 font-bold">Staff Member</th>
-                    <th className="px-3 py-3 font-bold">Role & Dept</th>
-                    <th className="px-4 py-3 text-center font-bold">Attendance Status (1-Click)</th>
-                    <th className="px-4 py-3 font-bold">Remarks / Leave Reason</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {attendanceList.map((emp) => {
-                    const isPresent = emp.status === 'PRESENT';
-                    const isAbsent = emp.status === 'ABSENT';
-                    const isLeave = emp.status === 'LEAVE';
-
-                    return (
-                      <tr
-                        key={emp.employeeRefId}
-                        className="group transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
-                      >
-                        {/* Staff Details */}
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 font-bold text-primary">
-                              {getInitials(emp.employeeName)}
-                            </div>
-                            <div>
-                              <span className="font-bold text-slate-900 dark:text-white">
-                                {emp.employeeName}
-                              </span>
-                              <span className="block font-mono text-[11px] text-slate-400">
-                                {emp.employeeId}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Role & Department */}
-                        <td className="px-3 py-3.5">
-                          <Badge
-                            variant={emp.employeeRole === 'TEACHER' ? 'primary' : 'info'}
-                            className="mb-0.5 text-[10px]"
-                          >
-                            {emp.employeeRole}
-                          </Badge>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                            {emp.department || '—'}
-                          </p>
-                        </td>
-
-                        {/* Interactive 3-Button Status Segment */}
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center justify-center gap-1.5">
-                            {/* Present Button */}
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange(emp.employeeRefId, 'PRESENT')}
-                              className={`inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-xl px-3 text-xs font-extrabold shadow-sm transition ${
-                                isPresent
-                                  ? 'bg-emerald-600 text-white shadow-emerald-500/20'
-                                  : 'border border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50/60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-emerald-950/40'
-                              }`}
-                              title="Mark Present"
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                              <span>Present</span>
-                            </button>
-
-                            {/* Absent Button */}
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange(emp.employeeRefId, 'ABSENT')}
-                              className={`inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-xl px-3 text-xs font-extrabold shadow-sm transition ${
-                                isAbsent
-                                  ? 'bg-rose-600 text-white shadow-rose-500/20'
-                                  : 'border border-slate-200 bg-white text-slate-600 hover:border-rose-300 hover:bg-rose-50/60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-rose-950/40'
-                              }`}
-                              title="Mark Absent"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                              <span>Absent</span>
-                            </button>
-
-                            {/* Leave Button */}
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange(emp.employeeRefId, 'LEAVE')}
-                              className={`inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-xl px-3 text-xs font-extrabold shadow-sm transition ${
-                                isLeave
-                                  ? 'bg-amber-500 text-white shadow-amber-500/20'
-                                  : 'border border-slate-200 bg-white text-slate-600 hover:border-amber-300 hover:bg-amber-50/60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-amber-950/40'
-                              }`}
-                              title="Apply Leave (Casual, Medical, Paid)"
-                            >
-                              <Clock className="h-3.5 w-3.5" />
-                              <span>Leave</span>
-                            </button>
-                          </div>
-                        </td>
-
-                        {/* Remarks / Leave Reason */}
-                        <td className="px-4 py-3.5">
-                          {isLeave ? (
-                            <div className="flex items-center gap-2">
-                              <span className="rounded-lg bg-amber-500/15 px-2 py-0.5 text-[11px] font-extrabold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
-                                {emp.leaveType || 'LEAVE'}
-                              </span>
-                              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                {emp.leaveReason || 'Approved Leave'}
-                              </span>
-                            </div>
-                          ) : (
-                            <input
-                              type="text"
-                              value={emp.remarks || ''}
-                              onChange={(e) =>
-                                handleFieldChange(emp.employeeRefId, 'remarks', e.target.value)
-                              }
-                              placeholder="Add remark..."
-                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs text-slate-600 placeholder-slate-400 transition hover:border-slate-200 focus:border-primary focus:bg-white dark:text-slate-300 dark:focus:bg-slate-950"
-                            />
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Footer info */}
-          {!loading && attendanceList.length > 0 && (
-            <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/50 px-5 py-3.5 sm:flex-row dark:border-slate-800 dark:bg-slate-950/40">
-              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Showing{' '}
-                <span className="font-bold text-slate-800 dark:text-slate-200">
-                  {attendanceList.length}
-                </span>{' '}
-                staff members for{' '}
-                <strong className="text-slate-800 dark:text-slate-200">
-                  {formatDisplayDate(date)}
-                </strong>
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            {loading ? (
+              <SkeletonTable rows={5} columns={4} />
+            ) : attendanceList.length === 0 ? (
+              <div className="py-16 text-center">
+                <Users className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />
+                <h3 className="mt-4 text-sm font-bold text-slate-700 dark:text-slate-200">
+                  No Staff Members Found
+                </h3>
+                <p className="mt-1 text-xs text-slate-400">
+                  Try adjusting your role filter or search query.
+                </p>
               </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
+                    <tr>
+                      <th className="w-12 px-3.5 py-3 text-center">#</th>
+                      <th className="px-3.5 py-3">Staff Member</th>
+                      <th className="px-3.5 py-3">Role & Dept</th>
+                      <th className="px-3.5 py-3 text-center">Attendance Status (1-Click)</th>
+                      <th className="px-3.5 py-3">Remarks / Leave Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium text-slate-800 dark:text-slate-200">
+                    {paginatedDailyList.map((emp, index) => {
+                      const serialNo = (dailyPage - 1) * PAGE_SIZE + index + 1;
+                      const isPresent = emp.status === 'PRESENT';
+                      const isAbsent = emp.status === 'ABSENT';
+                      const isLeave = emp.status === 'LEAVE';
 
-              {hasUnsavedChanges && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                    Unsaved changes on sheet
-                  </span>
+                      return (
+                        <tr
+                          key={emp.employeeRefId}
+                          className="group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/50"
+                        >
+                          {/* Serial No */}
+                          <td className="w-12 px-3.5 py-3.5 text-center font-bold text-slate-400 text-xs">
+                            {serialNo}
+                          </td>
+
+                          {/* Staff Details */}
+                          <td className="px-3.5 py-3.5 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold text-xs ${getAvatarColor(
+                                  emp.employeeName
+                                )}`}
+                              >
+                                {getInitials(emp.employeeName)}
+                              </div>
+                              <div>
+                                <span className="font-bold text-slate-900 dark:text-white">
+                                  {emp.employeeName}
+                                </span>
+                                <span className="block font-mono text-[11px] text-slate-400">
+                                  {emp.employeeId}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Role & Department */}
+                          <td className="px-3.5 py-3.5 whitespace-nowrap">
+                            <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+                              {emp.employeeRole}
+                            </span>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              {emp.department || 'General Staff'}
+                            </p>
+                          </td>
+
+                          {/* Interactive 3-Button Status Segment */}
+                          <td className="px-3.5 py-3.5 whitespace-nowrap">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {/* Present Button */}
+                              <button
+                                type="button"
+                                onClick={() => handleStatusChange(emp.employeeRefId, 'PRESENT')}
+                                className={`inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-xl px-3 text-xs font-bold transition-all cursor-pointer ${
+                                  isPresent
+                                    ? 'bg-emerald-600 text-white shadow-xs shadow-emerald-600/30'
+                                    : 'border border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50/70 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-emerald-950/40'
+                                }`}
+                                title="Mark Present"
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                                <span>Present</span>
+                              </button>
+
+                              {/* Absent Button */}
+                              <button
+                                type="button"
+                                onClick={() => handleStatusChange(emp.employeeRefId, 'ABSENT')}
+                                className={`inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-xl px-3 text-xs font-bold transition-all cursor-pointer ${
+                                  isAbsent
+                                    ? 'bg-rose-600 text-white shadow-xs shadow-rose-600/30'
+                                    : 'border border-slate-200 bg-white text-slate-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-rose-950/40'
+                                }`}
+                                title="Mark Absent"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                                <span>Absent</span>
+                              </button>
+
+                              {/* Leave Button */}
+                              <button
+                                type="button"
+                                onClick={() => handleStatusChange(emp.employeeRefId, 'LEAVE')}
+                                className={`inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-xl px-3 text-xs font-bold transition-all cursor-pointer ${
+                                  isLeave
+                                    ? 'bg-amber-500 text-white shadow-xs shadow-amber-500/30'
+                                    : 'border border-slate-200 bg-white text-slate-600 hover:border-amber-300 hover:bg-amber-50/70 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-amber-950/40'
+                                }`}
+                                title="Apply Leave (Casual, Medical, Paid)"
+                              >
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>Leave</span>
+                              </button>
+                            </div>
+                          </td>
+
+                          {/* Remarks / Leave Reason */}
+                          <td className="px-3.5 py-3.5">
+                            {isLeave ? (
+                              <div className="flex items-center gap-2">
+                                <span className="rounded-lg bg-amber-500/15 px-2 py-0.5 text-[11px] font-extrabold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
+                                  {emp.leaveType || 'LEAVE'}
+                                </span>
+                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                  {emp.leaveReason || 'Approved Leave'}
+                                </span>
+                              </div>
+                            ) : (
+                              <input
+                                type="text"
+                                value={emp.remarks || ''}
+                                onChange={(e) =>
+                                  handleFieldChange(emp.employeeRefId, 'remarks', e.target.value)
+                                }
+                                placeholder="Add remark..."
+                                className="h-8 w-full max-w-xs rounded-lg border border-transparent bg-slate-50/80 px-2.5 text-xs text-slate-700 placeholder-slate-400 outline-none transition hover:border-slate-200 focus:border-primary focus:bg-white dark:bg-slate-950 dark:hover:border-slate-800 dark:text-slate-200 dark:focus:bg-slate-900"
+                              />
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Super Admin Style Pagination Bar */}
+          {!loading && attendanceList.length > 0 && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Showing {(dailyPage - 1) * PAGE_SIZE + 1}–
+                {Math.min(dailyPage * PAGE_SIZE, attendanceList.length)} of {attendanceList.length} staff members
+              </p>
+
+              {dailyTotalPages > 1 && (
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={handleSaveAll}
-                    disabled={saving}
-                    className="rounded-xl bg-primary px-3 py-1 text-xs font-bold text-white shadow-sm hover:bg-primary/90"
+                    disabled={dailyPage <= 1}
+                    onClick={() => setDailyPage((prev) => Math.max(1, prev - 1))}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-800 dark:hover:bg-slate-900 cursor-pointer"
+                    aria-label="Previous page"
                   >
-                    Save Changes
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {Array.from({ length: dailyTotalPages }, (_, i) => i + 1).map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      onClick={() => setDailyPage(pageNumber)}
+                      className={`inline-flex h-9 min-w-9 items-center justify-center rounded-xl px-2.5 text-xs font-semibold transition cursor-pointer ${
+                        pageNumber === dailyPage
+                          ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-600/20'
+                          : 'border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900'
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={dailyPage >= dailyTotalPages}
+                    onClick={() => setDailyPage((prev) => Math.min(dailyTotalPages, prev + 1))}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-800 dark:hover:bg-slate-900 cursor-pointer"
+                    aria-label="Next page"
+                  >
+                    <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
               )}
@@ -936,43 +1071,43 @@ export const AttendanceManagement = () => {
 
       {/* VIEW 2: CUSTOM DATE RANGE AUDIT TABLE */}
       {dateMode === 'range' && (
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          {rangeLoading ? (
-            <SkeletonTable rows={8} columns={5} />
-          ) : rangeRecords.length === 0 ? (
-            <div className="py-16 text-center">
-              <FileSpreadsheet className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />
-              <h3 className="mt-4 text-sm font-bold text-slate-700 dark:text-slate-200">
-                No Attendance Logs in Selected Range
-              </h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Try expanding the date range or adjusting search filters.
-              </p>
-            </div>
-          ) : (
-            <div>
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            {rangeLoading ? (
+              <SkeletonTable rows={5} columns={5} />
+            ) : rangeRecords.length === 0 ? (
+              <div className="py-16 text-center">
+                <FileSpreadsheet className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />
+                <h3 className="mt-4 text-sm font-bold text-slate-700 dark:text-slate-200">
+                  No Attendance Logs in Selected Range
+                </h3>
+                <p className="mt-1 text-xs text-slate-400">
+                  Try expanding the date range or adjusting search filters.
+                </p>
+              </div>
+            ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b border-slate-100 bg-slate-50/70 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
+                  <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
                     <tr>
-                      <th className="px-4 py-3 font-bold">Date</th>
-                      <th className="px-4 py-3 font-bold">Staff Member</th>
-                      <th className="px-3 py-3 font-bold">Role & Dept</th>
-                      <th className="px-3 py-3 font-bold">Status</th>
-                      <th className="px-4 py-3 font-bold">Leave Details / Remarks</th>
+                      <th className="px-3.5 py-3">Date</th>
+                      <th className="px-3.5 py-3">Staff Member</th>
+                      <th className="px-3.5 py-3">Role & Dept</th>
+                      <th className="px-3.5 py-3">Status</th>
+                      <th className="px-3.5 py-3">Leave Details / Remarks</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium text-slate-800 dark:text-slate-200">
                     {paginatedRangeRecords.map((r) => (
                       <tr
                         key={`${r.id}-${r.date}`}
-                        className="group transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                        className="group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/50"
                       >
-                        <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-200">
+                        <td className="px-3.5 py-3.5 whitespace-nowrap font-semibold text-slate-800 dark:text-slate-200">
                           {formatDisplayDate(r.date)}
                         </td>
 
-                        <td className="px-4 py-3.5">
+                        <td className="px-3.5 py-3.5 whitespace-nowrap">
                           <span className="font-bold text-slate-900 dark:text-white">
                             {r.employeeName}
                           </span>
@@ -981,19 +1116,16 @@ export const AttendanceManagement = () => {
                           </span>
                         </td>
 
-                        <td className="px-3 py-3.5">
-                          <Badge
-                            variant={r.employeeRole === 'TEACHER' ? 'primary' : 'info'}
-                            className="mb-0.5 text-[10px]"
-                          >
+                        <td className="px-3.5 py-3.5 whitespace-nowrap">
+                          <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
                             {r.employeeRole}
-                          </Badge>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          </span>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                             {r.department || '—'}
                           </p>
                         </td>
 
-                        <td className="px-3 py-3.5">
+                        <td className="px-3.5 py-3.5 whitespace-nowrap">
                           <Badge
                             variant={
                               r.status === 'PRESENT'
@@ -1007,7 +1139,7 @@ export const AttendanceManagement = () => {
                           </Badge>
                         </td>
 
-                        <td className="px-4 py-3.5">
+                        <td className="px-3.5 py-3.5">
                           {r.status === 'LEAVE' ? (
                             <div className="flex items-center gap-2">
                               <span className="rounded-lg bg-amber-500/15 px-2 py-0.5 text-[11px] font-extrabold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
@@ -1028,64 +1160,53 @@ export const AttendanceManagement = () => {
                   </tbody>
                 </table>
               </div>
+            )}
+          </div>
 
-              {/* Range Pagination Bar */}
-              <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/50 px-5 py-3.5 sm:flex-row dark:border-slate-800 dark:bg-slate-950/40">
-                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  Showing{' '}
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
-                    {(rangePage - 1) * rangePageSize + 1}
-                  </span>{' '}
-                  to{' '}
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
-                    {Math.min(rangePage * rangePageSize, rangeRecords.length)}
-                  </span>{' '}
-                  of{' '}
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
-                    {rangeRecords.length}
-                  </span>{' '}
-                  logs
+          {/* Super Admin Style Range Pagination Bar */}
+          {!rangeLoading && rangeRecords.length > 0 && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Showing {(rangePage - 1) * PAGE_SIZE + 1}–
+                {Math.min(rangePage * PAGE_SIZE, rangeRecords.length)} of {rangeRecords.length} logs
+              </p>
+
+              {rangeTotalPages > 1 && (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={rangePage <= 1}
+                    onClick={() => setRangePage((prev) => Math.max(1, prev - 1))}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-800 dark:hover:bg-slate-900 cursor-pointer"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {Array.from({ length: rangeTotalPages }, (_, i) => i + 1).map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      onClick={() => setRangePage(pageNumber)}
+                      className={`inline-flex h-9 min-w-9 items-center justify-center rounded-xl px-2.5 text-xs font-semibold transition cursor-pointer ${
+                        pageNumber === rangePage
+                          ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-600/20'
+                          : 'border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900'
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={rangePage >= rangeTotalPages}
+                    onClick={() => setRangePage((prev) => Math.min(rangeTotalPages, prev + 1))}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-800 dark:hover:bg-slate-900 cursor-pointer"
+                    aria-label="Next page"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
                 </div>
-
-                {rangeTotalPages > 1 && (
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setRangePage((p) => Math.max(1, p - 1))}
-                      disabled={rangePage <= 1}
-                      className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
-                    >
-                      <ChevronLeft className="h-4 w-4" /> Prev
-                    </button>
-
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: rangeTotalPages }, (_, i) => i + 1).map((p) => (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => setRangePage(p)}
-                          className={`h-8 w-8 rounded-xl text-xs font-bold transition ${
-                            p === rangePage
-                              ? 'bg-primary text-white shadow-sm'
-                              : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      ))}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setRangePage((p) => Math.min(rangeTotalPages, p + 1))}
-                      disabled={rangePage >= rangeTotalPages}
-                      className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
-                    >
-                      Next <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           )}
         </div>

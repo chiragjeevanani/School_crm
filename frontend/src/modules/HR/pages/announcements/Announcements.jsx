@@ -1,8 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { useToast } from '../../components/ui/Toast';
 import { hrApi } from '../../../../shared/api/client';
-import { Megaphone, Plus, RefreshCw, Send, AlertCircle, Users } from 'lucide-react';
+import {
+  Megaphone,
+  Plus,
+  RefreshCw,
+  Send,
+  AlertCircle,
+  Users,
+  Sparkles,
+  Calendar,
+  CheckCircle2,
+  BellRing,
+} from 'lucide-react';
+import { Badge } from '../../components/ui/Badge';
 
 export const Announcements = () => {
   const [notices, setNotices] = useState([]);
@@ -17,11 +29,7 @@ export const Announcements = () => {
 
   const { showToast, ToastComponent } = useToast();
 
-  useEffect(() => {
-    fetchAnnouncements();
-  }, []);
-
-  const fetchAnnouncements = async () => {
+  const fetchAnnouncements = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -34,7 +42,11 @@ export const Announcements = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAnnouncements();
+  }, [fetchAnnouncements]);
 
   const handlePostNotice = async (e) => {
     e.preventDefault();
@@ -66,17 +78,18 @@ export const Announcements = () => {
   };
 
   return (
-    <div className="space-y-6 text-xs font-semibold">
+    <div className="space-y-6 pb-12">
       <PageHeader
-        title="Institutional Announcements & Staff Notices"
-        subtitle="Broadcast administrative circulars, holiday memos, and institutional notices across staff portals."
+        title="Institutional Announcements & Faculty Circulars"
+        subtitle="Broadcast administrative directives, academic holiday memos, and event circulars across staff portals."
         actions={
           <button
             onClick={fetchAnnouncements}
-            className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
+            disabled={loading}
+            className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title="Refresh"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         }
       />
@@ -94,97 +107,117 @@ export const Announcements = () => {
           onSubmit={handlePostNotice}
           className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-4 text-left lg:col-span-1"
         >
-          <span className="text-[10px] font-bold uppercase text-slate-400 block border-b border-slate-100 dark:border-slate-800 pb-2">
-            Publish New Announcement
-          </span>
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <span className="text-[11px] font-bold uppercase text-slate-400">Broadcast Composer</span>
+            <div className="p-2 bg-indigo-50 dark:bg-indigo-950/60 rounded-xl text-indigo-650 dark:text-indigo-400">
+              <Megaphone className="w-4 h-4" />
+            </div>
+          </div>
 
-          <div className="space-y-1">
-            <label className="text-slate-700 dark:text-slate-300 font-bold">Notice Title *</label>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Notice Subject / Headline <span className="text-rose-500">*</span>
+            </label>
             <input
               type="text"
+              placeholder="e.g. Teacher's Day Celebration Schedule"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-indigo-500 text-xs font-semibold"
               required
-              placeholder="e.g. Independence Day Campus Assembly..."
-              className="w-full bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-indigo-500 text-xs"
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-slate-700 dark:text-slate-300 font-bold">Target Audience</label>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Target Audience Group
+            </label>
             <select
               value={targetAudience}
               onChange={(e) => setTargetAudience(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-indigo-500 text-xs font-semibold cursor-pointer"
+              className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-indigo-500 text-xs font-semibold"
             >
-              <option value="all">All School Staff & Faculty</option>
-              <option value="teachers">Teaching Faculty Only</option>
+              <option value="all">All Faculty & Staff Members</option>
+              <option value="teachers">Teaching Staff Only</option>
               <option value="staff">Non-Teaching Staff Only</option>
             </select>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-slate-700 dark:text-slate-300 font-bold">Notice Content / Body *</label>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Notice Content & Directives <span className="text-rose-500">*</span>
+            </label>
             <textarea
+              rows={4}
+              placeholder="Enter the detailed announcement body..."
               value={body}
               onChange={(e) => setBody(e.target.value)}
+              className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-indigo-500 text-xs font-semibold"
               required
-              rows="4"
-              placeholder="Full details of the announcement..."
-              className="w-full bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-indigo-500 text-xs"
             />
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-60"
+            className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-3.5 h-3.5" />
             <span>{submitting ? 'Publishing...' : 'Broadcast Notice'}</span>
           </button>
         </form>
 
         {/* Notices Feed */}
-        <div className="lg:col-span-2 space-y-4">
-          <span className="text-[10px] font-bold uppercase text-slate-400 block px-1">
-            Active Notice Board Feed ({notices.length})
-          </span>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-xs lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Active Circulars Feed</h3>
+              <p className="text-xs text-slate-400">Latest administrative notices broadcasted to staff</p>
+            </div>
+            <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-650 dark:text-indigo-400 rounded-xl text-xs font-bold">
+              {notices.length} Published
+            </span>
+          </div>
 
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="h-28 bg-slate-100 dark:bg-slate-800/60 rounded-3xl animate-pulse" />
+                <div key={n} className="h-28 bg-slate-100 dark:bg-slate-800/60 rounded-2xl animate-pulse" />
               ))}
             </div>
           ) : notices.length === 0 ? (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-12 text-center text-slate-400 space-y-2">
-              <Megaphone className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-700" />
-              <p>No announcements published yet.</p>
+            <div className="py-16 text-center text-slate-400 space-y-2">
+              <BellRing className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-700" />
+              <p className="text-xs">No announcements broadcasted yet.</p>
             </div>
           ) : (
-            notices.map((n) => (
-              <div
-                key={n.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs space-y-3 text-left hover:shadow-md transition-all"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">{n.title}</h4>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      Published {n.createdAt ? new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent'} by {n.createdBy || 'HR Desk'}
+            <div className="space-y-3.5">
+              {notices.map((n) => (
+                <div
+                  key={n.id}
+                  className="p-4 bg-slate-50/80 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-850 rounded-2xl space-y-2 hover:border-indigo-200 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{n.title}</h4>
+                    <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                      {n.createdAt ? new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today'}
                     </span>
                   </div>
-                  <span className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 rounded-lg text-[10px] font-bold uppercase shrink-0">
-                    {(n.audiences || []).join(', ') || 'All Staff'}
-                  </span>
-                </div>
 
-                <p className="text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                  {n.body}
-                </p>
-              </div>
-            ))
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-line">
+                    {n.body || n.content}
+                  </p>
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-200/40 dark:border-slate-800 text-[10px] font-bold text-slate-400">
+                    <span className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      Audience: {Array.isArray(n.audiences) ? n.audiences.join(', ') : 'All Personnel'}
+                    </span>
+                    <span>•</span>
+                    <span>Broadcast by HR Desk</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -193,4 +226,5 @@ export const Announcements = () => {
     </div>
   );
 };
+
 export default Announcements;

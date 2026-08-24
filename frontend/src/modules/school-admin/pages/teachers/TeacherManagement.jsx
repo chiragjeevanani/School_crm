@@ -6,7 +6,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
-import { academicPortalApi } from '../../../../shared/api/client';
+import { academicPortalApi, hrApi } from '../../../../shared/api/client';
 import { EmptyState } from '../academics/components/AcademicUi';
 import { apiMessage } from '../academics/utils';
 import { Ban, Camera, Eye, ImagePlus, Loader2, Pencil, Plus, Power, Trash2, UserCheck, UserCircle2, Users, X } from 'lucide-react';
@@ -34,6 +34,9 @@ const STATUS_VARIANT = {
   SUSPENDED: 'danger',
   RESIGNED: 'default',
   TERMINATED: 'danger',
+  PENDING_APPROVAL: 'warning',
+  PENDING: 'warning',
+  REJECTED: 'danger',
 };
 
 const createEmptyDocuments = () => ({ aadhaar: [], others: [] });
@@ -49,6 +52,8 @@ const createEmptyForm = () => ({
   qualification: '',
   joiningDate: '',
   experienceSummary: '',
+  department: '',
+  designation: '',
   documents: createEmptyDocuments(),
 });
 
@@ -129,6 +134,8 @@ export const TeacherManagement = () => {
   const [photoPreview, setPhotoPreview] = useState('');
   const [removePhoto, setRemovePhoto] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [departments, setDepartments] = useState([]);
+  const [designations, setDesignations] = useState([]);
   const photoInputRef = useRef(null);
 
   useEffect(() => {
@@ -152,6 +159,19 @@ export const TeacherManagement = () => {
   useEffect(() => {
     loadTeachers();
   }, [loadTeachers]);
+
+  useEffect(() => {
+    const loadOptions = async () => {
+      try {
+        const [deptRes, desigRes] = await Promise.all([hrApi.departments(), hrApi.designations()]);
+        setDepartments(deptRes.data || []);
+        setDesignations(desigRes.data || []);
+      } catch {
+        // Non-blocking: department/designation master data is optional to load
+      }
+    };
+    loadOptions();
+  }, []);
 
   const filteredTeachers = useMemo(() => {
     if (statusFilter === 'ALL') return teachers;
@@ -199,6 +219,8 @@ export const TeacherManagement = () => {
       qualification: teacher.qualifications?.map((item) => item.degree).filter(Boolean).join(', ') || '',
       joiningDate: teacher.joiningDate ? String(teacher.joiningDate).slice(0, 10) : '',
       experienceSummary: teacher.experienceSummary || '',
+      department: teacher.department || '',
+      designation: teacher.designation || '',
       documents: documentsFromTeacher(teacher),
     });
     setPhotoFile(null);
@@ -220,7 +242,16 @@ export const TeacherManagement = () => {
   const handleSave = async (e) => {
     e.preventDefault();
     const fullName = form.fullName.trim().replace(/\s+/g, ' ');
-    if (!fullName || !form.gender || !form.mobileNumber.trim() || !form.employeeId.trim() || !form.qualification.trim() || !form.joiningDate) {
+    if (
+      !fullName ||
+      !form.gender ||
+      !form.mobileNumber.trim() ||
+      !form.employeeId.trim() ||
+      !form.qualification.trim() ||
+      !form.joiningDate ||
+      !form.department ||
+      !form.designation
+    ) {
       showToast('Fill all required teacher fields before saving', 'error');
       return;
     }
@@ -240,6 +271,8 @@ export const TeacherManagement = () => {
         employeeId: form.employeeId.trim(),
         joiningDate: form.joiningDate,
         experienceSummary: form.experienceSummary,
+        department: form.department,
+        designation: form.designation,
       };
       Object.entries(fields).forEach(([key, value]) => payload.append(key, value ?? ''));
       payload.append('address', JSON.stringify({ addressLine: form.address.trim() }));
@@ -270,6 +303,16 @@ export const TeacherManagement = () => {
       showToast(apiMessage(error, editingTeacher ? 'Unable to update teacher' : 'Unable to create teacher'), 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleApproveTeacher = async (teacher) => {
+    try {
+      await hrApi.approveEmployee(teacher.id);
+      showToast(`Teacher ${teacher.name || teacher.fullName} approved & activated!`, 'success');
+      loadTeachers();
+    } catch (error) {
+      showToast(apiMessage(error, 'Unable to approve teacher'), 'error');
     }
   };
 
@@ -448,42 +491,58 @@ export const TeacherManagement = () => {
     {
       header: 'Actions',
       key: 'actions',
-      render: (_, row) => (
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => navigate(`/school-admin/teachers/${row.id}`)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-primary hover:text-primary dark:border-slate-700"
-            aria-label={`View ${row.name}`}
-          >
-            <Eye className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => handleEdit(row)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-primary hover:text-primary dark:border-slate-700"
-            aria-label={`Edit ${row.name}`}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => handleToggleStatus(row)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-amber-600 hover:border-amber-300 hover:bg-amber-50 dark:border-slate-700 dark:hover:bg-amber-950/20"
-            aria-label={row.status === 'ACTIVE' ? `Deactivate ${row.name}` : `Activate ${row.name}`}
-          >
-            {row.status === 'ACTIVE' ? <Ban className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
-          </button>
-        <button
-            type="button"
-            onClick={() => setDeleteTarget(row)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-rose-500 hover:border-rose-300 hover:bg-rose-50 dark:border-slate-700 dark:hover:bg-rose-950/20"
-            aria-label={`Delete ${row.name}`}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-        </button>
-        </div>
-      ),
+      render: (_, row) => {
+        const isPending = row.status === 'PENDING_APPROVAL' || row.status === 'PENDING';
+        return (
+          <div className="flex items-center gap-1.5">
+            {isPending && (
+              <button
+                type="button"
+                onClick={() => handleApproveTeacher(row)}
+                className="inline-flex h-8 items-center gap-1 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs cursor-pointer"
+                title={`Approve ${row.name}`}
+              >
+                <UserCheck className="h-3.5 w-3.5" />
+                <span>Approve</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate(`/school-admin/teachers/${row.id}`)}
+              className="rounded-full p-1.5 text-blue-500 transition hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer"
+              title={`View ${row.name}`}
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleEdit(row)}
+              className="rounded-full p-1.5 text-amber-500 transition hover:bg-amber-50 dark:hover:bg-amber-950/50 cursor-pointer"
+              title={`Edit ${row.name}`}
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            {!isPending && (
+              <button
+                type="button"
+                onClick={() => handleToggleStatus(row)}
+                className="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                title={row.status === 'ACTIVE' ? `Deactivate ${row.name}` : `Activate ${row.name}`}
+              >
+                {row.status === 'ACTIVE' ? <Ban className="h-4 w-4 text-rose-500" /> : <Power className="h-4 w-4 text-emerald-500" />}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(row)}
+              className="rounded-full p-1.5 text-rose-500 transition hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
+              title={`Delete ${row.name}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -491,7 +550,7 @@ export const TeacherManagement = () => {
     <div className="space-y-6">
       <PageHeader 
         title="Teacher Management"
-        subtitle="Create teacher records, keep contact details updated, and control active or inactive access."
+        subtitle="Create teacher records, review HR onboarding approvals, keep contact details updated, and control active access."
         actions={
           <button
             type="button"
@@ -506,13 +565,14 @@ export const TeacherManagement = () => {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard title="Total Teachers" value={stats.total} hint="Complete teacher directory" icon={Users} />
         <SummaryCard title="Active" value={stats.active} hint="Available for assignment" icon={UserCheck} tone="text-emerald-600" />
-        <SummaryCard title="Inactive" value={stats.inactive} hint="Temporarily disabled" icon={Ban} tone="text-amber-600" />
+        <SummaryCard title="Pending Approval" value={teachers.filter((t) => t.status === 'PENDING_APPROVAL' || t.status === 'PENDING').length} hint="Awaiting Admin Verification" icon={UserCheck} tone="text-amber-600" />
         <SummaryCard title="Assigned" value={stats.assigned} hint="Teachers with active allocations" icon={UserCheck} tone="text-indigo-600" />
       </div>
 
       <div className="flex flex-wrap gap-2">
         {[
           { id: 'ALL', label: 'All', count: stats.total },
+          { id: 'PENDING_APPROVAL', label: 'Pending Approvals', count: teachers.filter((t) => t.status === 'PENDING_APPROVAL' || t.status === 'PENDING').length },
           { id: 'ACTIVE', label: 'Active', count: stats.active },
           { id: 'INACTIVE', label: 'Inactive', count: stats.inactive },
           { id: 'ON_LEAVE', label: 'On Leave', count: teachers.filter((t) => t.status === 'ON_LEAVE').length },
@@ -677,9 +737,35 @@ export const TeacherManagement = () => {
                   <label className="mb-1 block text-xs font-bold text-slate-500">Experience</label>
                   <input className={inputClass} value={form.experienceSummary} onChange={(e) => updateField('experienceSummary', e.target.value)} placeholder="8 years of classroom teaching" />
                 </div>
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-slate-500">Department *</label>
+                  <select className={inputClass} value={form.department} onChange={(e) => updateField('department', e.target.value)} required>
+                    <option value="">Select department</option>
+                    {departments
+                      .filter((d) => d.status === 'ACTIVE' || d.name === form.department)
+                      .map((d) => (
+                        <option key={d.id} value={d.name}>
+                          {d.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-slate-500">Designation *</label>
+                  <select className={inputClass} value={form.designation} onChange={(e) => updateField('designation', e.target.value)} required>
+                    <option value="">Select designation</option>
+                    {designations
+                      .filter((d) => d.status === 'ACTIVE' || d.title === form.designation)
+                      .map((d) => (
+                        <option key={d.id} value={d.title}>
+                          {d.title}
+                        </option>
+                      ))}
+                  </select>
+                </div>
               </div>
               <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-950/40">
-                Class, section, and subject assignments are managed from the academic year flow. Login credentials are generated separately, so no username or password is needed here.
+                Class, section, and subject assignments are managed from the academic year flow. Login credentials are generated separately, so no username or password is needed here. Manage Department/Designation options from the sidebar under People.
               </div>
             </SectionBlock>
 

@@ -34,6 +34,7 @@ export function usePlatformPush({ enabled, role, user, mergeInbox, onPush }) {
       const result = await platformNotificationApi.inbox({
         role,
         schoolId: user.schoolId || '',
+        userId: user.id || '',
       });
       if (!cancelled && Array.isArray(result.data)) {
         mergeInbox?.(result.data.map(toInboxItem));

@@ -45,8 +45,24 @@ export const OverdueBooks = () => {
     fetchOverdueBooks();
   }, []);
 
-  const handleSendReminder = (loan) => {
-    toast.success(`Overdue reminder notification queued for ${loan.borrowerName}!`);
+  const [reminding, setReminding] = useState(null);
+
+  const handleSendReminder = async (loan) => {
+    setReminding(loan.id);
+    try {
+      const audience = loan.borrowerType === 'STUDENT' ? 'student' : 'teacher';
+      const res = await librarianApi.sendNotification({
+        title: 'Overdue Library Book',
+        body: `"${loan.bookTitle}" is overdue by ${loan.overdueDays || 1} day(s). Please return it to the library as soon as possible.`,
+        audiences: [audience],
+        recipientRefIds: loan.borrowerRefId ? [loan.borrowerRefId] : [],
+      });
+      toast.success(res?.message || `Reminder sent to ${loan.borrowerName}.`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to send reminder');
+    } finally {
+      setReminding(null);
+    }
   };
 
   const columns = [
@@ -107,10 +123,11 @@ export const OverdueBooks = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleSendReminder(row)}
+            disabled={reminding === row.id}
             title="Send Alert Reminder"
-            className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg transition-colors"
+            className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg transition-colors disabled:opacity-50"
           >
-            <Bell className="h-3.5 w-3.5" />
+            <Bell className={`h-3.5 w-3.5 ${reminding === row.id ? 'animate-pulse' : ''}`} />
           </button>
           <button
             onClick={() => navigate('/librarian/return')}

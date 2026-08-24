@@ -15,6 +15,10 @@ import {
   Bus,
   Home,
   Library,
+  LayoutGrid,
+  BookMarked,
+  FolderTree,
+  SlidersHorizontal,
   Package,
   Calendar,
   Shield,
@@ -23,7 +27,10 @@ import {
   History,
   Bell,
   Settings,
-  LifeBuoy
+  LifeBuoy,
+  Building2,
+  Contact,
+  Award
 } from 'lucide-react';
 
 export const NAVIGATION_ITEMS = [
@@ -46,6 +53,9 @@ export const NAVIGATION_ITEMS = [
   { name: 'Student Management', path: '/school-admin/students', icon: Users, category: 'People' },
   { name: 'Teacher Management', path: '/school-admin/teachers', icon: UserCheck, category: 'People' },
   { name: 'User Management', path: '/school-admin/users', icon: UserCog, category: 'People' },
+  { name: 'Departments', path: '/school-admin/hr/departments', icon: Building2, category: 'People' },
+  { name: 'Designations', path: '/school-admin/hr/designations', icon: Contact, category: 'People' },
+  { name: 'Performance Reviews', path: '/school-admin/hr/reviews', icon: Award, category: 'People' },
   
   // FINANCE
   { name: 'Fees & Finance', path: '/school-admin/fees', icon: CreditCard, category: 'Finance' },
@@ -54,10 +64,17 @@ export const NAVIGATION_ITEMS = [
   // ADMINISTRATION
   { name: 'Transport', path: '/school-admin/transport', icon: Bus, category: 'Administration' },
   { name: 'Hostel', path: '/school-admin/hostel', icon: Home, category: 'Administration' },
-  { name: 'Library', path: '/school-admin/library', icon: Library, category: 'Administration' },
   { name: 'Inventory', path: '/school-admin/inventory', icon: Package, category: 'Administration' },
   { name: 'Events', path: '/school-admin/events', icon: Calendar, category: 'Administration' },
-  
+
+  // LIBRARY
+  { name: 'Dashboard', path: '/school-admin/library/dashboard', icon: LayoutGrid, category: 'Library' },
+  { name: 'Books', path: '/school-admin/library/books', icon: Library, category: 'Library' },
+  { name: 'Categories', path: '/school-admin/library/categories', icon: FolderTree, category: 'Library' },
+  { name: 'Rules', path: '/school-admin/library/rules', icon: SlidersHorizontal, category: 'Library' },
+  { name: 'Reports', path: '/school-admin/library/reports', icon: BookMarked, category: 'Library' },
+  { name: 'Settings', path: '/school-admin/library/settings', icon: Settings, category: 'Library' },
+
   // SYSTEM
   { name: 'Roles & Permissions', path: '/school-admin/roles', icon: Shield, category: 'System' },
   { name: 'Notifications', path: '/school-admin/notifications', icon: Bell, category: 'System' },

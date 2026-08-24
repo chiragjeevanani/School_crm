@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import { LibraryReservation } from '../models/LibraryReservation.js';
+import { escapeRegex } from '../../../shared/sanitize.js';
+import { AppError } from '../../../shared/AppError.js';
 
 function toObjectId(id) {
   if (!id) return null;
@@ -28,7 +30,7 @@ class LibraryReservationRepository {
     }
 
     if (query.search?.trim()) {
-      const regex = new RegExp(query.search.trim(), 'i');
+      const regex = new RegExp(escapeRegex(query.search.trim()), 'i');
       filter.$or = [
         { borrowerName: regex },
         { borrowerCode: regex },
@@ -65,18 +67,30 @@ class LibraryReservationRepository {
   }
 
   async createReservation(data) {
-    return LibraryReservation.create({
-      ...data,
-      schoolId: toObjectId(data.schoolId),
-      bookId: toObjectId(data.bookId),
-      borrowerRefId: toObjectId(data.borrowerRefId),
-    });
+    try {
+      return await LibraryReservation.create({
+        ...data,
+        schoolId: toObjectId(data.schoolId),
+        bookId: toObjectId(data.bookId),
+        borrowerRefId: toObjectId(data.borrowerRefId),
+      });
+    } catch (err) {
+      // Duplicate-key from the partial unique index (schoolId+bookId+borrowerRefId, status: PENDING) —
+      // this is the authoritative guard against a duplicate pending reservation, closing the race
+      // window the service-layer pre-check alone can't close.
+      if (err?.code === 11000) {
+        throw new AppError('This borrower already has a pending reservation for this book.', 409);
+      }
+      throw err;
+    }
   }
 
-  async updateStatus(schoolId, id, status, updates = {}) {
+  async updateStatus(schoolId, id, status, updates = {}, expectedCurrentStatus = null) {
+    const filter = { schoolId: toObjectId(schoolId), _id: toObjectId(id) };
+    if (expectedCurrentStatus) filter.status = expectedCurrentStatus;
     const setFields = { status, ...updates };
     return LibraryReservation.findOneAndUpdate(
-      { schoolId: toObjectId(schoolId), _id: toObjectId(id) },
+      filter,
       { $set: setFields },
       { new: true, runValidators: true }
     ).populate('bookId', 'title author category isbn bookCode');

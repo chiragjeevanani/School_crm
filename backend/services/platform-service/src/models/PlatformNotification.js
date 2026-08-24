@@ -6,6 +6,9 @@ const platformNotificationSchema = new mongoose.Schema(
     title: { type: String, required: true, trim: true },
     body: { type: String, required: true, trim: true },
     audiences: [{ type: String, enum: DEVICE_ROLES, required: true }],
+    // Empty = broadcast to everyone matching `audiences` + `schoolId` (existing behavior).
+    // Non-empty = only visible to these specific user ids (targeted delivery).
+    recipientRefIds: [{ type: String, default: [] }],
     schoolId: { type: String, default: '', trim: true },
     schoolName: { type: String, default: '', trim: true },
     createdBy: { type: String, default: null },
@@ -29,6 +32,7 @@ platformNotificationSchema.methods.toPublicJSON = function toPublicJSON() {
     title: this.title,
     body: this.body,
     audiences: this.audiences || [],
+    recipientRefIds: this.recipientRefIds || [],
     schoolId: this.schoolId || '',
     schoolName: this.schoolName || '',
     createdBy: this.createdBy,

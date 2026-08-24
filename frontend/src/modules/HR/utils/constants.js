@@ -1,7 +1,7 @@
 import {
   LayoutDashboard,
   Users,
-  UserPlus,
+  GraduationCap,
   Building,
   Contact,
   CalendarDays,
@@ -14,63 +14,31 @@ import {
   ClipboardList,
   Bell,
   Settings as SettingsIcon,
-  ShieldCheck,
-  CheckCircle,
-  Clock,
-  FileText
 } from 'lucide-react';
 
 export const NAVIGATION_ITEMS = [
-  // Dashboard
-  {
-    title: 'Dashboard',
-    path: '/hr/dashboard',
-    icon: LayoutDashboard,
-  },
+  // MAIN
+  { name: 'Dashboard', path: '/hr/dashboard', icon: LayoutDashboard, category: 'Main' },
 
-  // People & Organization
-  {
-    title: 'People & Staff',
-    icon: Users,
-    children: [
-      { title: 'Employee Directory', path: '/hr/employees', icon: Users },
-      { title: 'Add New Employee', path: '/hr/employees/new', icon: UserPlus },
-      { title: 'Departments', path: '/hr/departments', icon: Building },
-      { title: 'Designations', path: '/hr/designations', icon: Contact },
-    ],
-  },
+  // PEOPLE & STAFF
+  { name: 'Teacher Management', path: '/hr/teachers', icon: GraduationCap, category: 'People & Staff' },
+  { name: 'Staff Management', path: '/hr/staff', icon: Users, category: 'People & Staff' },
+  { name: 'Departments', path: '/hr/departments', icon: Building, category: 'People & Staff' },
+  { name: 'Designations', path: '/hr/designations', icon: Contact, category: 'People & Staff' },
 
-  // Operations
-  {
-    title: 'HR Operations',
-    icon: CalendarDays,
-    children: [
-      { title: 'Attendance Record', path: '/hr/attendance', icon: CalendarDays },
-      { title: 'Leave Management', path: '/hr/leave', icon: CalendarRange },
-      { title: 'Payroll & Slips', path: '/hr/payroll', icon: BadgeCent },
-      { title: 'Documents Locker', path: '/hr/documents', icon: FolderOpen },
-    ],
-  },
+  // OPERATIONS
+  { name: 'Attendance Record', path: '/hr/attendance', icon: CalendarDays, category: 'Operations' },
+  { name: 'Leave Management', path: '/hr/leave', icon: CalendarRange, category: 'Operations' },
+  { name: 'Payroll & Slips', path: '/hr/payroll', icon: BadgeCent, category: 'Operations' },
+  { name: 'Documents Locker', path: '/hr/documents', icon: FolderOpen, category: 'Operations' },
 
-  // Analytics & Quality
-  {
-    title: 'Reviews & Reports',
-    icon: BarChart3,
-    children: [
-      { title: 'Performance Reviews', path: '/hr/performance', icon: Award },
-      { title: 'Reports Hub', path: '/hr/reports', icon: BarChart3 },
-    ],
-  },
+  // REVIEWS & REPORTS
+  { name: 'Performance Reviews', path: '/hr/performance', icon: Award, category: 'Reviews & Reports' },
+  { name: 'Reports Hub', path: '/hr/reports', icon: BarChart3, category: 'Reviews & Reports' },
 
-  // System & Communications
-  {
-    title: 'System & Notice',
-    icon: SettingsIcon,
-    children: [
-      { title: 'Announcements', path: '/hr/announcements', icon: Megaphone },
-      { title: 'System Audit Logs', path: '/hr/audit', icon: ClipboardList },
-      { title: 'Notifications Feed', path: '/hr/notifications', icon: Bell },
-      { title: 'HR Settings', path: '/hr/settings', icon: SettingsIcon },
-    ],
-  },
+  // SYSTEM & COMMUNICATION
+  { name: 'Notice & Circulars', path: '/hr/announcements', icon: Megaphone, category: 'System & Logs' },
+  { name: 'System Audit Logs', path: '/hr/audit', icon: ClipboardList, category: 'System & Logs' },
+  { name: 'Alerts & Broadcasts', path: '/hr/notifications', icon: Bell, category: 'System & Logs' },
+  { name: 'HR Settings', path: '/hr/settings', icon: SettingsIcon, category: 'System & Logs' },
 ];

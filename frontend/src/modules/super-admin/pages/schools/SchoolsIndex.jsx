@@ -151,6 +151,7 @@ function SchoolsTableSkeleton() {
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead className="w-12 text-center">#</TableHead>
           <TableHead>School</TableHead>
           <TableHead>Code</TableHead>
           <TableHead>Board & Type</TableHead>
@@ -164,30 +165,33 @@ function SchoolsTableSkeleton() {
       <TableBody>
         {Array.from({ length: 5 }).map((_, i) => (
           <TableRow key={i} className="hover:bg-transparent">
+            <TableCell className="w-12 text-center">
+              <Pulse className="mx-auto h-3.5 w-4" />
+            </TableCell>
             <TableCell>
-              <div className="flex items-center gap-3">
-                <Pulse className="h-10 w-10 rounded-xl" />
+              <div className="flex items-center gap-2.5">
+                <Pulse className="h-9 w-9 rounded-xl" />
                 <div className="space-y-1.5">
-                  <Pulse className="h-3.5 w-36" />
-                  <Pulse className="h-2.5 w-28" />
+                  <Pulse className="h-3.5 w-32" />
+                  <Pulse className="h-2.5 w-24" />
                 </div>
               </div>
             </TableCell>
             <TableCell>
               <Pulse className="mb-1.5 h-3 w-16" />
-              <Pulse className="h-2.5 w-24" />
-            </TableCell>
-            <TableCell>
-              <Pulse className="mb-1.5 h-3 w-14" />
               <Pulse className="h-2.5 w-20" />
             </TableCell>
             <TableCell>
-              <Pulse className="mb-1.5 h-3 w-20" />
-              <Pulse className="h-2.5 w-28" />
+              <Pulse className="mb-1.5 h-3 w-14" />
+              <Pulse className="h-2.5 w-16" />
             </TableCell>
             <TableCell>
               <Pulse className="mb-1.5 h-3 w-16" />
-              <Pulse className="h-2.5 w-24" />
+              <Pulse className="h-2.5 w-20" />
+            </TableCell>
+            <TableCell>
+              <Pulse className="mb-1.5 h-3 w-14" />
+              <Pulse className="h-2.5 w-18" />
             </TableCell>
             <TableCell>
               <Pulse className="h-6 w-16 rounded-full" />
@@ -196,8 +200,7 @@ function SchoolsTableSkeleton() {
               <Pulse className="h-6 w-16 rounded-full" />
             </TableCell>
             <TableCell>
-              <div className="flex justify-end gap-2">
-                <Pulse className="h-7 w-7 rounded-lg" />
+              <div className="flex justify-end gap-1.5">
                 <Pulse className="h-7 w-7 rounded-lg" />
                 <Pulse className="h-7 w-7 rounded-lg" />
                 <Pulse className="h-7 w-7 rounded-lg" />
@@ -950,6 +953,7 @@ export default function SchoolsIndex() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12 text-center">#</TableHead>
               <TableHead>School</TableHead>
               <TableHead>Code</TableHead>
               <TableHead>Board & Type</TableHead>
@@ -963,100 +967,104 @@ export default function SchoolsIndex() {
           <TableBody>
             {schools.length === 0 ? (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={8} className="py-16 text-center">
+                <TableCell colSpan={9} className="py-16 text-center">
                   <Building2 className="mx-auto mb-3 h-8 w-8 text-slate-300" />
                   <p className="text-sm font-medium text-slate-500">No schools found</p>
                   <p className="mt-1 text-xs text-slate-400">Click &quot;Add School&quot; to create the first tenant.</p>
                 </TableCell>
               </TableRow>
             ) : (
-              schools.map((school) => (
-                <TableRow key={school.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      {school.logo ? (
-                        <img
-                          src={school.logo}
-                          alt={school.name}
-                          className="h-10 w-10 shrink-0 rounded-xl border border-slate-200 object-cover dark:border-slate-700"
-                        />
-                      ) : (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-500 dark:bg-indigo-500/15 dark:text-indigo-300">
-                          <Building2 size={16} />
+              schools.map((school, index) => {
+                const serialNo = (pagination.page - 1) * pagination.limit + index + 1;
+                return (
+                  <TableRow key={school.id}>
+                    <TableCell className="w-12 text-center font-bold text-slate-400">
+                      {serialNo}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2.5">
+                        {school.logo ? (
+                          <img
+                            src={school.logo}
+                            alt={school.name}
+                            className="h-9 w-9 shrink-0 rounded-xl border border-slate-200 object-cover dark:border-slate-700"
+                          />
+                        ) : (
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-500 dark:bg-indigo-500/15 dark:text-indigo-300">
+                            <Building2 size={16} />
+                          </div>
+                        )}
+                        <div className="min-w-0 max-w-[200px]">
+                          <div className="truncate font-bold text-slate-900 dark:text-slate-100">{school.name}</div>
+                          <div className="truncate text-[11px] text-slate-400">{school.admin?.email || '—'}</div>
                         </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <span className="inline-flex rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-[11px] font-bold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
+                        {school.code}
+                      </span>
+                      <div className="mt-0.5 font-mono text-[10px] text-slate-400">{school.schoolId}</div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100">{school.board}</div>
+                      <div className="text-[11px] text-slate-400">{school.type}</div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span>{school.address?.city || '—'}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 pl-4.5">{school.address?.state || ''}</div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100">{school.academic?.session || '—'}</div>
+                      <div className="text-[11px] text-slate-400">
+                        {school.academic?.classFrom}–{school.academic?.classTo} · {school.academic?.medium}
+                      </div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {assignedPlanName(school.subscriptionPlan) ? (
+                        <Badge variant={assignedPlanName(school.subscriptionPlan)}>
+                          {assignedPlanName(school.subscriptionPlan)}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
                       )}
-                      <div className="min-w-0">
-                        <div className="truncate font-semibold text-slate-900 dark:text-slate-100">{school.name}</div>
-                        <div className="truncate text-[11px] text-slate-400">{school.admin?.email}</div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <Badge variant={school.status}>{school.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right whitespace-nowrap">
+                      <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800 dark:bg-slate-900">
+                        <ActionIcon label="View details" onClick={() => setViewingSchool(school)} className="hover:text-indigo-600">
+                          <Eye size={14} />
+                        </ActionIcon>
+                        <ActionIcon
+                          label="Reset school admin login"
+                          onClick={() => handleResetLogin(school)}
+                          className="hover:text-indigo-600"
+                        >
+                          {resettingId === school.id ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+                        </ActionIcon>
+                        <ActionIcon label="Edit school" onClick={() => fillFormFromSchool(school)} className="hover:text-indigo-600">
+                          <Pencil size={14} />
+                        </ActionIcon>
+                        <ActionIcon
+                          label={school.status === 'Active' ? 'Suspend school' : 'Activate school'}
+                          onClick={() => handleToggleStatus(school.id, school.status)}
+                          className={school.status === 'Active' ? 'hover:text-amber-600' : 'hover:text-emerald-600'}
+                        >
+                          {school.status === 'Active' ? <Ban size={14} /> : <Play size={14} />}
+                        </ActionIcon>
+                        <ActionIcon label="Delete school" onClick={() => setSchoolToDelete(school)} className="hover:text-rose-600">
+                          <Trash2 size={14} />
+                        </ActionIcon>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-flex rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
-                      {school.code}
-                    </span>
-                    <div className="mt-1 font-mono text-[11px] text-slate-400">{school.schoolId}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm font-medium">{school.board}</div>
-                    <div className="text-xs text-slate-400">{school.type}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-start gap-1.5">
-                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
-                      <div>
-                        <div className="text-sm font-medium">{school.address?.city}</div>
-                        <div className="text-xs text-slate-400">{school.address?.state}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm font-medium">{school.academic?.session}</div>
-                    <div className="text-xs text-slate-400">
-                      {school.academic?.classFrom}–{school.academic?.classTo} · {school.academic?.medium}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {assignedPlanName(school.subscriptionPlan) ? (
-                      <Badge variant={assignedPlanName(school.subscriptionPlan)}>
-                        {assignedPlanName(school.subscriptionPlan)}
-                      </Badge>
-                    ) : (
-                      <span className="text-xs text-slate-400">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={school.status}>{school.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800 dark:bg-slate-900">
-                      <ActionIcon label="View details" onClick={() => setViewingSchool(school)} className="hover:text-indigo-600">
-                        <Eye size={15} />
-                      </ActionIcon>
-                      <ActionIcon
-                        label="Reset school admin login"
-                        onClick={() => handleResetLogin(school)}
-                        className="hover:text-indigo-600"
-                      >
-                        {resettingId === school.id ? <Loader2 size={15} className="animate-spin" /> : <KeyRound size={15} />}
-                      </ActionIcon>
-                      <ActionIcon label="Edit school" onClick={() => fillFormFromSchool(school)} className="hover:text-indigo-600">
-                        <Pencil size={15} />
-                      </ActionIcon>
-                      <ActionIcon
-                        label={school.status === 'Active' ? 'Suspend school' : 'Activate school'}
-                        onClick={() => handleToggleStatus(school.id, school.status)}
-                        className={school.status === 'Active' ? 'hover:text-amber-600' : 'hover:text-emerald-600'}
-                      >
-                        {school.status === 'Active' ? <Ban size={15} /> : <Play size={15} />}
-                      </ActionIcon>
-                      <ActionIcon label="Delete school" onClick={() => setSchoolToDelete(school)} className="hover:text-rose-600">
-                        <Trash2 size={15} />
-                      </ActionIcon>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

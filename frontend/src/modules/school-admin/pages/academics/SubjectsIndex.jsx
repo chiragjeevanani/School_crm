@@ -7,7 +7,7 @@ import { useToast } from '../../components/ui/Toast';
 import { academicPortalApi } from '../../../../shared/api/client';
 import { AcademicBreadcrumb, EmptyState } from './components/AcademicUi';
 import { apiMessage, ENTITY_STATUS_VARIANT } from './utils';
-import { Download, FileUp, Loader2, Pencil, Plus, Trash2, Upload, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, FileUp, Loader2, Pencil, Plus, Trash2, Upload, X } from 'lucide-react';
 
 const inputClass =
   'h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white';
@@ -59,6 +59,8 @@ export const SubjectsIndex = () => {
   const [subjectMappings, setSubjectMappings] = useState({});
   const [subjectClassIdsLookup, setSubjectClassIdsLookup] = useState({});
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 5;
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null);
@@ -360,7 +362,10 @@ export const SubjectsIndex = () => {
             <div className="relative">
               <select
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
+                onChange={(e) => {
+                  setSelectedYear(e.target.value);
+                  setPage(1);
+                }}
                 className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 pl-3.5 pr-9 text-xs font-semibold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white appearance-none cursor-pointer"
               >
                 <option value="">All Academic Years</option>
@@ -383,7 +388,10 @@ export const SubjectsIndex = () => {
             <div className="relative">
               <select
                 value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
+                onChange={(e) => {
+                  setSelectedClass(e.target.value);
+                  setPage(1);
+                }}
                 className="h-10 rounded-xl border border-slate-200 bg-slate-50/80 pl-3.5 pr-9 text-xs font-semibold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white appearance-none cursor-pointer"
               >
                 <option value="">All Classes (Global Master)</option>
@@ -412,7 +420,10 @@ export const SubjectsIndex = () => {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setStatusFilter(item.id)}
+                  onClick={() => {
+                    setStatusFilter(item.id);
+                    setPage(1);
+                  }}
                   className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all duration-200 ${
                     statusFilter === item.id
                       ? 'bg-primary text-white shadow-sm shadow-primary/20'
@@ -428,27 +439,29 @@ export const SubjectsIndex = () => {
       </div>
 
       {loading ? (
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="w-full text-xs">
-            <thead className="border-b border-slate-100 bg-slate-50/70 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
               <tr>
-                {['#', 'Subject', 'Code', 'Type', 'Assigned Classes', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-center font-bold text-slate-500 dark:text-slate-400">
-                    {h}
-                  </th>
-                ))}
+                <th className="w-12 px-3.5 py-3 text-center">#</th>
+                <th className="px-3.5 py-3">Subject</th>
+                <th className="px-3.5 py-3">Code</th>
+                <th className="px-3.5 py-3">Type</th>
+                <th className="px-3.5 py-3">Assigned Classes</th>
+                <th className="px-3.5 py-3">Status</th>
+                <th className="px-3.5 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
               {Array.from({ length: 5 }).map((_, index) => (
-                <tr key={index} className="border-b border-slate-50 dark:border-slate-850 animate-pulse">
-                  <td className="px-4 py-4 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-6 mx-auto" /></td>
-                  <td className="px-4 py-4 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-20 mx-auto" /></td>
-                  <td className="px-4 py-4 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-12 mx-auto" /></td>
-                  <td className="px-4 py-4 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-16 mx-auto" /></td>
-                  <td className="px-4 py-4 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-24 mx-auto" /></td>
-                  <td className="px-4 py-4 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-16 mx-auto" /></td>
-                  <td className="px-4 py-4"><div className="h-8 bg-slate-100 dark:bg-slate-800 rounded-lg w-20 mx-auto" /></td>
+                <tr key={index} className="animate-pulse">
+                  <td className="w-12 px-3.5 py-3 text-center"><div className="mx-auto h-3.5 w-4 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3"><div className="h-4 w-28 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3"><div className="h-4 w-16 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3"><div className="h-4 w-16 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3"><div className="h-4 w-32 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3"><div className="h-4 w-16 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3 text-right"><div className="ml-auto h-7 w-16 rounded bg-slate-100 dark:bg-slate-800" /></td>
                 </tr>
               ))}
             </tbody>
@@ -457,54 +470,128 @@ export const SubjectsIndex = () => {
       ) : filteredSubjects.length === 0 ? (
         <EmptyState title="No subjects yet" description="Create subjects once and assign them to multiple sections." />
       ) : (
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="w-full text-xs">
-            <thead className="border-b border-slate-100 bg-slate-50/70 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
-              <tr>
-                {['#', 'Subject', 'Code', 'Type', 'Assigned Classes', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-center font-bold text-slate-500 dark:text-slate-400">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSubjects.map((subject, index) => (
-                <tr key={subject.id} className="border-b border-slate-50 dark:border-slate-850">
-                  <td className="px-4 py-3 text-center font-semibold text-slate-500">{index + 1}</td>
-                  <td className="px-4 py-3 text-center font-bold text-slate-800 dark:text-white">{subject.name}</td>
-                  <td className="px-4 py-3 text-center">{subject.code}</td>
-                  <td className="px-4 py-3 text-center">{subject.subjectType}</td>
-                  <td className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-350">
-                    {subjectMappings[subject.id]?.join(', ') || 'Global Only'}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <Badge variant={ENTITY_STATUS_VARIANT[subject.status] || 'default'}>{subject.status}</Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(subject)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-primary hover:text-primary dark:border-slate-700"
-                        aria-label={`Edit ${subject.name}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(subject)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-rose-500 hover:border-rose-300 hover:bg-rose-50 dark:border-slate-700 dark:hover:bg-rose-950/20"
-                        aria-label={`Delete ${subject.name}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </td>
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
+                <tr>
+                  <th className="w-12 px-3.5 py-3 text-center">#</th>
+                  <th className="px-3.5 py-3">Subject</th>
+                  <th className="px-3.5 py-3">Code</th>
+                  <th className="px-3.5 py-3">Type</th>
+                  <th className="px-3.5 py-3">Assigned Classes</th>
+                  <th className="px-3.5 py-3">Status</th>
+                  <th className="px-3.5 py-3 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium text-slate-800 dark:text-slate-200">
+                {filteredSubjects.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((subject, index) => {
+                  const serialNo = (page - 1) * PAGE_SIZE + index + 1;
+                  return (
+                    <tr key={subject.id} className="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/50">
+                      <td className="w-12 px-3.5 py-3 text-center font-bold text-slate-400 text-xs">{serialNo}</td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        <span className="font-bold text-slate-900 dark:text-white">{subject.name}</span>
+                        {subject.description && (
+                          <div className="text-[11px] text-slate-400 truncate max-w-xs">{subject.description}</div>
+                        )}
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        {subject.code ? (
+                          <span className="inline-flex rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-[11px] font-bold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
+                            {subject.code}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                          {subject.subjectType || 'THEORY'}
+                        </span>
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        {subjectMappings[subject.id]?.length ? (
+                          <span className="inline-flex rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-[11px] font-bold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
+                            {subjectMappings[subject.id].join(', ')}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">Global Only</span>
+                        )}
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        <Badge variant={ENTITY_STATUS_VARIANT[subject.status] || 'default'}>{subject.status}</Badge>
+                      </td>
+                      <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(subject)}
+                            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400 transition cursor-pointer"
+                            title={`Edit ${subject.name}`}
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(subject)}
+                            className="rounded-lg p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-950/30 dark:hover:text-rose-400 transition cursor-pointer"
+                            title={`Delete ${subject.name}`}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Super Admin Style Pagination Bar */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Showing {(page - 1) * PAGE_SIZE + 1}–
+              {Math.min(page * PAGE_SIZE, filteredSubjects.length)} of {filteredSubjects.length} subjects
+            </p>
+            {Math.ceil(filteredSubjects.length / PAGE_SIZE) > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-800 dark:hover:bg-slate-900"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                {Array.from({ length: Math.ceil(filteredSubjects.length / PAGE_SIZE) }, (_, i) => i + 1).map((pageNumber) => (
+                  <button
+                    key={pageNumber}
+                    type="button"
+                    onClick={() => setPage(pageNumber)}
+                    className={`inline-flex h-9 min-w-9 items-center justify-center rounded-xl px-2.5 text-xs font-semibold transition ${
+                      pageNumber === page
+                        ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-600/20'
+                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900'
+                    }`}
+                  >
+                    {pageNumber}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={page >= Math.ceil(filteredSubjects.length / PAGE_SIZE)}
+                  onClick={() => setPage((prev) => Math.min(Math.ceil(filteredSubjects.length / PAGE_SIZE), prev + 1))}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-800 dark:hover:bg-slate-900"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

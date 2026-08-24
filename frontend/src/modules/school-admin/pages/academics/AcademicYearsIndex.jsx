@@ -9,7 +9,7 @@ import { academicPortalApi } from '../../../../shared/api/client';
 import { AcademicBreadcrumb, EmptyState } from './components/AcademicUi';
 import { apiMessage, formatDate, YEAR_STATUS_VARIANT } from './utils';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
-import { Archive, ArchiveRestore, Check, CheckCircle, Download, Eye, FileUp, Loader2, Pencil, Plus, Star, Trash2, Upload, X } from 'lucide-react';
+import { Archive, ArchiveRestore, Check, CheckCircle, ChevronLeft, ChevronRight, Download, Eye, FileUp, Loader2, Pencil, Plus, Star, Trash2, Upload, X } from 'lucide-react';
 
 const inputClass =
   'h-10 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950';
@@ -308,6 +308,8 @@ export const AcademicYearsIndex = () => {
   const [loading, setLoading] = useState(true);
   const [years, setYears] = useState([]);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 5;
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingYear, setEditingYear] = useState(null);
@@ -491,7 +493,10 @@ export const AcademicYearsIndex = () => {
               <button
                 key={s}
                 type="button"
-                onClick={() => setStatusFilter(s)}
+                onClick={() => {
+                  setStatusFilter(s);
+                  setPage(1);
+                }}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                   statusFilter === s
                     ? 'bg-primary text-white'
@@ -506,38 +511,37 @@ export const AcademicYearsIndex = () => {
       )}
 
       {loading ? (
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="overflow-x-auto">
-            <table className="min-w-[900px] w-full text-left text-xs">
-              <thead className="border-b border-slate-100 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-950/40">
-                <tr>
-                  {['#', 'Academic Year', 'Code', 'Start Date', 'End Date', 'Status', 'Current', 'Classes', 'Students', 'Actions'].map(
-                    (h) => (
-                      <th key={h} className="px-4 py-3 font-bold text-slate-500">
-                        {h}
-                      </th>
-                    )
-                  )}
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
+              <tr>
+                <th className="w-12 px-3.5 py-3 text-center">#</th>
+                <th className="px-3.5 py-3">Academic Year</th>
+                <th className="px-3.5 py-3">Code</th>
+                <th className="px-3.5 py-3">Duration</th>
+                <th className="px-3.5 py-3">Status</th>
+                <th className="px-3.5 py-3">Current</th>
+                <th className="px-3.5 py-3 text-center">Classes</th>
+                <th className="px-3.5 py-3 text-center">Students</th>
+                <th className="px-3.5 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <tr key={index} className="animate-pulse">
+                  <td className="w-12 px-3.5 py-3 text-center"><div className="mx-auto h-3.5 w-4 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3"><div className="h-4 w-28 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3"><div className="h-4 w-16 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3"><div className="h-4 w-32 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3"><div className="h-4 w-20 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3"><div className="h-4 w-16 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3 text-center"><div className="mx-auto h-4 w-8 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3 text-center"><div className="mx-auto h-4 w-8 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                  <td className="px-3.5 py-3 text-right"><div className="ml-auto h-7 w-24 rounded bg-slate-100 dark:bg-slate-800" /></td>
                 </tr>
-              </thead>
-              <tbody>
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <tr key={index} className="border-b border-slate-50 dark:border-slate-850 animate-pulse">
-                    <td className="px-4 py-4"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-6" /></td>
-                    <td className="px-4 py-4"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-16" /></td>
-                    <td className="px-4 py-4"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-16" /></td>
-                    <td className="px-4 py-4"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-20" /></td>
-                    <td className="px-4 py-4"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-20" /></td>
-                    <td className="px-4 py-4"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-16" /></td>
-                    <td className="px-4 py-4"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-10" /></td>
-                    <td className="px-4 py-4"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-12" /></td>
-                    <td className="px-4 py-4"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-12" /></td>
-                    <td className="px-4 py-4"><div className="h-8 bg-slate-100 dark:bg-slate-800 rounded-lg w-20" /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : years.length === 0 ? (
         <EmptyState
@@ -547,7 +551,7 @@ export const AcademicYearsIndex = () => {
             <button
               type="button"
               onClick={() => setModalOpen(true)}
-              className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white"
+              className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm"
             >
               Create Academic Year
             </button>
@@ -558,157 +562,205 @@ export const AcademicYearsIndex = () => {
           <p className="text-sm font-medium">No {statusFilter} years found</p>
           <button
             type="button"
-            onClick={() => setStatusFilter('ALL')}
+            onClick={() => {
+              setStatusFilter('ALL');
+              setPage(1);
+            }}
             className="text-xs text-primary underline"
           >
             Clear filter
           </button>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="overflow-x-auto">
-            <table className="min-w-[900px] w-full text-left text-xs">
-              <thead className="border-b border-slate-100 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-950/40">
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
                 <tr>
-                  {['#', 'Academic Year', 'Code', 'Start Date', 'End Date', 'Status', 'Current', 'Classes', 'Students', 'Actions'].map(
-                    (h) => (
-                      <th key={h} className="px-4 py-3 font-bold text-slate-500">
-                        {h}
-                      </th>
-                    )
-                  )}
+                  <th className="w-12 px-3.5 py-3 text-center">#</th>
+                  <th className="px-3.5 py-3">Academic Year</th>
+                  <th className="px-3.5 py-3">Code</th>
+                  <th className="px-3.5 py-3">Duration</th>
+                  <th className="px-3.5 py-3">Status</th>
+                  <th className="px-3.5 py-3">Current</th>
+                  <th className="px-3.5 py-3 text-center">Classes</th>
+                  <th className="px-3.5 py-3 text-center">Students</th>
+                  <th className="px-3.5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredYears.map((year, index) => {
-                  const statusMeta = getStatusMeta(year);
-                  const nextStep = getNextStep(year);
-
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium text-slate-800 dark:text-slate-200">
+                {filteredYears.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((year, index) => {
+                  const serialNo = (page - 1) * PAGE_SIZE + index + 1;
                   return (
-                  <tr key={year.id} className="border-b border-slate-50 transition-colors hover:bg-slate-50/50 dark:border-slate-800 dark:hover:bg-slate-800/30">
-                    <td className="px-4 py-3 font-semibold text-slate-500">{index + 1}</td>
-                    <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{year.name}</td>
-                    <td className="px-4 py-3 text-slate-500">{year.code || '—'}</td>
-                    <td className="px-4 py-3">{formatDate(year.startDate)}</td>
-                    <td className="px-4 py-3">{formatDate(year.endDate)}</td>
-                    <td className="px-4 py-3">
-                      <div className="space-y-1.5">
-                        <Badge variant={YEAR_STATUS_VARIANT[year.status] || 'default'}>{year.status}</Badge>
-                        <div className="text-[11px] leading-4">
-                          <p className="font-semibold text-slate-700 dark:text-slate-200">{statusMeta.label}</p>
-                          <p className="text-slate-500 dark:text-slate-400">{statusMeta.hint}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {year.isCurrent ? (
-                        <div className="space-y-1">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
-                            <Star className="h-3.5 w-3.5" /> Current Session
+                    <tr key={year.id} className="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/50">
+                      <td className="w-12 px-3.5 py-3 text-center font-bold text-slate-400 text-xs">{serialNo}</td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        <span className="font-bold text-slate-900 dark:text-white">{year.name}</span>
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        {year.code ? (
+                          <span className="inline-flex rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-[11px] font-bold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
+                            {year.code}
                           </span>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">Used across live school operations</p>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-400">Not current</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">{year.counts?.classes ?? 0}</td>
-                    <td className="px-4 py-3">{year.counts?.students ?? 0}</td>
-                    <td className="px-4 py-3">
-                      <div className="space-y-2">
-                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{nextStep}</p>
-                        <div className="flex flex-wrap gap-2">
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">
+                        {formatDate(year.startDate)} – {formatDate(year.endDate)}
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        <Badge variant={YEAR_STATUS_VARIANT[year.status] || 'default'}>{year.status}</Badge>
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        {year.isCurrent ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                            <Star className="h-3 w-3" /> Current
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">No</span>
+                        )}
+                      </td>
+                      <td className="px-3.5 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">
+                        {year.counts?.classes ?? 0}
+                      </td>
+                      <td className="px-3.5 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">
+                        {year.counts?.students ?? 0}
+                      </td>
+                      <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
                           <Link
                             to={`/school-admin/academics/years/${year.id}`}
-                            className="inline-flex items-center gap-1 font-bold text-primary hover:underline"
+                            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400 transition"
+                            title="View Details"
                           >
-                            <Eye className="h-3.5 w-3.5" /> View
+                            <Eye size={15} />
                           </Link>
-                          {/* DRAFT: only Activate */}
                           {year.status === 'DRAFT' && (
                             <button
                               type="button"
                               onClick={() => runAction(academicPortalApi.activateYear, year.id, 'Academic year activated')}
-                              className="font-bold text-indigo-600 hover:underline"
+                              className="rounded-lg p-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition cursor-pointer"
+                              title="Activate Year"
                             >
-                              Activate
+                              <Check size={15} />
                             </button>
                           )}
-                          {/* ACTIVE + not current: Set Current, Mark Complete, Archive */}
                           {year.status === 'ACTIVE' && !year.isCurrent && (
                             <>
                               <button
                                 type="button"
                                 onClick={() => runAction(academicPortalApi.setCurrentYear, year.id, 'Set as current year')}
-                                className="inline-flex items-center gap-1 font-bold text-emerald-600 hover:underline"
+                                className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition cursor-pointer"
+                                title="Set as Current Year"
                               >
-                                <Check className="h-3.5 w-3.5" /> Set Current
+                                <Star size={15} />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => runAction(academicPortalApi.completeYear, year.id, 'Academic year marked as completed')}
-                                className="inline-flex items-center gap-1 font-bold text-violet-600 hover:underline"
+                                className="rounded-lg p-1.5 text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950/50 transition cursor-pointer"
+                                title="Mark as Completed"
                               >
-                                <CheckCircle className="h-3.5 w-3.5" /> Complete
+                                <CheckCircle size={15} />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => runAction(academicPortalApi.archiveYear, year.id, 'Academic year archived')}
-                                className="inline-flex items-center gap-1 font-bold text-amber-600 hover:underline"
+                                className="rounded-lg p-1.5 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition cursor-pointer"
+                                title="Archive Year"
                               >
-                                <Archive className="h-3.5 w-3.5" /> Archive
+                                <Archive size={15} />
                               </button>
                             </>
                           )}
-                          {/* COMPLETED: Archive only */}
                           {year.status === 'COMPLETED' && (
                             <button
                               type="button"
                               onClick={() => runAction(academicPortalApi.archiveYear, year.id, 'Academic year archived')}
-                              className="inline-flex items-center gap-1 font-bold text-amber-600 hover:underline"
+                              className="rounded-lg p-1.5 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition cursor-pointer"
+                              title="Archive Year"
                             >
-                              <Archive className="h-3.5 w-3.5" /> Archive
+                              <Archive size={15} />
                             </button>
                           )}
-                          {/* ARCHIVED: only Unarchive */}
                           {year.status === 'ARCHIVED' && (
                             <button
                               type="button"
                               onClick={() => runAction(academicPortalApi.unarchiveYear, year.id, 'Academic year unarchived')}
-                              className="inline-flex items-center gap-1 font-bold text-sky-600 hover:underline"
+                              className="rounded-lg p-1.5 text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/50 transition cursor-pointer"
+                              title="Unarchive Year"
                             >
-                              <ArchiveRestore className="h-3.5 w-3.5" /> Unarchive
+                              <ArchiveRestore size={15} />
                             </button>
                           )}
-                        </div>
-                        <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={() => openEditModal(year)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-primary hover:text-primary dark:border-slate-700"
-                            aria-label={`Edit ${year.name}`}
+                            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400 transition cursor-pointer"
+                            title="Edit Year"
                           >
-                            <Pencil className="h-3.5 w-3.5" />
+                            <Pencil size={15} />
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteYear(year)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-rose-500 hover:border-rose-300 hover:bg-rose-50 dark:border-slate-700 dark:hover:bg-rose-950/20"
-                            aria-label={`Delete ${year.name}`}
+                            className="rounded-lg p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-950/30 dark:hover:text-rose-400 transition cursor-pointer"
+                            title="Delete Year"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 size={15} />
                           </button>
                         </div>
-                      </div>
-                    </td>
-                  </tr>
-                )})}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-          {/* Footer count */}
-          <div className="border-t border-slate-100 px-4 py-2.5 text-[11px] text-slate-400 dark:border-slate-800">
-            Showing {filteredYears.length} of {years.length} academic years
+
+          {/* Super Admin Style Pagination Bar */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Showing {(page - 1) * PAGE_SIZE + 1}–
+              {Math.min(page * PAGE_SIZE, filteredYears.length)} of {filteredYears.length} academic years
+            </p>
+            {Math.ceil(filteredYears.length / PAGE_SIZE) > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-800 dark:hover:bg-slate-900"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                {Array.from({ length: Math.ceil(filteredYears.length / PAGE_SIZE) }, (_, i) => i + 1).map((pageNumber) => (
+                  <button
+                    key={pageNumber}
+                    type="button"
+                    onClick={() => setPage(pageNumber)}
+                    className={`inline-flex h-9 min-w-9 items-center justify-center rounded-xl px-2.5 text-xs font-semibold transition ${
+                      pageNumber === page
+                        ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-600/20'
+                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900'
+                    }`}
+                  >
+                    {pageNumber}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={page >= Math.ceil(filteredYears.length / PAGE_SIZE)}
+                  onClick={() => setPage((prev) => Math.min(Math.ceil(filteredYears.length / PAGE_SIZE), prev + 1))}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-800 dark:hover:bg-slate-900"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

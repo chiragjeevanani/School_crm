@@ -104,8 +104,8 @@ const teacherSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'SUSPENDED', 'RESIGNED', 'TERMINATED'],
-      default: 'ACTIVE',
+      enum: ['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'SUSPENDED', 'RESIGNED', 'TERMINATED', 'PENDING_APPROVAL', 'PENDING', 'REJECTED'],
+      default: 'PENDING_APPROVAL',
     },
   },
   { timestamps: true }

@@ -5,8 +5,13 @@ import { School } from '../models/School.js';
 import { signAccessToken } from '../../../shared/generateToken.js';
 import { env } from '../config/env.js';
 import { AppError } from '../../../shared/AppError.js';
+import { escapeRegex } from '../../../shared/sanitize.js';
 
 function schoolId(req) {
+  const role = req.user?.role?.toUpperCase();
+  if (role === 'SCHOOLADMIN') {
+    return req.user?.sub;
+  }
   return req.user?.schoolId || req.user?.sub || req.schoolAdmin?.schoolId;
 }
 
@@ -27,79 +32,29 @@ export async function librarianLogin(req, res, next) {
       throw new AppError('Username/email and password are required', 400);
     }
 
-    // 1. Try finding user by email or employeeId
-    let user = await SchoolUser.findOne({
+    // Find the account strictly by exact identity, scoped to the Librarian role.
+    // (No generic-username fallback, no cross-school "any active librarian" match,
+    // no auto-provisioning — those previously let a known demo password log in as
+    // an arbitrary school's librarian, which is a critical cross-tenant hole.)
+    const user = await SchoolUser.findOne({
+      role: 'LIBRARIAN',
+      status: 'ACTIVE',
       $or: [
         { email: identifier },
-        { employeeId: new RegExp(`^${identifier}$`, 'i') },
-        { role: 'LIBRARIAN', email: 'librarian@greenfield.edu' },
+        { employeeId: new RegExp(`^${escapeRegex(identifier)}$`, 'i') },
       ],
     }).select('+passwordHash');
 
-    // 2. If identifier is 'librarian' or similar, find any active librarian
-    if (!user && (identifier === 'librarian' || identifier === 'librarian@school.com' || identifier === 'emp401')) {
-      user = await SchoolUser.findOne({ role: 'LIBRARIAN' }).select('+passwordHash');
-    }
-
-    // 3. If still not found, check if a School exists and auto-provision the default librarian account
-    if (!user) {
-      let activeSchool = await School.findOne({ status: { $ne: 'Suspended' } }).sort({ createdAt: -1 });
-      if (!activeSchool) {
-        activeSchool = await School.findOne().sort({ createdAt: -1 });
-      }
-
-      if (activeSchool) {
-        const passwordHash = await bcrypt.hash('lib123', 10);
-        try {
-          user = await SchoolUser.findOneAndUpdate(
-            { schoolId: activeSchool._id, email: 'librarian@greenfield.edu' },
-            {
-              $setOnInsert: {
-                schoolId: activeSchool._id,
-                employeeId: 'EMP401',
-                firstName: 'Sanjay',
-                lastName: 'Kumar',
-                name: 'Sanjay Kumar',
-                email: 'librarian@greenfield.edu',
-                role: 'LIBRARIAN',
-                designation: 'Head Librarian',
-                department: 'Library Department',
-                status: 'ACTIVE',
-              },
-              $set: {
-                passwordHash,
-                status: 'ACTIVE',
-                role: 'LIBRARIAN',
-              },
-            },
-            { new: true, upsert: true }
-          ).select('+passwordHash');
-        } catch {
-          // If upsert conflicted on employeeId, find by employeeId
-          user = await SchoolUser.findOne({ schoolId: activeSchool._id, employeeId: 'EMP401' }).select('+passwordHash');
-          if (!user) {
-            user = await SchoolUser.findOne({ schoolId: activeSchool._id }).select('+passwordHash');
-          }
-        }
-      }
-    }
-
-    if (!user) {
-      throw new AppError('No Librarian account or registered school found in system', 401);
+    if (!user || !user.passwordHash) {
+      throw new AppError('Invalid username or password', 401);
     }
 
     // Verify Password
     let passwordValid = false;
-    if (user.passwordHash) {
-      try {
-        passwordValid = await bcrypt.compare(rawPassword, user.passwordHash);
-      } catch {
-        passwordValid = false;
-      }
-    }
-    // Allow demo passwords
-    if (!passwordValid && (rawPassword === 'lib123' || rawPassword === 'Password@123')) {
-      passwordValid = true;
+    try {
+      passwordValid = await bcrypt.compare(rawPassword, user.passwordHash);
+    } catch {
+      passwordValid = false;
     }
 
     if (!passwordValid) {
@@ -121,9 +76,9 @@ export async function librarianLogin(req, res, next) {
         userId: user._id.toString(),
         schoolId: schoolIdStr,
         role: 'Librarian',
-        name: user.name || 'Sanjay Kumar',
-        email: user.email || 'librarian@greenfield.edu',
-        schoolName: school?.name || 'Greenfield Public School',
+        name: user.name,
+        email: user.email,
+        schoolName: school?.name || '',
       },
       { secret: env.jwtSecret, expiresIn: env.jwtExpiresIn || '7d' }
     );
@@ -133,9 +88,9 @@ export async function librarianLogin(req, res, next) {
 
     const publicUser = typeof user.toPublicJSON === 'function' ? user.toPublicJSON() : {
       id: user._id.toString(),
-      name: user.name || 'Sanjay Kumar',
+      name: user.name,
       email: user.email,
-      role: 'Head Librarian',
+      role: user.designation || 'Librarian',
     };
 
     res.json({
@@ -144,8 +99,8 @@ export async function librarianLogin(req, res, next) {
       token,
       user: {
         ...publicUser,
-        schoolName: school?.name || 'Greenfield Public School',
-        academicSession: school?.academicSession || '2024-2025',
+        schoolName: school?.name || '',
+        academicSession: school?.academicSession || '',
       },
     });
   } catch (error) {
@@ -478,6 +433,15 @@ export async function updateFineStatus(req, res, next) {
 export async function getEligibleBorrowers(req, res, next) {
   try {
     const data = await libraryService.getEligibleBorrowers(schoolId(req));
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getNotificationRecipients(req, res, next) {
+  try {
+    const data = await libraryService.getNotificationRecipients(schoolId(req));
     res.json({ success: true, data });
   } catch (error) {
     next(error);

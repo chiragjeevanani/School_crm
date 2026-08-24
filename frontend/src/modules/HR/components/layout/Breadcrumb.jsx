@@ -9,10 +9,10 @@ export const Breadcrumb = () => {
   if (pathnames.includes('login')) return null;
 
   return (
-    <nav className="flex items-center gap-1.5 text-xs text-slate-405 dark:text-slate-500 font-bold mb-4 select-none">
+    <nav className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 font-bold mb-4 select-none">
       <Link 
         to="/hr/dashboard" 
-        className="hover:text-slate-655 dark:hover:text-white flex items-center gap-1"
+        className="hover:text-slate-600 dark:hover:text-white flex items-center gap-1"
       >
         <Home className="w-3.5 h-3.5" />
       </Link>
@@ -31,11 +31,11 @@ export const Breadcrumb = () => {
           <React.Fragment key={to}>
             <ChevronRight className="w-3.5 h-3.5 shrink-0" />
             {last ? (
-              <span className="text-slate-800 dark:text-slate-350 truncate max-w-40">
+              <span className="text-slate-800 dark:text-slate-200 truncate max-w-40">
                 {label}
               </span>
             ) : (
-              <Link to={to} className="hover:text-slate-655 dark:hover:text-white">
+              <Link to={to} className="hover:text-slate-600 dark:hover:text-white">
                 {label}
               </Link>
             )}

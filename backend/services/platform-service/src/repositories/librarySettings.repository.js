@@ -33,6 +33,8 @@ class LibrarySettingsRepository {
         blockIssueOnOverdue: true,
         lostBookFineMultiplier: 1.5,
         damagedBookFineMultiplier: 0.5,
+        reservationEnabled: true,
+        maxActiveReservations: 2,
       });
     }
     return settings;

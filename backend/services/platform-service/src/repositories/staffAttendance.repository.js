@@ -207,12 +207,119 @@ class StaffAttendanceRepository {
   async getMonthlySummary(schoolId, monthStr) {
     // monthStr e.g. '2026-08'
     const dateRegex = new RegExp(`^${monthStr}`);
-    const records = await StaffAttendance.find({
-      schoolId,
-      date: { $regex: dateRegex },
-    }).lean();
+    
+    const [teachers, staff, records] = await Promise.all([
+      Teacher.find({ schoolId, status: 'ACTIVE' }).select('_id employeeId personalDetails employmentDetails').lean(),
+      SchoolUser.find({ schoolId, status: 'ACTIVE' }).select('_id employeeId name firstName lastName role department').lean(),
+      StaffAttendance.find({ schoolId, date: { $regex: dateRegex } }).lean(),
+    ]);
 
-    return records;
+    const [yearStr, monthNumStr] = monthStr.split('-');
+    const year = parseInt(yearStr, 10) || new Date().getFullYear();
+    const month = parseInt(monthNumStr, 10) || (new Date().getMonth() + 1);
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    // Map records by employeeRefId and date
+    const recordByEmpAndDate = new Map();
+    records.forEach((r) => {
+      const key = `${r.employeeRefId.toString()}_${r.date}`;
+      recordByEmpAndDate.set(key, r);
+    });
+
+    const formattedEmployees = [
+      ...teachers.map((t) => ({
+        employeeRefId: t._id.toString(),
+        employeeType: 'TEACHER',
+        employeeId: t.employeeId || `TCH-${t._id.toString().slice(-4).toUpperCase()}`,
+        name: `${t.personalDetails?.firstName || ''} ${t.personalDetails?.lastName || ''}`.trim() || 'Teacher',
+        role: 'Teacher',
+        department: t.employmentDetails?.department || 'Academic',
+      })),
+      ...staff.map((s) => ({
+        employeeRefId: s._id.toString(),
+        employeeType: 'STAFF',
+        employeeId: s.employeeId || `EMP-${s._id.toString().slice(-4).toUpperCase()}`,
+        name: s.name || `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'Staff',
+        role: s.role,
+        department: s.department || s.role,
+      })),
+    ].sort((a, b) => a.name.localeCompare(b.name));
+
+    let grandPresent = 0;
+    let grandAbsent = 0;
+    let grandLeave = 0;
+    let grandHalfDay = 0;
+
+    const employeeRows = formattedEmployees.map((emp) => {
+      const dayMap = {};
+      let presentCount = 0;
+      let absentCount = 0;
+      let leaveCount = 0;
+      let halfDayCount = 0;
+      let recordedDays = 0;
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayPadded = String(day).padStart(2, '0');
+        const fullDate = `${monthStr}-${dayPadded}`;
+        const rec = recordByEmpAndDate.get(`${emp.employeeRefId}_${fullDate}`);
+
+        if (rec) {
+          dayMap[day] = {
+            date: fullDate,
+            status: rec.status,
+            clockIn: rec.clockIn,
+            clockOut: rec.clockOut,
+            remarks: rec.remarks,
+          };
+          recordedDays++;
+          if (rec.status === 'PRESENT') presentCount++;
+          else if (rec.status === 'ABSENT') absentCount++;
+          else if (rec.status === 'LEAVE') leaveCount++;
+          else if (rec.status === 'HALF_DAY') halfDayCount++;
+        } else {
+          dayMap[day] = null;
+        }
+      }
+
+      grandPresent += presentCount;
+      grandAbsent += absentCount;
+      grandLeave += leaveCount;
+      grandHalfDay += halfDayCount;
+
+      const effectivePresent = presentCount + halfDayCount * 0.5;
+      const percentage = recordedDays > 0 ? Math.round((effectivePresent / recordedDays) * 100) : 0;
+
+      return {
+        ...emp,
+        days: dayMap,
+        stats: {
+          present: presentCount,
+          absent: absentCount,
+          leave: leaveCount,
+          halfDay: halfDayCount,
+          recordedDays,
+          percentage,
+        },
+      };
+    });
+
+    const totalLogged = grandPresent + grandAbsent + grandLeave + grandHalfDay;
+    const avgRate = totalLogged > 0 ? Math.round(((grandPresent + grandHalfDay * 0.5) / totalLogged) * 100) : 0;
+
+    return {
+      monthStr,
+      daysInMonth,
+      employees: employeeRows,
+      records,
+      overallStats: {
+        totalLogged,
+        totalPresent: grandPresent,
+        totalAbsent: grandAbsent,
+        totalLeave: grandLeave,
+        totalHalfDay: grandHalfDay,
+        averagePercentage: avgRate,
+      },
+    };
   }
 
   async getAttendanceReport(schoolId, query = {}) {

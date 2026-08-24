@@ -48,7 +48,10 @@ const upload = multer({
 
 export const uploadSchoolUserFiles = upload.fields([
   { name: 'photo', maxCount: 1 },
-  { name: 'documents', maxCount: 3 },
+  { name: 'documents', maxCount: 5 },
+  { name: 'panDocuments', maxCount: 2 },
+  { name: 'aadhaarDocuments', maxCount: 2 },
+  { name: 'otherDocuments', maxCount: 2 },
 ]);
 
 export async function convertSchoolUserImages(req, _res, next) {
@@ -65,8 +68,17 @@ export async function convertSchoolUserImages(req, _res, next) {
 }
 
 export function collectSchoolUserUploadFiles(req) {
+  const photo = req.files?.photo?.[0] ? toUserPhotoPublicPath(req.files.photo[0].filename) : null;
+  const generalDocs = (req.files?.documents || []).map((f) => toUserDocumentPublicPath(f.filename));
+  const panDocs = (req.files?.panDocuments || []).map((f) => toUserDocumentPublicPath(f.filename));
+  const aadhaarDocs = (req.files?.aadhaarDocuments || []).map((f) => toUserDocumentPublicPath(f.filename));
+  const otherDocs = (req.files?.otherDocuments || []).map((f) => toUserDocumentPublicPath(f.filename));
+
   return {
-    photo: req.files?.photo?.[0] ? toUserPhotoPublicPath(req.files.photo[0].filename) : null,
-    documents: (req.files?.documents || []).map((f) => toUserDocumentPublicPath(f.filename)),
+    photo,
+    documents: [...generalDocs, ...panDocs, ...aadhaarDocs, ...otherDocs],
+    pan: panDocs,
+    aadhaar: aadhaarDocs,
+    others: otherDocs,
   };
 }

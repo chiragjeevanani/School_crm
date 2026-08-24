@@ -9,6 +9,10 @@ import { env } from '../config/env.js';
 import { AppError } from '../../../shared/AppError.js';
 
 function schoolId(req) {
+  const role = req.user?.role?.toUpperCase();
+  if (role === 'SCHOOLADMIN') {
+    return req.user?.sub;
+  }
   return req.user?.schoolId || req.user?.sub || req.schoolAdmin?.schoolId;
 }
 
@@ -193,6 +197,17 @@ export async function getEmployee(req, res, next) {
 
 import { collectSchoolUserUploadFiles } from '../middleware/uploadSchoolUser.js';
 
+function parseJsonField(val, fallback = null) {
+  if (typeof val === 'string') {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return val;
+    }
+  }
+  return val ?? fallback;
+}
+
 export async function createEmployee(req, res, next) {
   try {
     const files = req.files ? collectSchoolUserUploadFiles(req) : {};
@@ -201,6 +216,16 @@ export async function createEmployee(req, res, next) {
     if (files.documents?.length) {
       payload.documents = [...(Array.isArray(payload.documents) ? payload.documents : []), ...files.documents];
     }
+    payload.uploadedDocuments = {
+      aadhaar: files.aadhaar || [],
+      others: files.others || [],
+      pan: files.pan || [],
+    };
+    if (payload.address) payload.address = parseJsonField(payload.address, payload.address);
+    if (payload.qualifications) payload.qualifications = parseJsonField(payload.qualifications, payload.qualifications);
+    if (payload.bankDetails) payload.bankDetails = parseJsonField(payload.bankDetails, payload.bankDetails);
+    if (payload.emergencyContact) payload.emergencyContact = parseJsonField(payload.emergencyContact, payload.emergencyContact);
+    if (payload.documentsKeep) payload.documentsKeep = parseJsonField(payload.documentsKeep, null);
 
     const data = await hrService.createEmployee(schoolId(req), payload);
     res.status(201).json({
@@ -221,6 +246,16 @@ export async function updateEmployee(req, res, next) {
     if (files.documents?.length) {
       payload.documents = [...(Array.isArray(payload.documents) ? payload.documents : []), ...files.documents];
     }
+    payload.uploadedDocuments = {
+      aadhaar: files.aadhaar || [],
+      others: files.others || [],
+      pan: files.pan || [],
+    };
+    if (payload.address) payload.address = parseJsonField(payload.address, payload.address);
+    if (payload.qualifications) payload.qualifications = parseJsonField(payload.qualifications, payload.qualifications);
+    if (payload.bankDetails) payload.bankDetails = parseJsonField(payload.bankDetails, payload.bankDetails);
+    if (payload.emergencyContact) payload.emergencyContact = parseJsonField(payload.emergencyContact, payload.emergencyContact);
+    if (payload.documentsKeep) payload.documentsKeep = parseJsonField(payload.documentsKeep, null);
 
     const data = await hrService.updateEmployee(schoolId(req), req.params.id, payload);
     res.json({
@@ -240,6 +275,32 @@ export async function updateEmployeeStatus(req, res, next) {
       success: true,
       data,
       message: `Employee status updated to ${data.status}`,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function approveEmployee(req, res, next) {
+  try {
+    const data = await hrService.approveEmployee(schoolId(req), req.params.id, req.user);
+    res.json({
+      success: true,
+      data,
+      message: `Employee ${data.name} approved and activated successfully`,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function rejectEmployee(req, res, next) {
+  try {
+    const data = await hrService.rejectEmployee(schoolId(req), req.params.id, req.body.reason, req.user);
+    res.json({
+      success: true,
+      data,
+      message: `Employee ${data.name} registration was rejected`,
     });
   } catch (error) {
     next(error);
@@ -646,8 +707,66 @@ export async function deletePerformanceReview(req, res, next) {
 // ----------------------------------------------------
 export async function listHRDocuments(req, res, next) {
   try {
-    const data = await hrService.listDocuments(schoolId(req));
+    const data = await hrService.listDocuments(schoolId(req), req.query);
     res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function uploadHRDocument(req, res, next) {
+  try {
+    const files = req.files ? collectSchoolUserUploadFiles(req) : {};
+    let fileUrl = files.documents?.[0] || files.photo || '';
+    if (!fileUrl && req.file) {
+      fileUrl = `/uploads/users/documents/${req.file.filename}`;
+    }
+
+    if (!fileUrl && req.body.fileUrl) {
+      fileUrl = req.body.fileUrl;
+    }
+
+    const data = await hrService.uploadDocument(
+      schoolId(req),
+      {
+        ...req.body,
+        verifiedBy: performedBy(req),
+      },
+      fileUrl
+    );
+
+    res.status(201).json({
+      success: true,
+      data,
+      message: `Document "${data.documentName}" uploaded to locker successfully`,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function verifyHRDocument(req, res, next) {
+  try {
+    const data = await hrService.verifyDocument(
+      schoolId(req),
+      req.params.id,
+      req.body.status,
+      performedBy(req)
+    );
+    res.json({
+      success: true,
+      data,
+      message: `Document status updated to ${data.verificationStatus}`,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteHRDocument(req, res, next) {
+  try {
+    const result = await hrService.deleteDocument(schoolId(req), req.params.id);
+    res.json(result);
   } catch (error) {
     next(error);
   }

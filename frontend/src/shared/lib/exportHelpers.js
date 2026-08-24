@@ -31,6 +31,20 @@ export const exportToCSV = (data, filename = 'export.csv') => {
   URL.revokeObjectURL(url);
 };
 
+// sheets: [{ name: 'Sheet Title', data: [{...}, ...] }, ...]
+export const exportToExcel = async (sheets, filename = 'export.xlsx') => {
+  const usableSheets = (sheets || []).filter((s) => s?.data?.length);
+  if (!usableSheets.length) return;
+
+  const XLSX = await import('xlsx');
+  const workbook = XLSX.utils.book_new();
+  usableSheets.forEach(({ name, data }) => {
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(workbook, worksheet, name.slice(0, 31));
+  });
+  XLSX.writeFile(workbook, filename);
+};
+
 export const exportToJSON = (data, filename = 'export.json') => {
   if (!data) return;
   const jsonStr = JSON.stringify(data, null, 2);

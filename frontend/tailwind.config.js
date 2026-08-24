@@ -9,8 +9,38 @@ export default {
       fontSize: {
         '2xs': '0.6875rem',
         '3xs': '0.625rem',
+        '4xs': '0.5625rem',
       },
       colors: {
+        slate: {
+          850: '#172033',
+          750: '#253248',
+          950: '#0B0F19',
+          955: '#070B14',
+          905: '#0F172A',
+          805: '#1E293B',
+          655: '#475569',
+          550: '#64748B',
+          450: '#94A3B8',
+          350: '#CBD5E1',
+          250: '#E2E8F0',
+          202: '#E2E8F0',
+        },
+        indigo: {
+          650: '#4338CA',
+          955: '#1E1B4B',
+        },
+        violet: {
+          605: '#7C3AED',
+          650: '#6D28D9',
+          955: '#2E1065',
+        },
+        cyan: {
+          955: '#083344',
+        },
+        emerald: {
+          955: '#064E3B',
+        },
         border: "var(--border-color)",
         background: "var(--bg-color)",
         foreground: "var(--text-color)",

@@ -8,8 +8,8 @@ export const AccountantLogin = () => {
   const { login } = useAccountantAuth();
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('accountant@greenfield.edu');
+  const [password, setPassword] = useState('accountant123');
   const [email, setEmail] = useState('');
   const [view, setView] = useState('login'); // 'login', 'forgot', 'sent'
   const [error, setError] = useState(null);
@@ -249,16 +249,6 @@ export const AccountantLogin = () => {
                   <ArrowLeft className="h-4 w-4" />
                   Back to sign in
                 </button>
-              </div>
-            )}
-
-            {/* Credentials Reminder */}
-            {view === 'login' && (
-              <div className="bg-slate-950/80 p-3.5 border border-slate-800 rounded-xl text-center text-xs">
-                <span className="text-slate-400 block mb-1">Mock Credentials:</span>
-                <code className="text-indigo-400 font-semibold font-mono text-[11px] block">
-                  Email: accountant@greenfield.edu | Password: accountant123
-                </code>
               </div>
             )}
           </div>

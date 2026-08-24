@@ -35,7 +35,7 @@ export const LeaveTimeline = ({ leaves = [] }) => {
             </div>
 
             {/* Information container */}
-            <div className="bg-white dark:bg-slate-900 border rounded-2xl p-4 shadow-sm space-y-2">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-sm space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <span className="font-bold text-slate-900 dark:text-white">{leave.leaveType}</span>
                 <Badge variant={isApproved ? 'success' : isPending ? 'warning' : 'danger'}>
@@ -43,14 +43,14 @@ export const LeaveTimeline = ({ leaves = [] }) => {
                 </Badge>
               </div>
 
-              <p className="text-slate-500 flex items-center gap-1.5 font-medium text-[10px]">
+              <p className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-medium text-[10px]">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 <span>
                   {formatDate(leave.fromDate)} to {formatDate(leave.toDate)} ({leave.days} day{leave.days > 1 ? 's' : ''})
                 </span>
               </p>
 
-              <div className="bg-slate-50 dark:bg-slate-955 p-2 rounded-xl border font-normal italic text-slate-655 dark:text-slate-400">
+              <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-100 dark:border-slate-850 font-normal italic text-slate-600 dark:text-slate-400">
                 "{leave.reason}"
               </div>
             </div>

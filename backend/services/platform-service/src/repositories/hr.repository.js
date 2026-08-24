@@ -4,8 +4,10 @@ import { Designation } from '../models/Designation.js';
 import { LeaveRequest } from '../models/LeaveRequest.js';
 import { HRSettings } from '../models/HRSettings.js';
 import { PerformanceReview } from '../models/PerformanceReview.js';
+import { EmployeeDocument } from '../models/EmployeeDocument.js';
 import { SchoolUser } from '../models/SchoolUser.js';
 import { Teacher } from '../models/Teacher.js';
+import { escapeRegex, sanitizePagination } from '../../../shared/sanitize.js';
 
 class HRRepository {
   // ==========================================
@@ -68,7 +70,7 @@ class HRRepository {
   async findDepartmentByName(schoolId, name) {
     return Department.findOne({
       schoolId,
-      name: new RegExp(`^${name.trim()}$`, 'i'),
+      name: new RegExp(`^${escapeRegex(name.trim())}$`, 'i'),
     });
   }
 
@@ -125,7 +127,7 @@ class HRRepository {
   async findDesignationByTitle(schoolId, title) {
     return Designation.findOne({
       schoolId,
-      title: new RegExp(`^${title.trim()}$`, 'i'),
+      title: new RegExp(`^${escapeRegex(title.trim())}$`, 'i'),
     });
   }
 
@@ -157,13 +159,11 @@ class HRRepository {
       filter.employeeRefId = query.employeeRefId;
     }
     if (query.search) {
-      const regex = new RegExp(query.search.trim(), 'i');
+      const regex = new RegExp(escapeRegex(query.search.trim()), 'i');
       filter.$or = [{ employeeName: regex }, { employeeId: regex }, { department: regex }];
     }
 
-    const page = parseInt(query.page, 10) || 1;
-    const limit = parseInt(query.limit, 10) || 50;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = sanitizePagination({ page: query.page, limit: query.limit });
 
     const [items, total, statsAgg] = await Promise.all([
       LeaveRequest.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
@@ -254,16 +254,22 @@ class HRRepository {
     const filter = { schoolId };
 
     if (query.employeeRefId) filter.employeeRefId = query.employeeRefId;
+    if (query.employeeType && query.employeeType !== 'ALL') filter.employeeType = query.employeeType.toUpperCase();
+    if (query.department && query.department !== 'ALL') filter.department = query.department;
+    if (query.reviewPeriod && query.reviewPeriod !== 'ALL') filter.reviewPeriod = query.reviewPeriod;
     if (query.status && query.status !== 'ALL') filter.status = query.status.toUpperCase();
-    if (query.rating) filter.rating = Number(query.rating);
+    if (query.rating && query.rating !== 'ALL') filter.rating = Number(query.rating);
     if (query.search) {
-      const regex = new RegExp(query.search.trim(), 'i');
-      filter.$or = [{ employeeName: regex }, { employeeId: regex }, { department: regex }];
+      const regex = new RegExp(escapeRegex(query.search.trim()), 'i');
+      filter.$or = [
+        { employeeName: regex },
+        { employeeId: regex },
+        { department: regex },
+        { designation: regex },
+      ];
     }
 
-    const page = parseInt(query.page, 10) || 1;
-    const limit = parseInt(query.limit, 10) || 50;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = sanitizePagination({ page: query.page, limit: query.limit });
 
     const [items, total, statsAgg] = await Promise.all([
       PerformanceReview.find(filter).sort({ reviewDate: -1 }).skip(skip).limit(limit),
@@ -328,6 +334,64 @@ class HRRepository {
 
   async deletePerformanceReview(schoolId, id) {
     return PerformanceReview.findOneAndDelete({ schoolId, _id: id });
+  }
+
+  // ==========================================
+  // EMPLOYEE DOCUMENTS
+  // ==========================================
+  async createDocument(schoolId, data) {
+    return EmployeeDocument.create({ ...data, schoolId });
+  }
+
+  async listEmployeeDocuments(schoolId, query = {}) {
+    const filter = { schoolId };
+    if (query.employeeRefId) filter.employeeRefId = query.employeeRefId;
+    if (query.documentType && query.documentType !== 'ALL') {
+      filter.documentType = query.documentType;
+    }
+    if (query.status && query.status !== 'ALL') {
+      filter.verificationStatus = query.status.toUpperCase();
+    }
+    if (query.search?.trim()) {
+      const regex = new RegExp(escapeRegex(query.search.trim()), 'i');
+      filter.$or = [
+        { employeeName: regex },
+        { employeeId: regex },
+        { department: regex },
+        { documentName: regex },
+        { documentType: regex },
+      ];
+    }
+
+    const { page, limit, skip } = sanitizePagination({ page: query.page, limit: query.limit });
+
+    const [items, total] = await Promise.all([
+      EmployeeDocument.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      EmployeeDocument.countDocuments(filter),
+    ]);
+
+    return {
+      items: items.map((i) => i.toPublicJSON()),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async findDocumentById(schoolId, id) {
+    return EmployeeDocument.findOne({ schoolId, _id: id });
+  }
+
+  async updateDocumentVerification(schoolId, id, status, verifiedBy = 'HR Admin') {
+    return EmployeeDocument.findOneAndUpdate(
+      { schoolId, _id: id },
+      { $set: { verificationStatus: status.toUpperCase(), verifiedBy } },
+      { new: true }
+    );
+  }
+
+  async deleteDocument(schoolId, id) {
+    return EmployeeDocument.findOneAndDelete({ schoolId, _id: id });
   }
 }
 

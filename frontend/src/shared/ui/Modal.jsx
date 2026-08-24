@@ -57,12 +57,18 @@ export const Modal = ({ isOpen, onClose, title, children, footer, size = 'md', c
             {/* Header */}
             {title && (
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-                <h3 className={cn("text-sm font-bold text-slate-900 dark:text-white leading-tight truncate", titleClassName)}>
-                  {title}
-                </h3>
+                {typeof title === 'string' ? (
+                  <h3 className={cn("text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight truncate", titleClassName)}>
+                    {title}
+                  </h3>
+                ) : (
+                  <div className={cn("flex-1 min-w-0 pr-2", titleClassName)}>
+                    {title}
+                  </div>
+                )}
                 <button
                   onClick={onClose}
-                  className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>

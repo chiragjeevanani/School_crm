@@ -5,7 +5,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
-import { schoolUserApi } from '../../../../shared/api/client';
+import { schoolUserApi, hrApi } from '../../../../shared/api/client';
 import { apiMessage } from '../academics/utils';
 import {
   Briefcase,
@@ -190,8 +190,25 @@ export const UserManagement = () => {
   // Delete Dialog
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  // Department & Designation master data
+  const [departments, setDepartments] = useState([]);
+  const [designations, setDesignations] = useState([]);
+
   const fileInputRef = useRef();
   const docInputRef = useRef();
+
+  useEffect(() => {
+    const loadOptions = async () => {
+      try {
+        const [deptRes, desigRes] = await Promise.all([hrApi.departments(), hrApi.designations()]);
+        setDepartments(deptRes.data || []);
+        setDesignations(desigRes.data || []);
+      } catch {
+        // Non-blocking: department/designation master data is optional to load
+      }
+    };
+    loadOptions();
+  }, []);
 
   const loadUsers = useCallback(async (targetPage = page) => {
     setLoading(true);
@@ -301,7 +318,7 @@ export const UserManagement = () => {
 
   const handleSubmitUser = async (e) => {
     e.preventDefault();
-    if (!form.firstName || !form.email || !form.employeeId || !form.role) {
+    if (!form.firstName || !form.email || !form.employeeId || !form.role || !form.department || !form.designation) {
       showToast('Please fill all required fields marked with *', 'error');
       return;
     }
@@ -984,25 +1001,41 @@ export const UserManagement = () => {
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="mb-1 block text-[11px] font-bold text-slate-500">Department</label>
-                <input
-                  type="text"
+                <label className="mb-1 block text-[11px] font-bold text-slate-500">Department *</label>
+                <select
                   value={form.department}
                   onChange={(e) => setForm({ ...form, department: e.target.value })}
-                  placeholder="e.g. Science / Accounts"
+                  required
                   className={inputClass}
-                />
+                >
+                  <option value="">Select department</option>
+                  {departments
+                    .filter((d) => d.status === 'ACTIVE' || d.name === form.department)
+                    .map((d) => (
+                      <option key={d.id} value={d.name}>
+                        {d.name}
+                      </option>
+                    ))}
+                </select>
               </div>
 
               <div>
-                <label className="mb-1 block text-[11px] font-bold text-slate-500">Designation</label>
-                <input
-                  type="text"
+                <label className="mb-1 block text-[11px] font-bold text-slate-500">Designation *</label>
+                <select
                   value={form.designation}
                   onChange={(e) => setForm({ ...form, designation: e.target.value })}
-                  placeholder="e.g. Senior Teacher"
+                  required
                   className={inputClass}
-                />
+                >
+                  <option value="">Select designation</option>
+                  {designations
+                    .filter((d) => d.status === 'ACTIVE' || d.title === form.designation)
+                    .map((d) => (
+                      <option key={d.id} value={d.title}>
+                        {d.title}
+                      </option>
+                    ))}
+                </select>
               </div>
 
               <div>

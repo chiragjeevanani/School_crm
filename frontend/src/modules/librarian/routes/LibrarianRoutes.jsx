@@ -69,7 +69,6 @@ export const LibrarianRoutes = () => {
 
       {/* 8. Reports */}
       <Route path="reports" element={<Reports />} />
-      <Route path="reports/:category" element={<Reports />} />
 
       {/* 9. Notifications */}
       <Route path="notifications" element={<Notifications />} />

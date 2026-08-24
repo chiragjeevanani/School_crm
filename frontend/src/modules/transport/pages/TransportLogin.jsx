@@ -8,7 +8,7 @@ export const TransportLogin = () => {
   const { login } = useTransportAuth();
   const navigate = useNavigate();
   
-  const [username, setUsername] = useState('transport');
+  const [username, setUsername] = useState('transport@greenfield.edu');
   const [password, setPassword] = useState('transport123');
   const [email, setEmail] = useState('');
   const [view, setView] = useState('login'); // 'login', 'forgot', 'sent'
@@ -248,16 +248,6 @@ export const TransportLogin = () => {
                   <ArrowLeft className="h-4 w-4" />
                   Back to sign in
                 </button>
-              </div>
-            )}
-
-            {/* Credentials Reminder */}
-            {view === 'login' && (
-              <div className="bg-slate-900/80 p-3.5 border border-slate-800 rounded-xl text-center text-xs">
-                <span className="text-slate-400 block mb-1">Mock Credentials:</span>
-                <code className="text-indigo-400 font-semibold font-mono text-[11px] block">
-                  Email: transport@greenfield.edu | Password: transport123
-                </code>
               </div>
             )}
           </div>

@@ -85,6 +85,25 @@ class BookCopyRepository {
     return copy;
   }
 
+  // Atomically claims ONE currently-AVAILABLE copy of a book and flips it to newStatus in a
+  // single conditional update, so concurrent callers (e.g. two reservation approvals racing
+  // for the last copy) can't both succeed. Returns null if no copy was available to claim.
+  async claimAvailableCopy(schoolId, bookId, newStatus) {
+    const schoolObjId = toObjectId(schoolId);
+    const bookObjId = toObjectId(bookId);
+
+    const copy = await BookCopy.findOneAndUpdate(
+      { schoolId: schoolObjId, bookId: bookObjId, status: 'AVAILABLE' },
+      { $set: { status: newStatus } },
+      { new: true }
+    ).populate('bookId', 'title author category isbn bookCode price');
+
+    if (copy) {
+      await this.syncBookCopyCounts(schoolId, bookObjId);
+    }
+    return copy;
+  }
+
   async updateCopy(schoolId, id, updates) {
     const copy = await BookCopy.findOneAndUpdate(
       { schoolId: toObjectId(schoolId), _id: toObjectId(id) },

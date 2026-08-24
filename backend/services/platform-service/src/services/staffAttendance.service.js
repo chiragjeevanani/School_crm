@@ -79,11 +79,7 @@ class StaffAttendanceService {
     const monthNum = String(query.month || (now.getMonth() + 1)).padStart(2, '0');
     const monthStr = `${year}-${monthNum}`;
 
-    const records = await staffAttendanceRepository.getMonthlySummary(schoolId, monthStr);
-    return {
-      monthStr,
-      records,
-    };
+    return staffAttendanceRepository.getMonthlySummary(schoolId, monthStr);
   }
 
   async getAttendanceReport(schoolId, query = {}) {

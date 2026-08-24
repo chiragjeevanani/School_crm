@@ -31,8 +31,16 @@ import { CommunicationHub } from '../pages/communication/CommunicationHub';
 import NotificationsIndex from '../pages/notifications/NotificationsIndex';
 import { TransportManagement } from '../pages/transport/TransportManagement';
 import { HostelManagement } from '../pages/hostel/HostelManagement';
-import { LibraryManagement } from '../pages/library/LibraryManagement';
+import { LibraryDashboard } from '../pages/library/LibraryDashboard';
+import { LibraryBooks } from '../pages/library/LibraryBooks';
+import { LibraryCategories } from '../pages/library/LibraryCategories';
+import { LibraryRules } from '../pages/library/LibraryRules';
+import { LibraryReports } from '../pages/library/LibraryReports';
+import { LibrarySettings } from '../pages/library/LibrarySettings';
 import { HRAndPayroll } from '../pages/hr/HRAndPayroll';
+import { DepartmentManagement } from '../pages/hr/DepartmentManagement';
+import { DesignationManagement } from '../pages/hr/DesignationManagement';
+import { PerformanceReviews } from '../pages/hr/PerformanceReviews';
 import { InventoryManagement } from '../pages/inventory/InventoryManagement';
 import { EventsManagement } from '../pages/events/EventsManagement';
 import { ReportsHub } from '../pages/reports/ReportsHub';
@@ -76,8 +84,17 @@ export const SchoolAdminRoutes = () => {
       <Route path="notifications" element={<NotificationsIndex />} />
       <Route path="transport" element={<TransportManagement />} />
       <Route path="hostel" element={<HostelManagement />} />
-      <Route path="library" element={<LibraryManagement />} />
+      <Route path="library" element={<Navigate to="/school-admin/library/dashboard" replace />} />
+      <Route path="library/dashboard" element={<LibraryDashboard />} />
+      <Route path="library/books" element={<LibraryBooks />} />
+      <Route path="library/categories" element={<LibraryCategories />} />
+      <Route path="library/rules" element={<LibraryRules />} />
+      <Route path="library/reports" element={<LibraryReports />} />
+      <Route path="library/settings" element={<LibrarySettings />} />
       <Route path="hr" element={<HRAndPayroll />} />
+      <Route path="hr/departments" element={<DepartmentManagement />} />
+      <Route path="hr/designations" element={<DesignationManagement />} />
+      <Route path="hr/reviews" element={<PerformanceReviews />} />
       <Route path="inventory" element={<InventoryManagement />} />
       <Route path="events" element={<EventsManagement />} />
       <Route path="reports" element={<ReportsHub />} />

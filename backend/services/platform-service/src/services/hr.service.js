@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { AppError } from '../../../shared/AppError.js';
+import { escapeRegex, sanitizePagination } from '../../../shared/sanitize.js';
 import { hrRepository } from '../repositories/hr.repository.js';
 import { SchoolUser } from '../models/SchoolUser.js';
 import { Teacher } from '../models/Teacher.js';
@@ -8,6 +9,8 @@ import { StaffAttendance } from '../models/StaffAttendance.js';
 import { Payroll } from '../models/Payroll.js';
 import { PlatformNotification } from '../models/PlatformNotification.js';
 import { School } from '../models/School.js';
+import { EmployeeDocument } from '../models/EmployeeDocument.js';
+import { deleteUploadedFile } from '../utils/upload.utils.js';
 
 function normalizeTeacher(teacher) {
   const firstName = teacher.firstName || teacher.name?.split(' ')[0] || '';
@@ -31,6 +34,8 @@ function normalizeTeacher(teacher) {
     });
   }
 
+  const qualSummary = teacher.qualifications?.map((q) => q.degree).filter(Boolean).join(', ') || '';
+
   return {
     id: teacher._id.toString(),
     sourceCollection: 'Teacher',
@@ -42,15 +47,26 @@ function normalizeTeacher(teacher) {
     lastName,
     email: teacher.email || teacher.account?.loginEmail || '',
     phone: teacher.mobileNumber || teacher.phone || '',
+    alternatePhone: teacher.alternateMobile || '',
     gender: teacher.gender || 'MALE',
-    dateOfBirth: teacher.dateOfBirth,
+    dateOfBirth: teacher.dateOfBirth || null,
+    bloodGroup: teacher.bloodGroup || '',
+    maritalStatus: teacher.maritalStatus || '',
+    nationality: teacher.nationality || 'Indian',
+    address: teacher.address || { addressLine: '', city: '', state: '', country: 'India', pincode: '' },
+    specialization: teacher.specialization || '',
+    qualification: qualSummary,
+    experienceSummary: teacher.experienceSummary || '',
+    employmentType: teacher.employmentType || 'FULL_TIME',
     joiningDate: teacher.joiningDate,
     department: teacher.department || 'Academic',
     departmentId: null,
     designation: teacher.designation || 'Teacher',
     designationId: null,
     basicSalary: teacher.payroll?.basicSalary || 0,
-    status: teacher.status || 'ACTIVE',
+    pan: teacher.payroll?.pan || '',
+    uan: teacher.payroll?.uan || '',
+    status: teacher.status || 'PENDING_APPROVAL',
     documents: docs,
     photo: teacher.profilePhoto || '',
     qualifications: teacher.qualifications || [],
@@ -94,20 +110,32 @@ function normalizeSchoolUser(user) {
     lastName: user.lastName || '',
     email: user.email || '',
     phone: user.phone || '',
+    alternatePhone: '',
     gender: user.gender || 'MALE',
-    dateOfBirth: null,
+    dateOfBirth: user.dateOfBirth || null,
+    bloodGroup: user.bloodGroup || '',
+    maritalStatus: user.maritalStatus || '',
+    nationality: user.nationality || 'Indian',
+    address: user.address || { addressLine: '', city: '', state: '', country: 'India', pincode: '' },
+    specialization: user.specialization || '',
+    qualification: user.qualification || '',
+    experienceSummary: user.experienceSummary || '',
+    employmentType: user.employmentType || 'FULL_TIME',
     joiningDate: user.joiningDate,
     department: user.department || 'Administration',
     departmentId: null,
     designation: user.designation || user.role,
     designationId: null,
+    role: user.role,
     basicSalary: user.basicSalary || 0,
-    status: user.status || 'ACTIVE',
+    pan: user.pan || '',
+    uan: user.uan || '',
+    status: user.status || 'PENDING_APPROVAL',
     documents: docs,
     photo: user.photo || '',
-    qualifications: [],
-    experiences: [],
-    emergencyContact: {
+    qualifications: user.qualification ? [{ degree: user.qualification }] : [],
+    experiences: user.experienceSummary ? [{ description: user.experienceSummary }] : [],
+    emergencyContact: user.emergencyContact || {
       name: '',
       phone: '',
       relationship: '',
@@ -216,7 +244,7 @@ class HRService {
       filter.status = query.status.toUpperCase();
     }
     if (query.department && query.department !== 'ALL') {
-      filter.department = new RegExp(`^${query.department}$`, 'i');
+      filter.department = new RegExp(`^${escapeRegex(query.department)}$`, 'i');
     }
 
     const [staffUsers, teachers] = await Promise.all([
@@ -246,9 +274,7 @@ class HRService {
       );
     }
 
-    const page = parseInt(query.page, 10) || 1;
-    const limit = parseInt(query.limit, 10) || 50;
-    const start = (page - 1) * limit;
+    const { page, limit, skip: start } = sanitizePagination({ page: query.page, limit: query.limit });
     const paginated = merged.slice(start, start + limit);
 
     return {
@@ -279,7 +305,8 @@ class HRService {
     const email = (payload.email || '').trim().toLowerCase();
     if (!email) throw new AppError('Employee email is required', 400);
 
-    const employeeId = (payload.employeeId || `EMP-${Date.now().toString().slice(-4)}`).trim();
+    const employeeId = (payload.employeeId || `${employeeType === 'TEACHER' ? 'TCH' : 'STF'}-${Date.now().toString().slice(-4)}`).trim();
+    const status = (payload.status || 'PENDING_APPROVAL').toUpperCase();
 
     if (employeeType === 'TEACHER') {
       const existing = await Teacher.findOne({ schoolId, $or: [{ email }, { employeeId }] });
@@ -294,12 +321,32 @@ class HRService {
         email,
         phone: payload.phone || '',
         mobileNumber: payload.phone || '',
+        alternateMobile: payload.alternatePhone || '',
         gender: payload.gender || 'MALE',
+        dateOfBirth: payload.dateOfBirth ? new Date(payload.dateOfBirth) : null,
+        bloodGroup: payload.bloodGroup || '',
+        maritalStatus: payload.maritalStatus || '',
+        nationality: payload.nationality || 'Indian',
+        address: payload.address || { addressLine: '', city: '', state: '', country: 'India', pincode: '' },
         department: payload.department || 'Academic',
         designation: payload.designation || 'Teacher',
+        specialization: payload.specialization || '',
+        employmentType: payload.employmentType || 'FULL_TIME',
+        experienceSummary: payload.experienceSummary || '',
+        qualifications: payload.qualification
+          ? [{ degree: payload.qualification, specialization: payload.specialization || '', passingYear: null, institution: '' }]
+          : payload.qualifications || [],
         joiningDate: payload.joiningDate ? new Date(payload.joiningDate) : new Date(),
-        status: payload.status || 'ACTIVE',
+        status,
         profilePhoto: payload.photo || '',
+        documents: {
+          aadhaar: payload.uploadedDocuments?.aadhaar || [],
+          others: payload.uploadedDocuments?.others || [],
+          pan: payload.uploadedDocuments?.pan || [],
+        },
+        emergencyContactName: payload.emergencyContact?.name || payload.emergencyContactName || '',
+        emergencyContactNumber: payload.emergencyContact?.phone || payload.emergencyContactNumber || '',
+        emergencyContactRelationship: payload.emergencyContact?.relationship || payload.emergencyContactRelationship || '',
         payroll: {
           basicSalary: Number(payload.basicSalary) || 0,
           accountHolderName: payload.bankDetails?.accountName || name,
@@ -307,8 +354,27 @@ class HRService {
           ifsc: payload.bankDetails?.ifscCode || '',
           bankName: payload.bankDetails?.bankName || '',
           branch: payload.bankDetails?.branchName || '',
+          pan: payload.pan || '',
+          uan: payload.uan || '',
+          salaryType: 'MONTHLY',
+        },
+        account: {
+          createLoginAccount: Boolean(payload.password),
+          loginEmail: email,
+          accountStatus: status === 'ACTIVE' ? 'ACTIVE' : 'PENDING',
         },
       });
+
+      try {
+        await PlatformNotification.create({
+          schoolId,
+          title: 'New Faculty Registered',
+          message: `Teacher ${name} registered. Status: ${status === 'ACTIVE' ? 'Active' : 'Pending Admin Approval'}.`,
+          type: 'TEACHER',
+          read: false,
+        });
+      } catch {}
+
       return normalizeTeacher(teacher);
     } else {
       const existing = await SchoolUser.findOne({ schoolId, $or: [{ email }, { employeeId }] });
@@ -333,16 +399,48 @@ class HRService {
         email,
         phone: payload.phone || '',
         gender: payload.gender || 'MALE',
+        dateOfBirth: payload.dateOfBirth ? new Date(payload.dateOfBirth) : null,
+        bloodGroup: payload.bloodGroup || '',
+        maritalStatus: payload.maritalStatus || '',
+        nationality: payload.nationality || 'Indian',
+        address: payload.address || { addressLine: '', city: '', state: '', country: 'India', pincode: '' },
+        specialization: payload.specialization || '',
+        qualification: payload.qualification || '',
+        experienceSummary: payload.experienceSummary || '',
+        employmentType: payload.employmentType || 'FULL_TIME',
         department: payload.department || 'Administration',
         designation: payload.designation || 'Staff',
         role: normalizedRole,
         joiningDate: payload.joiningDate ? new Date(payload.joiningDate) : new Date(),
         basicSalary: Number(payload.basicSalary) || 0,
-        status: payload.status || 'ACTIVE',
+        pan: payload.pan || '',
+        uan: payload.uan || '',
+        status,
         photo: payload.photo || '',
+        documents: [
+          ...(Array.isArray(payload.documents) ? payload.documents : []),
+          ...(payload.uploadedDocuments?.aadhaar || []),
+          ...(payload.uploadedDocuments?.others || []),
+        ],
         passwordHash,
+        emergencyContact: payload.emergencyContact || {
+          name: payload.emergencyContactName || '',
+          phone: payload.emergencyContactNumber || '',
+          relationship: payload.emergencyContactRelationship || '',
+        },
         bankDetails: payload.bankDetails || {},
       });
+
+      try {
+        await PlatformNotification.create({
+          schoolId,
+          title: 'New Staff Member Registered',
+          message: `Staff ${name} registered. Status: ${status === 'ACTIVE' ? 'Active' : 'Pending Admin Approval'}.`,
+          type: 'STAFF',
+          read: false,
+        });
+      } catch {}
+
       return normalizeSchoolUser(user);
     }
   }
@@ -358,12 +456,38 @@ class HRService {
       if (payload.email) staff.email = payload.email.toLowerCase();
       if (payload.phone !== undefined) staff.phone = payload.phone;
       if (payload.gender) staff.gender = payload.gender;
+      if (payload.dateOfBirth !== undefined) staff.dateOfBirth = payload.dateOfBirth ? new Date(payload.dateOfBirth) : null;
+      if (payload.bloodGroup !== undefined) staff.bloodGroup = payload.bloodGroup;
+      if (payload.maritalStatus !== undefined) staff.maritalStatus = payload.maritalStatus;
+      if (payload.nationality !== undefined) staff.nationality = payload.nationality;
+      if (payload.address !== undefined) staff.address = payload.address;
+      if (payload.specialization !== undefined) staff.specialization = payload.specialization;
+      if (payload.qualification !== undefined) staff.qualification = payload.qualification;
+      if (payload.experienceSummary !== undefined) staff.experienceSummary = payload.experienceSummary;
+      if (payload.employmentType !== undefined) staff.employmentType = payload.employmentType;
       if (payload.department) staff.department = payload.department;
       if (payload.designation) staff.designation = payload.designation;
       if (payload.basicSalary !== undefined) staff.basicSalary = Number(payload.basicSalary);
+      if (payload.pan !== undefined) staff.pan = payload.pan;
+      if (payload.uan !== undefined) staff.uan = payload.uan;
       if (payload.status) staff.status = payload.status;
       if (payload.photo !== undefined) staff.photo = payload.photo;
+      if (payload.uploadedDocuments?.aadhaar?.length || payload.uploadedDocuments?.others?.length || payload.documentsKeep) {
+        const keepDocs = Array.isArray(payload.documentsKeep) ? payload.documentsKeep : (staff.documents || []);
+        staff.documents = [
+          ...keepDocs,
+          ...(payload.uploadedDocuments?.aadhaar || []),
+          ...(payload.uploadedDocuments?.others || []),
+        ];
+      }
       if (payload.bankDetails) staff.bankDetails = payload.bankDetails;
+      if (payload.emergencyContact) {
+        staff.emergencyContact = {
+          name: payload.emergencyContact.name || '',
+          phone: payload.emergencyContact.phone || '',
+          relationship: payload.emergencyContact.relationship || '',
+        };
+      }
       if (payload.joiningDate) staff.joiningDate = new Date(payload.joiningDate);
       if (payload.password) staff.passwordHash = await bcrypt.hash(payload.password, 10);
 
@@ -383,13 +507,36 @@ class HRService {
         teacher.phone = payload.phone;
         teacher.mobileNumber = payload.phone;
       }
+      if (payload.alternatePhone !== undefined) teacher.alternateMobile = payload.alternatePhone;
       if (payload.gender) teacher.gender = payload.gender;
+      if (payload.dateOfBirth !== undefined) teacher.dateOfBirth = payload.dateOfBirth ? new Date(payload.dateOfBirth) : null;
+      if (payload.bloodGroup !== undefined) teacher.bloodGroup = payload.bloodGroup;
+      if (payload.maritalStatus !== undefined) teacher.maritalStatus = payload.maritalStatus;
+      if (payload.nationality !== undefined) teacher.nationality = payload.nationality;
+      if (payload.address !== undefined) teacher.address = payload.address;
       if (payload.department) teacher.department = payload.department;
       if (payload.designation) teacher.designation = payload.designation;
+      if (payload.specialization !== undefined) teacher.specialization = payload.specialization;
+      if (payload.employmentType !== undefined) teacher.employmentType = payload.employmentType;
+      if (payload.experienceSummary !== undefined) teacher.experienceSummary = payload.experienceSummary;
       if (payload.status) teacher.status = payload.status;
       if (payload.photo !== undefined) teacher.profilePhoto = payload.photo;
+      if (payload.uploadedDocuments || payload.documentsKeep) {
+        const keepAadhaar = payload.documentsKeep?.aadhaar || teacher.documents?.aadhaar || [];
+        const keepOthers = payload.documentsKeep?.others || teacher.documents?.others || [];
+        teacher.documents = {
+          aadhaar: [...keepAadhaar, ...(payload.uploadedDocuments?.aadhaar || [])],
+          others: [...keepOthers, ...(payload.uploadedDocuments?.others || [])],
+          pan: teacher.documents?.pan || [],
+        };
+      }
+      if (payload.emergencyContact) {
+        teacher.emergencyContactName = payload.emergencyContact.name || '';
+        teacher.emergencyContactNumber = payload.emergencyContact.phone || '';
+        teacher.emergencyContactRelationship = payload.emergencyContact.relationship || '';
+      }
       if (payload.joiningDate) teacher.joiningDate = new Date(payload.joiningDate);
-      if (payload.basicSalary !== undefined || payload.bankDetails) {
+      if (payload.basicSalary !== undefined || payload.bankDetails || payload.pan !== undefined || payload.uan !== undefined) {
         teacher.payroll = {
           ...teacher.payroll,
           basicSalary: payload.basicSalary !== undefined ? Number(payload.basicSalary) : teacher.payroll?.basicSalary,
@@ -398,6 +545,8 @@ class HRService {
           ifsc: payload.bankDetails?.ifscCode || teacher.payroll?.ifsc,
           bankName: payload.bankDetails?.bankName || teacher.payroll?.bankName,
           branch: payload.bankDetails?.branchName || teacher.payroll?.branch,
+          pan: payload.pan !== undefined ? payload.pan : teacher.payroll?.pan,
+          uan: payload.uan !== undefined ? payload.uan : teacher.payroll?.uan,
         };
       }
 
@@ -409,7 +558,7 @@ class HRService {
   }
 
   async updateEmployeeStatus(schoolId, id, status) {
-    const validStatus = ['ACTIVE', 'INACTIVE'];
+    const validStatus = ['ACTIVE', 'INACTIVE', 'PENDING_APPROVAL', 'PENDING', 'REJECTED', 'ON_LEAVE', 'SUSPENDED'];
     if (!validStatus.includes(status.toUpperCase())) {
       throw new AppError('Invalid status', 400);
     }
@@ -427,6 +576,92 @@ class HRService {
       { new: true }
     );
     if (teacher) return normalizeTeacher(teacher);
+
+    throw new AppError('Employee not found', 404);
+  }
+
+  async approveEmployee(schoolId, id, reviewer = {}) {
+    const staff = await SchoolUser.findOne({ schoolId, _id: id });
+    if (staff) {
+      staff.status = 'ACTIVE';
+      await staff.save();
+
+      try {
+        await PlatformNotification.create({
+          schoolId,
+          title: 'Staff Member Approved',
+          message: `${staff.name} (${staff.designation || staff.role}) has been verified & approved by administration.`,
+          type: 'STAFF',
+          read: false,
+        });
+      } catch {}
+
+      return normalizeSchoolUser(staff);
+    }
+
+    const teacher = await Teacher.findOne({ schoolId, _id: id });
+    if (teacher) {
+      teacher.status = 'ACTIVE';
+      if (teacher.account) {
+        teacher.account.accountStatus = 'ACTIVE';
+      }
+      await teacher.save();
+
+      try {
+        await PlatformNotification.create({
+          schoolId,
+          title: 'Faculty Member Approved',
+          message: `Teacher ${teacher.name} (${teacher.department || 'Academic'}) has been verified & approved by administration.`,
+          type: 'TEACHER',
+          read: false,
+        });
+      } catch {}
+
+      return normalizeTeacher(teacher);
+    }
+
+    throw new AppError('Employee not found', 404);
+  }
+
+  async rejectEmployee(schoolId, id, reason = '', reviewer = {}) {
+    const staff = await SchoolUser.findOne({ schoolId, _id: id });
+    if (staff) {
+      staff.status = 'REJECTED';
+      await staff.save();
+
+      try {
+        await PlatformNotification.create({
+          schoolId,
+          title: 'Staff Registration Rejected',
+          message: `Registration for ${staff.name} was rejected. Reason: ${reason || 'Administrative discretion.'}`,
+          type: 'STAFF',
+          read: false,
+        });
+      } catch {}
+
+      return normalizeSchoolUser(staff);
+    }
+
+    const teacher = await Teacher.findOne({ schoolId, _id: id });
+    if (teacher) {
+      teacher.status = 'REJECTED';
+      if (teacher.account) {
+        teacher.account.accountStatus = 'INACTIVE';
+      }
+      await teacher.save();
+
+      try {
+        await PlatformNotification.create({
+          schoolId,
+          title: 'Faculty Registration Rejected',
+          message: `Registration for Teacher ${teacher.name} was rejected. Reason: ${reason || 'Administrative discretion.'}`,
+          type: 'TEACHER',
+          read: false,
+        });
+      } catch {}
+
+      return normalizeTeacher(teacher);
+    }
 
     throw new AppError('Employee not found', 404);
   }
@@ -652,29 +887,147 @@ class HRService {
   // ==========================================
   // DOCUMENTS MANAGEMENT
   // ==========================================
-  async listDocuments(schoolId) {
-    const employees = await this.listEmployees(schoolId, { limit: 200 });
-    const allDocs = [];
+  async listDocuments(schoolId, query = {}) {
+    const sId = new mongoose.Types.ObjectId(schoolId);
+    
+    // 1. Fetch from EmployeeDocument collection
+    const docsResult = await hrRepository.listEmployeeDocuments(schoolId, { ...query, limit: 500 });
+    const allDocs = [...docsResult.items];
 
-    employees.items.forEach((emp) => {
-      (emp.documents || []).forEach((doc) => {
-        allDocs.push({
-          id: `${emp.id}-${doc.id}`,
-          employeeId: emp.employeeId,
-          employeeRefId: emp.id,
-          employeeName: emp.name,
-          employeeType: emp.employeeType,
-          department: emp.department,
-          documentType: doc.type,
-          documentName: doc.name,
-          url: doc.url,
-          uploadedAt: doc.uploadedAt,
-          status: 'VERIFIED',
+    // 2. Also incorporate legacy attached documents from SchoolUser / Teacher if not already present
+    if (!query.documentType || query.documentType === 'ALL') {
+      const employees = await this.listEmployees(schoolId, { limit: 200 });
+      employees.items.forEach((emp) => {
+        (emp.documents || []).forEach((doc) => {
+          const docId = `legacy-${emp.id}-${doc.id || doc.name}`;
+          if (!allDocs.some((d) => d.fileUrl === doc.url || d.url === doc.url)) {
+            allDocs.push({
+              id: docId,
+              employeeId: emp.employeeId,
+              employeeRefId: emp.id,
+              employeeName: emp.name,
+              employeeType: emp.employeeType,
+              department: emp.department,
+              documentType: doc.type || 'Identity Proof',
+              documentName: doc.name || 'Document',
+              url: doc.url,
+              fileUrl: doc.url,
+              fileSize: 0,
+              verificationStatus: 'VERIFIED',
+              status: 'VERIFIED',
+              verifiedBy: 'System',
+              remarks: 'Legacy Master Profile Document',
+              uploadedAt: doc.uploadedAt || emp.createdAt,
+            });
+          }
         });
       });
+    }
+
+    // Apply search filter on combined list if present
+    let filtered = allDocs;
+    if (query.search?.trim()) {
+      const q = query.search.trim().toLowerCase();
+      filtered = filtered.filter(
+        (d) =>
+          (d.employeeName || '').toLowerCase().includes(q) ||
+          (d.employeeId || '').toLowerCase().includes(q) ||
+          (d.documentType || '').toLowerCase().includes(q) ||
+          (d.documentName || '').toLowerCase().includes(q) ||
+          (d.department || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (query.status && query.status !== 'ALL') {
+      filtered = filtered.filter((d) => d.verificationStatus === query.status.toUpperCase());
+    }
+
+    if (query.documentType && query.documentType !== 'ALL') {
+      filtered = filtered.filter((d) => d.documentType === query.documentType);
+    }
+
+    return filtered;
+  }
+
+  async uploadDocument(schoolId, payload = {}, fileUrl) {
+    if (!payload.employeeRefId) {
+      throw new AppError('Employee ID is required for document upload', 400);
+    }
+    if (!fileUrl) {
+      throw new AppError('File document is required', 400);
+    }
+
+    let employee = null;
+    let employeeType = 'STAFF';
+
+    const staff = await SchoolUser.findOne({ schoolId, _id: payload.employeeRefId });
+    if (staff) {
+      employee = staff;
+      employeeType = 'STAFF';
+    } else {
+      const teacher = await Teacher.findOne({ schoolId, _id: payload.employeeRefId });
+      if (teacher) {
+        employee = teacher;
+        employeeType = 'TEACHER';
+      }
+    }
+
+    if (!employee) {
+      throw new AppError('Employee record not found for document upload', 404);
+    }
+
+    const employeeName = employee.name || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Staff';
+    const employeeId = employee.employeeId || `EMP-${employee._id.toString().slice(-4)}`;
+    const department = employee.department || employee.employmentDetails?.department || 'General';
+
+    const doc = await hrRepository.createDocument(schoolId, {
+      employeeRefId: employee._id,
+      employeeType,
+      employeeId,
+      employeeName,
+      department,
+      documentType: payload.documentType || 'Identity Proof',
+      documentName: payload.documentName || 'Staff Document',
+      fileUrl,
+      fileSize: payload.fileSize || 0,
+      verificationStatus: payload.verificationStatus || 'VERIFIED',
+      verifiedBy: payload.verifiedBy || 'HR Admin',
+      remarks: payload.remarks || '',
     });
 
-    return allDocs;
+    return doc.toPublicJSON();
+  }
+
+  async verifyDocument(schoolId, id, status, verifiedBy = 'HR Admin') {
+    const valid = ['VERIFIED', 'PENDING', 'REJECTED'];
+    if (!valid.includes((status || '').toUpperCase())) {
+      throw new AppError('Invalid verification status', 400);
+    }
+
+    const updated = await hrRepository.updateDocumentVerification(schoolId, id, status, verifiedBy);
+    if (!updated) {
+      throw new AppError('Document record not found', 404);
+    }
+    return updated.toPublicJSON();
+  }
+
+  async deleteDocument(schoolId, id) {
+    // If legacy id, reject deletion or handle gracefully
+    if (String(id).startsWith('legacy-')) {
+      return { success: true, message: 'Legacy reference cleared from view.' };
+    }
+
+    const doc = await hrRepository.findDocumentById(schoolId, id);
+    if (!doc) {
+      throw new AppError('Document not found', 404);
+    }
+
+    if (doc.fileUrl) {
+      deleteUploadedFile(doc.fileUrl);
+    }
+
+    await hrRepository.deleteDocument(schoolId, id);
+    return { success: true, message: 'Document removed from locker successfully.' };
   }
 
   // ==========================================

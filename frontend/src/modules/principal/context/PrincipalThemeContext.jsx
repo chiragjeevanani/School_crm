@@ -1,25 +1,40 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useLayoutEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const PrincipalThemeContext = createContext();
 
+function applyThemeClass(isDark) {
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+    localStorage.setItem('principal-theme', 'dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('principal-theme', 'light');
+  }
+}
+
 export const PrincipalThemeProvider = ({ children }) => {
+  const location = useLocation();
+  const isPrincipal = location.pathname.startsWith('/principal');
+
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('principal-theme');
     return saved ? saved === 'dark' : false;
   });
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-    if (darkMode) {
-      root.classList.add('dark');
-      localStorage.setItem('principal-theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem('principal-theme', 'light');
+  useLayoutEffect(() => {
+    if (isPrincipal) {
+      applyThemeClass(darkMode);
     }
-  }, [darkMode]);
+  }, [isPrincipal, darkMode]);
 
-  const toggleTheme = () => setDarkMode(!darkMode);
+  const toggleTheme = useCallback(() => {
+    setDarkMode((prev) => {
+      const next = !prev;
+      if (isPrincipal) applyThemeClass(next);
+      return next;
+    });
+  }, [isPrincipal]);
 
   return (
     <PrincipalThemeContext.Provider value={{ darkMode, toggleTheme }}>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Dashboard } from '../pages/Dashboard';
+import { TeacherManagement } from '../pages/teachers/TeacherManagement';
+import { StaffManagement } from '../pages/staff/StaffManagement';
 import { EmployeeList } from '../pages/employees/EmployeeList';
 import { EmployeeDetail } from '../pages/employees/EmployeeDetail';
 import { AddEditEmployee } from '../pages/employees/AddEditEmployee';
@@ -21,7 +23,9 @@ export const HRRoutes = () => {
   return (
     <Routes>
       <Route path="dashboard" element={<Dashboard />} />
-      <Route path="employees" element={<EmployeeList />} />
+      <Route path="teachers" element={<TeacherManagement />} />
+      <Route path="staff" element={<StaffManagement />} />
+      <Route path="employees" element={<Navigate to="/hr/teachers" replace />} />
       <Route path="employees/new" element={<AddEditEmployee />} />
       <Route path="employees/:id" element={<EmployeeDetail />} />
       <Route path="employees/:id/edit" element={<AddEditEmployee />} />

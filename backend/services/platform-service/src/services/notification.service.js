@@ -142,7 +142,7 @@ export class NotificationService {
     };
   }
 
-  async inbox({ role, schoolId }) {
+  async inbox({ role, schoolId, userId }) {
     const normalizedRole = role === 'admin' ? 'school-admin' : role;
     if (!DEVICE_ROLES.includes(normalizedRole)) {
       throw new AppError(`Role must be one of: ${DEVICE_ROLES.join(', ')}`, 400);
@@ -151,6 +151,7 @@ export class NotificationService {
     const items = await notificationRepository.inbox({
       role: normalizedRole,
       schoolIds: schoolIdVariants(typeof schoolId === 'string' ? schoolId.trim() : ''),
+      userId: typeof userId === 'string' ? userId.trim() : '',
     });
     return items.map((item) => item.toPublicJSON());
   }
@@ -191,9 +192,14 @@ export class NotificationService {
       }
     }
 
+    const recipientRefIds = Array.isArray(payload?.recipientRefIds)
+      ? [...new Set(payload.recipientRefIds.map(String).filter(Boolean))]
+      : [];
+
     const devices = await notificationRepository.findTokens({
       roles: audiences,
       schoolIds: schoolIdVariants(school?.schoolId || ''),
+      userIds: recipientRefIds.length ? recipientRefIds : undefined,
     });
     const tokens = devices.map((device) => device.token);
 
@@ -204,6 +210,7 @@ export class NotificationService {
       title,
       body,
       audiences,
+      recipientRefIds,
       schoolId: school?.schoolId || '',
       schoolName: school?.name || '',
       createdBy,

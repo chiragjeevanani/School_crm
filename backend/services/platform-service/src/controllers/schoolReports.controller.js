@@ -15,8 +15,19 @@ export async function getSchoolReportsSummary(req, res, next) {
 
 export async function getCategoryReportData(req, res, next) {
   try {
-    const data = await schoolReportsService.getCategoryReport(schoolId(req), req.query?.category || 'students', req.query);
-    res.json({ success: true, data });
+    const result = await schoolReportsService.getCategoryReport(
+      schoolId(req),
+      req.query?.category || 'students',
+      req.query
+    );
+    res.json({
+      success: true,
+      data: result.data,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      stats: result.stats || null,
+    });
   } catch (error) {
     next(error);
   }
